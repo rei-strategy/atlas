@@ -42,7 +42,7 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/clients', require('./routes/clients'));
-// app.use('/api/trips', require('./routes/trips'));
+app.use('/api/trips', require('./routes/trips'));
 // app.use('/api/tasks', require('./routes/tasks'));
 // app.use('/api/bookings', require('./routes/bookings'));
 // app.use('/api/commissions', require('./routes/commissions'));
@@ -56,7 +56,7 @@ app.use('/api/clients', require('./routes/clients'));
 // app.use('/api/settings', require('./routes/settings'));
 // app.use('/api/search', require('./routes/search'));
 app.use('/api/users', require('./routes/users'));
-// app.use('/api/portal', require('./routes/portal'));
+app.use('/api/portal', require('./routes/portal'));
 // app.use('/api/audit-logs', require('./routes/auditLogs'));
 
 // 404 handler
