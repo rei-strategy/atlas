@@ -14,7 +14,7 @@ const navItems = [
         <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor', 'support_assistant', 'marketing']
+    roles: ['admin', 'planner', 'planner_advisor', 'support', 'support_assistant', 'marketing']
   },
   {
     path: '/clients',
@@ -25,7 +25,7 @@ const navItems = [
         <path d="M3 17.5C3 14.4624 5.46243 12 8.5 12H11.5C14.5376 12 17 14.4624 17 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor', 'support_assistant', 'marketing']
+    roles: ['admin', 'planner', 'planner_advisor', 'support', 'support_assistant', 'marketing']
   },
   {
     path: '/trips',
@@ -35,7 +35,7 @@ const navItems = [
         <path d="M10 2L13 8H17L14 12L15 18L10 15L5 18L6 12L3 8H7L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor', 'support_assistant']
+    roles: ['admin', 'planner', 'planner_advisor', 'support', 'support_assistant']
   },
   {
     path: '/tasks',
@@ -46,7 +46,7 @@ const navItems = [
         <path d="M7 10L9 12L13 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor', 'support_assistant']
+    roles: ['admin', 'planner', 'planner_advisor', 'support', 'support_assistant']
   },
   {
     path: '/commissions',
@@ -57,7 +57,7 @@ const navItems = [
         <path d="M10 6V14M7.5 8.5H11.5C12.3284 8.5 13 9.17157 13 10C13 10.8284 12.3284 11.5 11.5 11.5H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor']
+    roles: ['admin', 'planner', 'planner_advisor']
   },
   {
     path: '/reports',
@@ -69,7 +69,7 @@ const navItems = [
         <path d="M7 12H13M7 15H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor']
+    roles: ['admin', 'planner', 'planner_advisor']
   },
   {
     path: '/email-templates',
@@ -80,7 +80,7 @@ const navItems = [
         <path d="M2 6L10 11L18 6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
       </svg>
     ),
-    roles: ['admin', 'planner_advisor']
+    roles: ['admin', 'planner', 'planner_advisor']
   },
   {
     path: '/settings',

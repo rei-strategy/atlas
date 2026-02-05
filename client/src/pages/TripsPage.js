@@ -1133,6 +1133,429 @@ function CommissionsTab({ tripId, token }) {
   );
 }
 
+/* =================== DOCUMENT TYPES =================== */
+const DOCUMENT_TYPES = [
+  { value: 'contract', label: 'Contract' },
+  { value: 'invoice', label: 'Invoice' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'itinerary', label: 'Itinerary' },
+  { value: 'confirmation', label: 'Confirmation' },
+  { value: 'authorization', label: 'Authorization' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'other', label: 'Other' }
+];
+
+/* =================== DOCUMENT UPLOAD MODAL =================== */
+function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [form, setForm] = useState({
+    documentType: 'other',
+    isSensitive: false,
+    isClientVisible: false
+  });
+  const fileInputRef = React.useRef();
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFile(null);
+      setForm({ documentType: 'other', isSensitive: false, isClientVisible: false });
+      setError('');
+    }
+  }, [isOpen]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('File size must be less than 10MB');
+        return;
+      }
+      setSelectedFile(file);
+      setError('');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!selectedFile) {
+      setError('Please select a file to upload');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('documentType', form.documentType);
+      formData.append('isSensitive', form.isSensitive.toString());
+      formData.append('isClientVisible', form.isClientVisible.toString());
+
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload document');
+      }
+
+      addToast('Document uploaded successfully', 'success');
+      onUploaded(data.document);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Upload Document</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <div className="auth-error">{error}</div>}
+
+            <div className="form-group">
+              <label className="form-label">Select File *</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif"
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: selectedFile ? 'var(--bg-secondary, #f8f9fa)' : 'transparent'
+                }}
+              >
+                {selectedFile ? (
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{selectedFile.name}</span>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                      </svg>
+                    </div>
+                    <span style={{ color: 'var(--color-primary, #1a56db)', fontWeight: 500 }}>Click to select a file</span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      PDF, Word, Excel, images, or text (max 10MB)
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="documentType">Document Type</label>
+              <select
+                id="documentType"
+                name="documentType"
+                className="form-input"
+                value={form.documentType}
+                onChange={handleChange}
+              >
+                {DOCUMENT_TYPES.map(dt => (
+                  <option key={dt.value} value={dt.value}>{dt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  name="isClientVisible"
+                  checked={form.isClientVisible}
+                  onChange={handleChange}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>Visible to client (in customer portal)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  name="isSensitive"
+                  checked={form.isSensitive}
+                  onChange={handleChange}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>Sensitive document (passport, ID, etc.)</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading || !selectedFile}>
+              {loading ? 'Uploading...' : 'Upload Document'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* =================== DOCUMENTS TAB =================== */
+function DocumentsTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDocuments(data.documents || []);
+      }
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, token]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  const handleDocumentUploaded = (doc) => {
+    setDocuments(prev => [doc, ...prev]);
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/${doc.id}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to download');
+      }
+
+      // Check if response is JSON (metadata-only) or file
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        addToast(data.message || 'File is metadata-only', 'info');
+        return;
+      }
+
+      // Download the file
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  const handleDelete = async (doc) => {
+    if (!window.confirm(`Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/${doc.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete document');
+      }
+
+      addToast('Document deleted successfully', 'success');
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  const handleToggleVisibility = async (doc) => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/${doc.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isClientVisible: !doc.isClientVisible })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update document');
+      }
+
+      const data = await res.json();
+      addToast(`Document ${data.document.isClientVisible ? 'visible' : 'hidden'} to client`, 'success');
+      setDocuments(prev => prev.map(d => d.id === doc.id ? data.document : d));
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '120px' }}>
+        <div className="loading-spinner" />
+        <p>Loading documents...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0 }}>Documents ({documents.length})</h3>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>
+          + Upload Document
+        </button>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="page-empty-state" style={{ padding: '2rem' }}>
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <line x1="9" y1="15" x2="15" y2="15" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">No documents yet</h3>
+          <p className="empty-state-description">Upload contracts, invoices, itineraries, and other trip documents.</p>
+          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={() => setShowUploadModal(true)}>
+            + Upload First Document
+          </button>
+        </div>
+      ) : (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>Type</th>
+                <th>Visibility</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map(doc => (
+                <tr key={doc.id}>
+                  <td>
+                    <span className="table-user-name">{doc.fileName}</span>
+                    {doc.isSensitive && (
+                      <span className="status-badge status-warning" style={{ marginLeft: '0.5rem', fontSize: '0.625rem' }}>
+                        SENSITIVE
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <span className="status-badge status-neutral">
+                      {DOCUMENT_TYPES.find(dt => dt.value === doc.documentType)?.label || doc.documentType}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      className={`status-badge ${doc.isClientVisible ? 'status-success' : 'status-neutral'}`}
+                      onClick={() => handleToggleVisibility(doc)}
+                      style={{ cursor: 'pointer', border: 'none' }}
+                      title={doc.isClientVisible ? 'Click to hide from client' : 'Click to make visible to client'}
+                    >
+                      {doc.isClientVisible ? 'Client Visible' : 'Internal Only'}
+                    </button>
+                  </td>
+                  <td>{doc.uploaderName || '—'}</td>
+                  <td>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => handleDownload(doc)}
+                        title="Download"
+                      >
+                        ⬇
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => handleDelete(doc)}
+                        style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+                        title="Delete"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <DocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploaded={handleDocumentUploaded}
+        tripId={tripId}
+        token={token}
+      />
+    </div>
+  );
+}
+
 /* =================== TRIP DETAIL =================== */
 function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1142,6 +1565,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
   const TABS = [
     { id: 'overview', label: 'Overview' },
     { id: 'bookings', label: 'Bookings' },
+    { id: 'documents', label: 'Documents' },
     { id: 'commissions', label: 'Commissions' }
   ];
 
@@ -1282,6 +1706,10 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
 
         {activeTab === 'bookings' && (
           <BookingsTab tripId={trip.id} token={token} />
+        )}
+
+        {activeTab === 'documents' && (
+          <DocumentsTab tripId={trip.id} token={token} />
         )}
 
         {activeTab === 'commissions' && (

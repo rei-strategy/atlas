@@ -2697,3 +2697,228 @@ html, body {
     gap: 0.25rem;
   }
 }
+
+/* ============================================
+   Task Page Styles
+   ============================================ */
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.tasks-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.tasks-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.tasks-section-urgent {
+  color: var(--color-error);
+}
+
+.tasks-section-completed {
+  color: var(--color-success);
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Task Card */
+.task-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  transition: box-shadow 0.15s ease;
+}
+
+.task-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.task-card-overdue {
+  border-left: 3px solid var(--color-error);
+}
+
+.task-card-completed {
+  opacity: 0.7;
+  background: var(--color-bg-secondary);
+}
+
+.task-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.task-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.task-checkbox {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.task-checkbox:hover {
+  border-color: var(--color-primary);
+  background: rgba(26, 86, 219, 0.05);
+}
+
+.task-checkbox .checkbox-icon {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.task-checkbox:hover .checkbox-icon {
+  background: var(--color-primary);
+}
+
+.task-checkbox-completed {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+  cursor: default;
+}
+
+.task-card-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-title-completed {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+.priority-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  flex-shrink: 0;
+}
+
+.priority-urgent {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+}
+
+.priority-normal {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.task-card-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-md);
+  line-height: 1.5;
+}
+
+.task-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.task-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.task-meta-label {
+  color: var(--color-text-secondary);
+}
+
+.task-meta-value {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.task-system-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--border-radius);
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.text-danger {
+  color: var(--color-error) !important;
+  font-weight: 600;
+}
+
+/* Modal Medium Size */
+.modal-md {
+  max-width: 550px;
+}
+
+/* Responsive Tasks */
+@media (max-width: 768px) {
+  .task-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .task-card-title-row {
+    flex-wrap: wrap;
+  }
+
+  .task-card-meta {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .filters-row {
+    flex-direction: column !important;
+  }
+
+  .filters-row select,
+  .filters-row input {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+}
