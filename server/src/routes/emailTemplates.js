@@ -624,6 +624,153 @@ function formatQueueItem(item) {
   };
 }
 
+/**
+ * POST /api/email-templates/process-date-triggers
+ * Process date-relative email triggers (call this periodically or manually)
+ * Checks for trips with dates matching template trigger configurations
+ */
+router.post('/process-date-triggers', (req, res) => {
+  try {
+    const db = getDb();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Get all active date_relative templates for this agency
+    const templates = db.prepare(`
+      SELECT * FROM email_templates
+      WHERE agency_id = ?
+        AND trigger_type = 'date_relative'
+        AND is_active = 1
+    `).all(req.agencyId);
+
+    const queuedEmails = [];
+
+    for (const template of templates) {
+      let triggerConfig = {};
+      try {
+        triggerConfig = JSON.parse(template.trigger_config || '{}');
+      } catch (e) {
+        continue;
+      }
+
+      // Determine which date field to use and the offset
+      const daysBeforeTravel = triggerConfig.daysBeforeTravel || triggerConfig.daysBefore;
+      const daysAfterBooking = triggerConfig.daysAfterBooking || triggerConfig.daysAfter;
+
+      if (daysBeforeTravel !== undefined) {
+        // Find trips with travel_start_date = today + daysBeforeTravel
+        const targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() + daysBeforeTravel);
+        const targetDateStr = targetDate.toISOString().split('T')[0];
+
+        const matchingTrips = db.prepare(`
+          SELECT t.*, c.id as client_id
+          FROM trips t
+          LEFT JOIN clients c ON t.client_id = c.id
+          WHERE t.agency_id = ?
+            AND t.travel_start_date = ?
+            AND t.stage NOT IN ('canceled', 'archived', 'completed')
+            AND (? = 'all' OR ? = 'general')
+        `).all(req.agencyId, targetDateStr, template.trip_type, template.trip_type);
+
+        for (const trip of matchingTrips) {
+          // Check if email already queued for this template/trip
+          const existing = db.prepare(`
+            SELECT id FROM email_queue
+            WHERE template_id = ? AND trip_id = ? AND agency_id = ?
+          `).get(template.id, trip.id, req.agencyId);
+
+          if (!existing) {
+            db.prepare(`
+              INSERT INTO email_queue (
+                agency_id, template_id, trip_id, client_id,
+                status, requires_approval, scheduled_send_date
+              ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            `).run(
+              req.agencyId,
+              template.id,
+              trip.id,
+              trip.client_id || null,
+              template.requires_approval ? 'pending' : 'pending',
+              template.requires_approval ? 1 : 0
+            );
+
+            queuedEmails.push({
+              templateName: template.name,
+              tripId: trip.id,
+              tripName: trip.name,
+              triggerReason: `${daysBeforeTravel} days before travel (${targetDateStr})`
+            });
+
+            console.log(`[EMAIL] Queued date-relative template "${template.name}" for trip ${trip.id} (${daysBeforeTravel} days before travel)`);
+          }
+        }
+      }
+
+      if (daysAfterBooking !== undefined) {
+        // Find trips that were booked X days ago
+        const bookingDate = new Date(today);
+        bookingDate.setDate(bookingDate.getDate() - daysAfterBooking);
+        const bookingDateStr = bookingDate.toISOString().split('T')[0];
+
+        // Note: This requires a booking_date field. For now, we use created_at approximation
+        const matchingTrips = db.prepare(`
+          SELECT t.*, c.id as client_id
+          FROM trips t
+          LEFT JOIN clients c ON t.client_id = c.id
+          WHERE t.agency_id = ?
+            AND date(t.created_at) = ?
+            AND t.stage NOT IN ('inquiry', 'canceled', 'archived')
+            AND (? = 'all' OR ? = 'general')
+        `).all(req.agencyId, bookingDateStr, template.trip_type, template.trip_type);
+
+        for (const trip of matchingTrips) {
+          const existing = db.prepare(`
+            SELECT id FROM email_queue
+            WHERE template_id = ? AND trip_id = ? AND agency_id = ?
+          `).get(template.id, trip.id, req.agencyId);
+
+          if (!existing) {
+            db.prepare(`
+              INSERT INTO email_queue (
+                agency_id, template_id, trip_id, client_id,
+                status, requires_approval, scheduled_send_date
+              ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            `).run(
+              req.agencyId,
+              template.id,
+              trip.id,
+              trip.client_id || null,
+              template.requires_approval ? 'pending' : 'pending',
+              template.requires_approval ? 1 : 0
+            );
+
+            queuedEmails.push({
+              templateName: template.name,
+              tripId: trip.id,
+              tripName: trip.name,
+              triggerReason: `${daysAfterBooking} days after booking`
+            });
+
+            console.log(`[EMAIL] Queued date-relative template "${template.name}" for trip ${trip.id} (${daysAfterBooking} days after booking)`);
+          }
+        }
+      }
+    }
+
+    res.json({
+      message: `Processed date-relative triggers`,
+      templatesChecked: templates.length,
+      emailsQueued: queuedEmails.length,
+      queuedEmails
+    });
+  } catch (error) {
+    console.error('[ERROR] Process date triggers failed:', error.message);
+    res.status(500).json({ error: 'Failed to process date triggers' });
+  }
+});
+
 function formatTemplate(t) {
   let triggerConfig = {};
   try {
