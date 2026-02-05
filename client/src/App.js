@@ -131,7 +131,23 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/clients/:id"
+        element={
+          <ProtectedRoute>
+            <ClientsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/trips"
+        element={
+          <ProtectedRoute>
+            <TripsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips/:id"
         element={
           <ProtectedRoute>
             <TripsPage />

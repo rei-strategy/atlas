@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 
@@ -70,9 +71,33 @@ const COMMISSION_STATUS_COLORS = {
   paid: 'status-success'
 };
 
+const PASSPORT_STATUSES = [
+  { value: 'yes', label: 'Valid Passport' },
+  { value: 'no', label: 'No Passport' },
+  { value: 'unknown', label: 'Unknown' }
+];
+
+const PASSPORT_STATUS_COLORS = {
+  yes: 'status-success',
+  no: 'status-error',
+  unknown: 'status-warning'
+};
+
 function formatCurrency(amount) {
   if (amount === null || amount === undefined) return '$0.00';
   return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
 }
 
 /* =================== TRIP FORM MODAL =================== */
@@ -1133,6 +1158,407 @@ function CommissionsTab({ tripId, token }) {
   );
 }
 
+/* =================== TRAVELER FORM MODAL =================== */
+function TravelerFormModal({ isOpen, onClose, onSaved, traveler, tripId, token }) {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    fullLegalName: '',
+    dateOfBirth: '',
+    passportStatus: 'unknown',
+    passportExpiration: '',
+    specialNeeds: '',
+    relationshipToClient: ''
+  });
+
+  useEffect(() => {
+    if (traveler) {
+      setForm({
+        fullLegalName: traveler.fullLegalName || '',
+        dateOfBirth: traveler.dateOfBirth || '',
+        passportStatus: traveler.passportStatus || 'unknown',
+        passportExpiration: traveler.passportExpiration || '',
+        specialNeeds: traveler.specialNeeds || '',
+        relationshipToClient: traveler.relationshipToClient || ''
+      });
+    } else {
+      setForm({
+        fullLegalName: '',
+        dateOfBirth: '',
+        passportStatus: 'unknown',
+        passportExpiration: '',
+        specialNeeds: '',
+        relationshipToClient: ''
+      });
+    }
+    setError('');
+  }, [traveler, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!form.fullLegalName.trim()) {
+      setError('Full legal name is required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const isEdit = !!traveler;
+      const url = isEdit
+        ? `${API_BASE}/trips/${tripId}/travelers/${traveler.id}`
+        : `${API_BASE}/trips/${tripId}/travelers`;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(form)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save traveler');
+      }
+
+      addToast(isEdit ? 'Traveler updated successfully' : 'Traveler added successfully', 'success');
+      onSaved(data.traveler);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const derivedAge = calculateAge(form.dateOfBirth);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{traveler ? 'Edit Traveler' : 'Add Traveler'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <div className="auth-error">{error}</div>}
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="fullLegalName">Full Legal Name *</label>
+              <input
+                id="fullLegalName"
+                name="fullLegalName"
+                className="form-input"
+                value={form.fullLegalName}
+                onChange={handleChange}
+                placeholder="e.g., John Michael Smith"
+                required
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                Enter name exactly as it appears on travel documents
+              </p>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="dateOfBirth">Date of Birth</label>
+                <input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  className="form-input"
+                  value={form.dateOfBirth}
+                  onChange={handleChange}
+                />
+                {derivedAge !== null && (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Age: <strong>{derivedAge} years old</strong>
+                  </p>
+                )}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="relationshipToClient">Relationship to Client</label>
+                <input
+                  id="relationshipToClient"
+                  name="relationshipToClient"
+                  className="form-input"
+                  value={form.relationshipToClient}
+                  onChange={handleChange}
+                  placeholder="e.g., Spouse, Child, Friend"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="passportStatus">Passport Status</label>
+                <select
+                  id="passportStatus"
+                  name="passportStatus"
+                  className="form-input"
+                  value={form.passportStatus}
+                  onChange={handleChange}
+                >
+                  {PASSPORT_STATUSES.map(ps => (
+                    <option key={ps.value} value={ps.value}>{ps.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="passportExpiration">Passport Expiration</label>
+                <input
+                  id="passportExpiration"
+                  name="passportExpiration"
+                  type="date"
+                  className="form-input"
+                  value={form.passportExpiration}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="specialNeeds">Special Needs</label>
+              <textarea
+                id="specialNeeds"
+                name="specialNeeds"
+                className="form-input form-textarea"
+                value={form.specialNeeds}
+                onChange={handleChange}
+                placeholder="Dietary restrictions, mobility requirements, medical notes, etc."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Saving...' : (traveler ? 'Save Changes' : 'Add Traveler')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* =================== TRAVELERS TAB =================== */
+function TravelersTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [travelers, setTravelers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showTravelerModal, setShowTravelerModal] = useState(false);
+  const [editTraveler, setEditTraveler] = useState(null);
+  const [selectedTraveler, setSelectedTraveler] = useState(null);
+
+  const fetchTravelers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/travelers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTravelers(data.travelers || []);
+      }
+    } catch (err) {
+      console.error('Failed to load travelers:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, token]);
+
+  useEffect(() => {
+    fetchTravelers();
+  }, [fetchTravelers]);
+
+  const handleTravelerSaved = (savedTraveler) => {
+    fetchTravelers();
+    setSelectedTraveler(null);
+  };
+
+  const handleDeleteTraveler = async (travelerId) => {
+    if (!window.confirm('Are you sure you want to remove this traveler? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/travelers/${travelerId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to remove traveler');
+      }
+      addToast('Traveler removed successfully', 'success');
+      fetchTravelers();
+      setSelectedTraveler(null);
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '120px' }}>
+        <div className="loading-spinner" />
+        <p>Loading travelers...</p>
+      </div>
+    );
+  }
+
+  // Traveler detail view
+  if (selectedTraveler) {
+    const t = selectedTraveler;
+    const age = calculateAge(t.dateOfBirth);
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <button className="btn btn-outline btn-sm" onClick={() => setSelectedTraveler(null)}>
+            ← Back to Travelers
+          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditTraveler(t); setShowTravelerModal(true); }}>
+              Edit
+            </button>
+            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+              onClick={() => handleDeleteTraveler(t.id)}>
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <div className="detail-card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.125rem' }}>{t.fullLegalName}</h3>
+
+          <div className="detail-grid">
+            <div className="detail-field">
+              <span className="detail-field-label">Date of Birth</span>
+              <span className="detail-field-value">{t.dateOfBirth ? new Date(t.dateOfBirth).toLocaleDateString() : '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Age</span>
+              <span className="detail-field-value" style={{ fontWeight: 600 }}>{age !== null ? `${age} years old` : '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Relationship to Client</span>
+              <span className="detail-field-value">{t.relationshipToClient || '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Passport Status</span>
+              <span className={`status-badge ${PASSPORT_STATUS_COLORS[t.passportStatus]}`}>
+                {PASSPORT_STATUSES.find(ps => ps.value === t.passportStatus)?.label || t.passportStatus}
+              </span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Passport Expiration</span>
+              <span className="detail-field-value">{t.passportExpiration ? new Date(t.passportExpiration).toLocaleDateString() : '—'}</span>
+            </div>
+          </div>
+
+          {t.specialNeeds && (
+            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Special Needs</h4>
+              <p className="detail-notes">{t.specialNeeds}</p>
+            </div>
+          )}
+        </div>
+
+        <TravelerFormModal
+          isOpen={showTravelerModal}
+          onClose={() => { setShowTravelerModal(false); setEditTraveler(null); }}
+          onSaved={handleTravelerSaved}
+          traveler={editTraveler}
+          tripId={tripId}
+          token={token}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0 }}>Travelers ({travelers.length})</h3>
+        <button className="btn btn-primary btn-sm" onClick={() => { setEditTraveler(null); setShowTravelerModal(true); }}>
+          + Add Traveler
+        </button>
+      </div>
+
+      {travelers.length === 0 ? (
+        <div className="page-empty-state" style={{ padding: '2rem' }}>
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">No travelers yet</h3>
+          <p className="empty-state-description">Add travelers to track passenger information, passport details, and special needs.</p>
+          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={() => { setEditTraveler(null); setShowTravelerModal(true); }}>
+            + Add First Traveler
+          </button>
+        </div>
+      ) : (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Full Legal Name</th>
+                <th>Age</th>
+                <th>Passport Status</th>
+                <th>Relationship</th>
+                <th>Special Needs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {travelers.map(t => {
+                const age = calculateAge(t.dateOfBirth);
+                return (
+                  <tr key={t.id} className="data-table-row-clickable" onClick={() => setSelectedTraveler(t)}>
+                    <td><span className="table-user-name">{t.fullLegalName}</span></td>
+                    <td>{age !== null ? `${age} yrs` : '—'}</td>
+                    <td>
+                      <span className={`status-badge ${PASSPORT_STATUS_COLORS[t.passportStatus]}`}>
+                        {PASSPORT_STATUSES.find(ps => ps.value === t.passportStatus)?.label || t.passportStatus}
+                      </span>
+                    </td>
+                    <td>{t.relationshipToClient || '—'}</td>
+                    <td>{t.specialNeeds ? '✓' : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <TravelerFormModal
+        isOpen={showTravelerModal}
+        onClose={() => { setShowTravelerModal(false); setEditTraveler(null); }}
+        onSaved={handleTravelerSaved}
+        traveler={editTraveler}
+        tripId={tripId}
+        token={token}
+      />
+    </div>
+  );
+}
+
 /* =================== DOCUMENT TYPES =================== */
 const DOCUMENT_TYPES = [
   { value: 'contract', label: 'Contract' },
@@ -1564,6 +1990,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
+    { id: 'travelers', label: 'Travelers' },
     { id: 'bookings', label: 'Bookings' },
     { id: 'documents', label: 'Documents' },
     { id: 'commissions', label: 'Commissions' }
@@ -1704,6 +2131,10 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
           </div>
         )}
 
+        {activeTab === 'travelers' && (
+          <TravelersTab tripId={trip.id} token={token} />
+        )}
+
         {activeTab === 'bookings' && (
           <BookingsTab tripId={trip.id} token={token} />
         )}
@@ -1723,6 +2154,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
 /* =================== TRIPS PAGE =================== */
 export default function TripsPage() {
   const { token } = useAuth();
+  const { id: urlTripId } = useParams();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1754,6 +2187,23 @@ export default function TripsPage() {
   useEffect(() => {
     fetchTrips();
   }, [fetchTrips]);
+
+  // Handle URL parameter for direct navigation to a trip
+  useEffect(() => {
+    if (urlTripId && token && !selectedTrip) {
+      // Fetch the specific trip by ID
+      fetch(`${API_BASE}/trips/${urlTripId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.trip) {
+            setSelectedTrip(data.trip);
+          }
+        })
+        .catch(err => console.error('Failed to load trip:', err));
+    }
+  }, [urlTripId, token, selectedTrip]);
 
   const handleTripSaved = (savedTrip) => {
     setTrips(prev => {
@@ -1804,6 +2254,7 @@ export default function TripsPage() {
 
   const handleViewTrip = (trip) => {
     setSelectedTrip(trip);
+    navigate(`/trips/${trip.id}`);
   };
 
   // Detail view
@@ -1812,7 +2263,7 @@ export default function TripsPage() {
       <div className="page-container">
         <TripDetail
           trip={selectedTrip}
-          onBack={() => setSelectedTrip(null)}
+          onBack={() => { setSelectedTrip(null); navigate('/trips'); }}
           onEdit={handleEditTrip}
           onStageChange={handleStageChange}
           token={token}

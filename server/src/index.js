@@ -49,7 +49,7 @@ app.use('/api/trips/:tripId/documents', require('./routes/documents'));
 app.use('/api/tasks', require('./routes/tasks'));
 // app.use('/api/commissions', require('./routes/commissions'));
 // app.use('/api/documents', require('./routes/documents'));
-// app.use('/api/email-templates', require('./routes/emailTemplates'));
+app.use('/api/email-templates', require('./routes/emailTemplates'));
 // app.use('/api/email-queue', require('./routes/emailQueue'));
 app.use('/api/approvals', require('./routes/approvals'));
 // app.use('/api/notifications', require('./routes/notifications'));

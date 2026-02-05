@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 
@@ -404,6 +405,8 @@ function ClientDetail({ client, onBack, onEdit, token }) {
 
 export default function ClientsPage() {
   const { token } = useAuth();
+  const { id: urlClientId } = useParams();
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -433,6 +436,23 @@ export default function ClientsPage() {
     fetchClients();
   }, [fetchClients]);
 
+  // Handle URL parameter for direct navigation to a client
+  useEffect(() => {
+    if (urlClientId && token && !selectedClient) {
+      // Fetch the specific client by ID
+      fetch(`${API_BASE}/clients/${urlClientId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.client) {
+            setSelectedClient(data.client);
+          }
+        })
+        .catch(err => console.error('Failed to load client:', err));
+    }
+  }, [urlClientId, token, selectedClient]);
+
   const handleClientSaved = (savedClient) => {
     setClients(prev => {
       const existing = prev.find(c => c.id === savedClient.id);
@@ -459,6 +479,7 @@ export default function ClientsPage() {
 
   const handleViewClient = (client) => {
     setSelectedClient(client);
+    navigate(`/clients/${client.id}`);
   };
 
   // Detail view
@@ -467,7 +488,7 @@ export default function ClientsPage() {
       <div className="page-container">
         <ClientDetail
           client={selectedClient}
-          onBack={() => setSelectedClient(null)}
+          onBack={() => { setSelectedClient(null); navigate('/clients'); }}
           onEdit={handleEditClient}
           token={token}
         />
