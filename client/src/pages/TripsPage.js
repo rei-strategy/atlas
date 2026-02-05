@@ -28,6 +28,54 @@ const STAGE_COLORS = {
 
 const STAGE_ORDER = ['inquiry', 'quoted', 'booked', 'final_payment_pending', 'traveling', 'completed', 'canceled', 'archived'];
 
+const BOOKING_TYPES = [
+  { value: 'hotel', label: 'Hotel' },
+  { value: 'cruise', label: 'Cruise' },
+  { value: 'resort', label: 'Resort' },
+  { value: 'tour', label: 'Tour' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'transfer', label: 'Transfer' },
+  { value: 'other', label: 'Other' }
+];
+
+const BOOKING_STATUSES = [
+  { value: 'planned', label: 'Planned' },
+  { value: 'quoted', label: 'Quoted' },
+  { value: 'booked', label: 'Booked' },
+  { value: 'canceled', label: 'Canceled' }
+];
+
+const PAYMENT_STATUSES = [
+  { value: 'deposit_paid', label: 'Deposit Paid' },
+  { value: 'final_due', label: 'Final Due' },
+  { value: 'paid_in_full', label: 'Paid in Full' }
+];
+
+const BOOKING_STATUS_COLORS = {
+  planned: 'status-neutral',
+  quoted: 'status-warning',
+  booked: 'status-success',
+  canceled: 'status-error'
+};
+
+const PAYMENT_STATUS_COLORS = {
+  deposit_paid: 'status-warning',
+  final_due: 'status-error',
+  paid_in_full: 'status-success'
+};
+
+const COMMISSION_STATUS_COLORS = {
+  expected: 'status-info',
+  submitted: 'status-warning',
+  paid: 'status-success'
+};
+
+function formatCurrency(amount) {
+  if (amount === null || amount === undefined) return '$0.00';
+  return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* =================== TRIP FORM MODAL =================== */
 function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -218,8 +266,884 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   );
 }
 
+/* =================== BOOKING FORM MODAL =================== */
+function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    bookingType: 'hotel',
+    supplierName: '',
+    status: 'planned',
+    confirmationNumber: '',
+    bookingDate: '',
+    travelStartDate: '',
+    travelEndDate: '',
+    totalCost: '',
+    depositAmount: '',
+    depositPaid: false,
+    finalPaymentAmount: '',
+    finalPaymentDueDate: '',
+    paymentStatus: 'deposit_paid',
+    commissionRate: '',
+    commissionAmountExpected: '',
+    supplierNotes: '',
+    inclusionsExclusions: '',
+    cancellationRules: ''
+  });
+
+  useEffect(() => {
+    if (booking) {
+      setForm({
+        bookingType: booking.bookingType || 'hotel',
+        supplierName: booking.supplierName || '',
+        status: booking.status || 'planned',
+        confirmationNumber: booking.confirmationNumber || '',
+        bookingDate: booking.bookingDate || '',
+        travelStartDate: booking.travelStartDate || '',
+        travelEndDate: booking.travelEndDate || '',
+        totalCost: booking.totalCost || '',
+        depositAmount: booking.depositAmount || '',
+        depositPaid: booking.depositPaid || false,
+        finalPaymentAmount: booking.finalPaymentAmount || '',
+        finalPaymentDueDate: booking.finalPaymentDueDate || '',
+        paymentStatus: booking.paymentStatus || 'deposit_paid',
+        commissionRate: booking.commissionRate || '',
+        commissionAmountExpected: booking.commissionAmountExpected || '',
+        supplierNotes: booking.supplierNotes || '',
+        inclusionsExclusions: booking.inclusionsExclusions || '',
+        cancellationRules: booking.cancellationRules || ''
+      });
+    } else {
+      setForm({
+        bookingType: 'hotel',
+        supplierName: '',
+        status: 'planned',
+        confirmationNumber: '',
+        bookingDate: '',
+        travelStartDate: '',
+        travelEndDate: '',
+        totalCost: '',
+        depositAmount: '',
+        depositPaid: false,
+        finalPaymentAmount: '',
+        finalPaymentDueDate: '',
+        paymentStatus: 'deposit_paid',
+        commissionRate: '',
+        commissionAmountExpected: '',
+        supplierNotes: '',
+        inclusionsExclusions: '',
+        cancellationRules: ''
+      });
+    }
+    setError('');
+  }, [booking, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  // Auto-calculate commission amount when rate or total cost changes
+  const handleFinancialChange = (e) => {
+    const { name, value } = e.target;
+    const newForm = { ...form, [name]: value };
+
+    // Auto-calculate expected commission from rate & total cost
+    if ((name === 'commissionRate' || name === 'totalCost') && newForm.commissionRate && newForm.totalCost) {
+      const rate = parseFloat(newForm.commissionRate) || 0;
+      const total = parseFloat(newForm.totalCost) || 0;
+      newForm.commissionAmountExpected = ((rate / 100) * total).toFixed(2);
+    }
+
+    setForm(newForm);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!form.bookingType) {
+      setError('Booking type is required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const isEdit = !!booking;
+      const url = isEdit
+        ? `${API_BASE}/trips/${tripId}/bookings/${booking.id}`
+        : `${API_BASE}/trips/${tripId}/bookings`;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const payload = {
+        ...form,
+        totalCost: form.totalCost ? parseFloat(form.totalCost) : 0,
+        depositAmount: form.depositAmount ? parseFloat(form.depositAmount) : 0,
+        finalPaymentAmount: form.finalPaymentAmount ? parseFloat(form.finalPaymentAmount) : 0,
+        commissionRate: form.commissionRate ? parseFloat(form.commissionRate) : 0,
+        commissionAmountExpected: form.commissionAmountExpected ? parseFloat(form.commissionAmountExpected) : 0
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save booking');
+      }
+
+      addToast(isEdit ? 'Booking updated successfully' : 'Booking created successfully', 'success');
+      onSaved(data.booking);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflow: 'auto' }}>
+        <div className="modal-header">
+          <h2 className="modal-title">{booking ? 'Edit Booking' : 'Add Booking'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <div className="auth-error">{error}</div>}
+
+            {/* Booking Type & Status */}
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="bookingType">Booking Type *</label>
+                <select
+                  id="bookingType"
+                  name="bookingType"
+                  className="form-input"
+                  value={form.bookingType}
+                  onChange={handleChange}
+                  required
+                >
+                  {BOOKING_TYPES.map(bt => (
+                    <option key={bt.value} value={bt.value}>{bt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="bookingStatus">Booking Status</label>
+                <select
+                  id="bookingStatus"
+                  name="status"
+                  className="form-input"
+                  value={form.status}
+                  onChange={handleChange}
+                >
+                  {BOOKING_STATUSES.map(bs => (
+                    <option key={bs.value} value={bs.value}>{bs.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Supplier & Confirmation */}
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="supplierName">Supplier/Vendor</label>
+                <input
+                  id="supplierName"
+                  name="supplierName"
+                  className="form-input"
+                  value={form.supplierName}
+                  onChange={handleChange}
+                  placeholder="e.g., Royal Caribbean, Marriott"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="confirmationNumber">Confirmation Number</label>
+                <input
+                  id="confirmationNumber"
+                  name="confirmationNumber"
+                  className="form-input"
+                  value={form.confirmationNumber}
+                  onChange={handleChange}
+                  placeholder="e.g., ABC12345"
+                />
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="bookingDate">Booking Date</label>
+                <input
+                  id="bookingDate"
+                  name="bookingDate"
+                  type="date"
+                  className="form-input"
+                  value={form.bookingDate}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="bkTravelStart">Travel Start</label>
+                <input
+                  id="bkTravelStart"
+                  name="travelStartDate"
+                  type="date"
+                  className="form-input"
+                  value={form.travelStartDate}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="bkTravelEnd">Travel End</label>
+                <input
+                  id="bkTravelEnd"
+                  name="travelEndDate"
+                  type="date"
+                  className="form-input"
+                  value={form.travelEndDate}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Financial Section */}
+            <div className="detail-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <h3 className="detail-section-title" style={{ fontSize: '0.9375rem', marginBottom: '1rem' }}>Financial Details</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="totalCost">Total Cost ($)</label>
+                  <input
+                    id="totalCost"
+                    name="totalCost"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-input"
+                    value={form.totalCost}
+                    onChange={handleFinancialChange}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="depositAmount">Deposit Amount ($)</label>
+                  <input
+                    id="depositAmount"
+                    name="depositAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-input"
+                    value={form.depositAmount}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finalPaymentAmount">Final Payment Amount ($)</label>
+                  <input
+                    id="finalPaymentAmount"
+                    name="finalPaymentAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-input"
+                    value={form.finalPaymentAmount}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finalPaymentDueDate">Final Payment Due Date</label>
+                  <input
+                    id="finalPaymentDueDate"
+                    name="finalPaymentDueDate"
+                    type="date"
+                    className="form-input"
+                    value={form.finalPaymentDueDate}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="paymentStatus">Payment Status</label>
+                  <select
+                    id="paymentStatus"
+                    name="paymentStatus"
+                    className="form-input"
+                    value={form.paymentStatus}
+                    onChange={handleChange}
+                  >
+                    {PAYMENT_STATUSES.map(ps => (
+                      <option key={ps.value} value={ps.value}>{ps.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0.375rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      name="depositPaid"
+                      checked={form.depositPaid}
+                      onChange={handleChange}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    <span className="form-label" style={{ marginBottom: 0 }}>Deposit Paid</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Commission Section */}
+            <div className="detail-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <h3 className="detail-section-title" style={{ fontSize: '0.9375rem', marginBottom: '1rem' }}>Commission</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="commissionRate">Commission Rate (%)</label>
+                  <input
+                    id="commissionRate"
+                    name="commissionRate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="form-input"
+                    value={form.commissionRate}
+                    onChange={handleFinancialChange}
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="commissionAmountExpected">Expected Commission ($)</label>
+                  <input
+                    id="commissionAmountExpected"
+                    name="commissionAmountExpected"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-input"
+                    value={form.commissionAmountExpected}
+                    onChange={handleChange}
+                    placeholder="Auto-calculated or manual"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="detail-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <h3 className="detail-section-title" style={{ fontSize: '0.9375rem', marginBottom: '1rem' }}>Notes</h3>
+              <div className="form-group">
+                <label className="form-label" htmlFor="supplierNotes">Supplier Notes</label>
+                <textarea
+                  id="supplierNotes"
+                  name="supplierNotes"
+                  className="form-input form-textarea"
+                  value={form.supplierNotes}
+                  onChange={handleChange}
+                  placeholder="Notes about this supplier..."
+                  rows={2}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="inclusionsExclusions">What's Included/Excluded</label>
+                <textarea
+                  id="inclusionsExclusions"
+                  name="inclusionsExclusions"
+                  className="form-input form-textarea"
+                  value={form.inclusionsExclusions}
+                  onChange={handleChange}
+                  placeholder="Inclusions and exclusions..."
+                  rows={2}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="cancellationRules">Change/Cancellation Rules</label>
+                <textarea
+                  id="cancellationRules"
+                  name="cancellationRules"
+                  className="form-input form-textarea"
+                  value={form.cancellationRules}
+                  onChange={handleChange}
+                  placeholder="Cancellation policy details..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Saving...' : (booking ? 'Save Changes' : 'Add Booking')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* =================== BOOKINGS TAB =================== */
+function BookingsTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [bookings, setBookings] = useState([]);
+  const [totals, setTotals] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [editBooking, setEditBooking] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+
+  const fetchBookings = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBookings(data.bookings || []);
+        setTotals(data.totals || {});
+      }
+    } catch (err) {
+      console.error('Failed to load bookings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, token]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  const handleBookingSaved = (savedBooking) => {
+    fetchBookings();
+    setSelectedBooking(null);
+  };
+
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete booking');
+      }
+      addToast('Booking deleted successfully', 'success');
+      fetchBookings();
+      setSelectedBooking(null);
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '120px' }}>
+        <div className="loading-spinner" />
+        <p>Loading bookings...</p>
+      </div>
+    );
+  }
+
+  // Booking detail view
+  if (selectedBooking) {
+    const b = selectedBooking;
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <button className="btn btn-outline btn-sm" onClick={() => setSelectedBooking(null)}>
+            ← Back to Bookings
+          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => { setEditBooking(b); setShowBookingModal(true); }}>
+              Edit
+            </button>
+            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+              onClick={() => handleDeleteBooking(b.id)}>
+              Delete
+            </button>
+          </div>
+        </div>
+
+        <div className="detail-card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.125rem' }}>
+              {BOOKING_TYPES.find(bt => bt.value === b.bookingType)?.label || b.bookingType}
+              {b.supplierName ? ` — ${b.supplierName}` : ''}
+            </h3>
+            <span className={`status-badge ${BOOKING_STATUS_COLORS[b.status]}`}>
+              {BOOKING_STATUSES.find(bs => bs.value === b.status)?.label || b.status}
+            </span>
+          </div>
+
+          <div className="detail-grid">
+            <div className="detail-field">
+              <span className="detail-field-label">Confirmation #</span>
+              <span className="detail-field-value">{b.confirmationNumber || '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Booking Date</span>
+              <span className="detail-field-value">{b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Travel Start</span>
+              <span className="detail-field-value">{b.travelStartDate ? new Date(b.travelStartDate).toLocaleDateString() : '—'}</span>
+            </div>
+            <div className="detail-field">
+              <span className="detail-field-label">Travel End</span>
+              <span className="detail-field-value">{b.travelEndDate ? new Date(b.travelEndDate).toLocaleDateString() : '—'}</span>
+            </div>
+          </div>
+
+          {/* Financial Details */}
+          <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem' }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Financial Details</h4>
+            <div className="detail-grid">
+              <div className="detail-field">
+                <span className="detail-field-label">Total Cost</span>
+                <span className="detail-field-value" style={{ fontWeight: 600 }}>{formatCurrency(b.totalCost)}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Deposit Amount</span>
+                <span className="detail-field-value">{formatCurrency(b.depositAmount)}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Deposit Paid</span>
+                <span className={`status-badge ${b.depositPaid ? 'status-success' : 'status-warning'}`}>
+                  {b.depositPaid ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Final Payment</span>
+                <span className="detail-field-value">{formatCurrency(b.finalPaymentAmount)}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Final Payment Due</span>
+                <span className="detail-field-value">{b.finalPaymentDueDate ? new Date(b.finalPaymentDueDate).toLocaleDateString() : '—'}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Payment Status</span>
+                <span className={`status-badge ${PAYMENT_STATUS_COLORS[b.paymentStatus]}`}>
+                  {PAYMENT_STATUSES.find(ps => ps.value === b.paymentStatus)?.label || b.paymentStatus}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Commission Details */}
+          <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem' }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Commission</h4>
+            <div className="detail-grid">
+              <div className="detail-field">
+                <span className="detail-field-label">Commission Rate</span>
+                <span className="detail-field-value">{b.commissionRate ? `${b.commissionRate}%` : '—'}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Expected Amount</span>
+                <span className="detail-field-value" style={{ fontWeight: 600 }}>{formatCurrency(b.commissionAmountExpected)}</span>
+              </div>
+              <div className="detail-field">
+                <span className="detail-field-label">Commission Status</span>
+                <span className={`status-badge ${COMMISSION_STATUS_COLORS[b.commissionStatus]}`}>
+                  {b.commissionStatus ? b.commissionStatus.charAt(0).toUpperCase() + b.commissionStatus.slice(1) : 'Expected'}
+                </span>
+              </div>
+              {b.commissionAmountReceived != null && (
+                <div className="detail-field">
+                  <span className="detail-field-label">Amount Received</span>
+                  <span className="detail-field-value">{formatCurrency(b.commissionAmountReceived)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notes */}
+          {(b.supplierNotes || b.inclusionsExclusions || b.cancellationRules) && (
+            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Notes</h4>
+              {b.supplierNotes && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <span className="detail-field-label" style={{ display: 'block', marginBottom: '0.25rem' }}>Supplier Notes</span>
+                  <p className="detail-notes">{b.supplierNotes}</p>
+                </div>
+              )}
+              {b.inclusionsExclusions && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <span className="detail-field-label" style={{ display: 'block', marginBottom: '0.25rem' }}>Inclusions/Exclusions</span>
+                  <p className="detail-notes">{b.inclusionsExclusions}</p>
+                </div>
+              )}
+              {b.cancellationRules && (
+                <div>
+                  <span className="detail-field-label" style={{ display: 'block', marginBottom: '0.25rem' }}>Cancellation Rules</span>
+                  <p className="detail-notes">{b.cancellationRules}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <BookingFormModal
+          isOpen={showBookingModal}
+          onClose={() => { setShowBookingModal(false); setEditBooking(null); }}
+          onSaved={handleBookingSaved}
+          booking={editBooking}
+          tripId={tripId}
+          token={token}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Totals Summary */}
+      {bookings.length > 0 && (
+        <div className="booking-totals-bar" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          padding: '1rem',
+          background: 'var(--bg-secondary, #f8f9fa)',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Cost</div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{formatCurrency(totals.totalCost)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deposits</div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{formatCurrency(totals.totalDeposit)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Final Payments</div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{formatCurrency(totals.totalFinalPayment)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Commission Expected</div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>{formatCurrency(totals.totalCommissionExpected)}</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0 }}>Bookings ({bookings.length})</h3>
+        <button className="btn btn-primary btn-sm" onClick={() => { setEditBooking(null); setShowBookingModal(true); }}>
+          + Add Booking
+        </button>
+      </div>
+
+      {bookings.length === 0 ? (
+        <div className="page-empty-state" style={{ padding: '2rem' }}>
+          <h3 className="empty-state-title">No bookings yet</h3>
+          <p className="empty-state-description">Add bookings to track hotels, cruises, tours, and other travel arrangements.</p>
+          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={() => { setEditBooking(null); setShowBookingModal(true); }}>
+            + Add First Booking
+          </button>
+        </div>
+      ) : (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Supplier</th>
+                <th>Status</th>
+                <th>Total Cost</th>
+                <th>Payment</th>
+                <th>Commission</th>
+                <th>Dates</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map(b => (
+                <tr key={b.id} className="data-table-row-clickable" onClick={() => setSelectedBooking(b)}>
+                  <td>
+                    <span className="table-user-name">
+                      {BOOKING_TYPES.find(bt => bt.value === b.bookingType)?.label || b.bookingType}
+                    </span>
+                    {b.confirmationNumber && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>#{b.confirmationNumber}</div>}
+                  </td>
+                  <td>{b.supplierName || '—'}</td>
+                  <td>
+                    <span className={`status-badge ${BOOKING_STATUS_COLORS[b.status]}`}>
+                      {BOOKING_STATUSES.find(bs => bs.value === b.status)?.label || b.status}
+                    </span>
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{formatCurrency(b.totalCost)}</td>
+                  <td>
+                    <span className={`status-badge ${PAYMENT_STATUS_COLORS[b.paymentStatus]}`}>
+                      {PAYMENT_STATUSES.find(ps => ps.value === b.paymentStatus)?.label || b.paymentStatus}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${COMMISSION_STATUS_COLORS[b.commissionStatus]}`}>
+                      {b.commissionStatus ? b.commissionStatus.charAt(0).toUpperCase() + b.commissionStatus.slice(1) : '—'}
+                    </span>
+                    {b.commissionAmountExpected > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatCurrency(b.commissionAmountExpected)}</div>
+                    )}
+                  </td>
+                  <td style={{ fontSize: '0.8125rem' }}>
+                    {b.travelStartDate ? new Date(b.travelStartDate).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <BookingFormModal
+        isOpen={showBookingModal}
+        onClose={() => { setShowBookingModal(false); setEditBooking(null); }}
+        onSaved={handleBookingSaved}
+        booking={editBooking}
+        tripId={tripId}
+        token={token}
+      />
+    </div>
+  );
+}
+
+/* =================== COMMISSIONS TAB =================== */
+function CommissionsTab({ tripId, token }) {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCommissions() {
+      try {
+        const res = await fetch(`${API_BASE}/trips/${tripId}/bookings`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setBookings(data.bookings || []);
+        }
+      } catch (err) {
+        console.error('Failed to load commissions:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCommissions();
+  }, [tripId, token]);
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '120px' }}>
+        <div className="loading-spinner" />
+        <p>Loading commissions...</p>
+      </div>
+    );
+  }
+
+  const commissionsData = bookings.filter(b => b.commissionAmountExpected > 0 || b.commissionStatus !== 'expected');
+  const totalExpected = commissionsData.reduce((sum, b) => sum + (b.commissionAmountExpected || 0), 0);
+  const totalReceived = commissionsData.reduce((sum, b) => sum + (b.commissionAmountReceived || 0), 0);
+
+  return (
+    <div>
+      {/* Summary cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: '0.75rem',
+        marginBottom: '1rem'
+      }}>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Expected</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>{formatCurrency(totalExpected)}</div>
+        </div>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Received</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>{formatCurrency(totalReceived)}</div>
+        </div>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bookings w/ Commission</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{commissionsData.length}</div>
+        </div>
+      </div>
+
+      {commissionsData.length === 0 ? (
+        <div className="page-empty-state" style={{ padding: '2rem' }}>
+          <h3 className="empty-state-title">No commission data</h3>
+          <p className="empty-state-description">Commission data will appear here once bookings with commission rates are created.</p>
+        </div>
+      ) : (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Booking</th>
+                <th>Supplier</th>
+                <th>Rate</th>
+                <th>Expected</th>
+                <th>Received</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commissionsData.map(b => (
+                <tr key={b.id}>
+                  <td>
+                    <span className="table-user-name">
+                      {BOOKING_TYPES.find(bt => bt.value === b.bookingType)?.label || b.bookingType}
+                    </span>
+                  </td>
+                  <td>{b.supplierName || '—'}</td>
+                  <td>{b.commissionRate ? `${b.commissionRate}%` : '—'}</td>
+                  <td style={{ fontWeight: 600 }}>{formatCurrency(b.commissionAmountExpected)}</td>
+                  <td>{b.commissionAmountReceived != null ? formatCurrency(b.commissionAmountReceived) : '—'}</td>
+                  <td>
+                    <span className={`status-badge ${COMMISSION_STATUS_COLORS[b.commissionStatus]}`}>
+                      {b.commissionStatus ? b.commissionStatus.charAt(0).toUpperCase() + b.commissionStatus.slice(1) : 'Expected'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =================== TRIP DETAIL =================== */
 function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
+  const [activeTab, setActiveTab] = useState('overview');
+
   if (!trip) return null;
+
+  const TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'bookings', label: 'Bookings' },
+    { id: 'commissions', label: 'Commissions' }
+  ];
 
   return (
     <div className="trip-detail">
@@ -250,83 +1174,125 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
           </div>
         </div>
 
-        <div className="detail-sections">
-          <div className="detail-section">
-            <h3 className="detail-section-title">Trip Details</h3>
-            <div className="detail-grid">
-              <div className="detail-field">
-                <span className="detail-field-label">Destination</span>
-                <span className="detail-field-value">{trip.destination || '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Travel Start</span>
-                <span className="detail-field-value">{trip.travelStartDate ? new Date(trip.travelStartDate).toLocaleDateString() : '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Travel End</span>
-                <span className="detail-field-value">{trip.travelEndDate ? new Date(trip.travelEndDate).toLocaleDateString() : '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Stage</span>
-                <span className={`status-badge ${STAGE_COLORS[trip.stage]}`}>
-                  {STAGE_LABELS[trip.stage]}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {trip.description && (
-            <div className="detail-section">
-              <h3 className="detail-section-title">Description</h3>
-              <p className="detail-notes">{trip.description}</p>
-            </div>
-          )}
-
-          <div className="detail-section">
-            <h3 className="detail-section-title">Stage Transition</h3>
-            <div className="stage-buttons">
-              {STAGE_ORDER.map(stage => (
-                <button
-                  key={stage}
-                  className={`btn btn-sm ${trip.stage === stage ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => onStageChange(trip.id, stage)}
-                  disabled={trip.stage === stage}
-                >
-                  {STAGE_LABELS[stage]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="detail-section">
-            <h3 className="detail-section-title">Dates & Deadlines</h3>
-            <div className="detail-grid">
-              <div className="detail-field">
-                <span className="detail-field-label">Final Payment Deadline</span>
-                <span className="detail-field-value">{trip.finalPaymentDeadline ? new Date(trip.finalPaymentDeadline).toLocaleDateString() : '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Insurance Cutoff</span>
-                <span className="detail-field-value">{trip.insuranceCutoffDate ? new Date(trip.insuranceCutoffDate).toLocaleDateString() : '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Check-in Date</span>
-                <span className="detail-field-value">{trip.checkinDate ? new Date(trip.checkinDate).toLocaleDateString() : '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Locked</span>
-                <span className={`status-badge ${trip.isLocked ? 'status-warning' : 'status-neutral'}`}>
-                  {trip.isLocked ? 'Yes' : 'No'}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* Tab Navigation */}
+        <div className="trip-tabs" style={{
+          display: 'flex',
+          borderBottom: '2px solid var(--border-color)',
+          marginBottom: '1.25rem',
+          gap: '0'
+        }}>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`trip-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: activeTab === tab.id ? 600 : 400,
+                color: activeTab === tab.id ? 'var(--color-primary, #1a56db)' : 'var(--text-secondary)',
+                borderBottom: activeTab === tab.id ? '2px solid var(--color-primary, #1a56db)' : '2px solid transparent',
+                marginBottom: '-2px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="detail-sections">
+            <div className="detail-section">
+              <h3 className="detail-section-title">Trip Details</h3>
+              <div className="detail-grid">
+                <div className="detail-field">
+                  <span className="detail-field-label">Destination</span>
+                  <span className="detail-field-value">{trip.destination || '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Travel Start</span>
+                  <span className="detail-field-value">{trip.travelStartDate ? new Date(trip.travelStartDate).toLocaleDateString() : '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Travel End</span>
+                  <span className="detail-field-value">{trip.travelEndDate ? new Date(trip.travelEndDate).toLocaleDateString() : '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Stage</span>
+                  <span className={`status-badge ${STAGE_COLORS[trip.stage]}`}>
+                    {STAGE_LABELS[trip.stage]}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {trip.description && (
+              <div className="detail-section">
+                <h3 className="detail-section-title">Description</h3>
+                <p className="detail-notes">{trip.description}</p>
+              </div>
+            )}
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Stage Transition</h3>
+              <div className="stage-buttons">
+                {STAGE_ORDER.map(stage => (
+                  <button
+                    key={stage}
+                    className={`btn btn-sm ${trip.stage === stage ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => onStageChange(trip.id, stage)}
+                    disabled={trip.stage === stage}
+                  >
+                    {STAGE_LABELS[stage]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Dates & Deadlines</h3>
+              <div className="detail-grid">
+                <div className="detail-field">
+                  <span className="detail-field-label">Final Payment Deadline</span>
+                  <span className="detail-field-value">{trip.finalPaymentDeadline ? new Date(trip.finalPaymentDeadline).toLocaleDateString() : '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Insurance Cutoff</span>
+                  <span className="detail-field-value">{trip.insuranceCutoffDate ? new Date(trip.insuranceCutoffDate).toLocaleDateString() : '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Check-in Date</span>
+                  <span className="detail-field-value">{trip.checkinDate ? new Date(trip.checkinDate).toLocaleDateString() : '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Locked</span>
+                  <span className={`status-badge ${trip.isLocked ? 'status-warning' : 'status-neutral'}`}>
+                    {trip.isLocked ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'bookings' && (
+          <BookingsTab tripId={trip.id} token={token} />
+        )}
+
+        {activeTab === 'commissions' && (
+          <CommissionsTab tripId={trip.id} token={token} />
+        )}
       </div>
     </div>
   );
 }
 
+/* =================== TRIPS PAGE =================== */
 export default function TripsPage() {
   const { token } = useAuth();
   const { addToast } = useToast();

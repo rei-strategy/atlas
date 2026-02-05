@@ -45,6 +45,7 @@ app.use('/api/clients', require('./routes/clients'));
 app.use('/api/trips', require('./routes/trips'));
 app.use('/api/trips/:tripId/bookings', require('./routes/bookings'));
 app.use('/api/trips/:tripId/travelers', require('./routes/travelers'));
+app.use('/api/trips/:tripId/documents', require('./routes/documents'));
 // app.use('/api/tasks', require('./routes/tasks'));
 // app.use('/api/commissions', require('./routes/commissions'));
 // app.use('/api/documents', require('./routes/documents'));
