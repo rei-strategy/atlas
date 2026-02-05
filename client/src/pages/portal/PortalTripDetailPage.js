@@ -32,6 +32,14 @@ export default function PortalTripDetailPage() {
   const [docSubmitting, setDocSubmitting] = useState(false);
   const [docMessage, setDocMessage] = useState('');
 
+  // Helper to check if a payment is overdue
+  const isPaymentOverdue = (booking) => {
+    if (!booking.finalPaymentDueDate) return false;
+    if (booking.paymentStatus === 'paid_in_full') return false;
+    const today = new Date().toISOString().split('T')[0];
+    return booking.finalPaymentDueDate < today;
+  };
+
   useEffect(() => {
     fetchTripDetails();
   }, [id]);
@@ -429,10 +437,11 @@ export default function PortalTripDetailPage() {
                       </div>
                     )}
                     {b.finalPaymentDueDate && b.paymentStatus !== 'paid_in_full' && (
-                      <div className="portal-payment-row portal-payment-due-date">
+                      <div className={`portal-payment-row portal-payment-due-date ${isPaymentOverdue(b) ? 'overdue' : ''}`}>
                         <span className="portal-payment-item-label">Due Date:</span>
-                        <span className="portal-payment-item-value portal-due-date-highlight">
+                        <span className={`portal-payment-item-value ${isPaymentOverdue(b) ? 'portal-overdue-date' : 'portal-due-date-highlight'}`}>
                           {formatDate(b.finalPaymentDueDate)}
+                          {isPaymentOverdue(b) && <span className="portal-overdue-badge">OVERDUE</span>}
                         </span>
                       </div>
                     )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 
@@ -86,6 +86,14 @@ const PASSPORT_STATUS_COLORS = {
 function formatCurrency(amount) {
   if (amount === null || amount === undefined) return '$0.00';
   return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Check if a booking's payment is overdue
+function isPaymentOverdue(booking) {
+  if (!booking.finalPaymentDueDate) return false;
+  if (booking.paymentStatus === 'paid_in_full') return false;
+  const today = new Date().toISOString().split('T')[0];
+  return booking.finalPaymentDueDate < today;
 }
 
 function calculateAge(dateOfBirth) {
@@ -1156,12 +1164,16 @@ function BookingsTab({ tripId, token }) {
               </div>
               <div className="detail-field">
                 <span className="detail-field-label">Final Payment Due</span>
-                <span className="detail-field-value">{b.finalPaymentDueDate ? new Date(b.finalPaymentDueDate).toLocaleDateString() : '—'}</span>
+                <span className={`detail-field-value ${isPaymentOverdue(b) ? 'payment-overdue' : ''}`}>
+                  {b.finalPaymentDueDate ? new Date(b.finalPaymentDueDate).toLocaleDateString() : '—'}
+                  {isPaymentOverdue(b) && <span className="overdue-badge">OVERDUE</span>}
+                </span>
               </div>
               <div className="detail-field">
                 <span className="detail-field-label">Payment Status</span>
-                <span className={`status-badge ${PAYMENT_STATUS_COLORS[b.paymentStatus]}`}>
+                <span className={`status-badge ${PAYMENT_STATUS_COLORS[b.paymentStatus]} ${isPaymentOverdue(b) ? 'status-overdue' : ''}`}>
                   {PAYMENT_STATUSES.find(ps => ps.value === b.paymentStatus)?.label || b.paymentStatus}
+                  {isPaymentOverdue(b) && ' (Overdue)'}
                 </span>
               </div>
             </div>
@@ -2521,20 +2533,34 @@ export default function TripsPage() {
   const { token } = useAuth();
   const { id: urlTripId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
-  const [plannerFilter, setPlannerFilter] = useState('');
-  const [clientFilter, setClientFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
+  // Initialize filter states from URL search params for persistence
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [stageFilter, setStageFilter] = useState(() => searchParams.get('stage') || '');
+  const [plannerFilter, setPlannerFilter] = useState(() => searchParams.get('planner') || '');
+  const [clientFilter, setClientFilter] = useState(() => searchParams.get('client') || '');
+  const [dateFromFilter, setDateFromFilter] = useState(() => searchParams.get('dateFrom') || '');
+  const [dateToFilter, setDateToFilter] = useState(() => searchParams.get('dateTo') || '');
   const [showModal, setShowModal] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
+
+  // Sync filter state to URL search params for persistence during navigation
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (stageFilter) params.set('stage', stageFilter);
+    if (plannerFilter) params.set('planner', plannerFilter);
+    if (clientFilter) params.set('client', clientFilter);
+    if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+    if (dateToFilter) params.set('dateTo', dateToFilter);
+    setSearchParams(params, { replace: true });
+  }, [search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter, setSearchParams]);
 
   // Fetch users and clients for filters
   useEffect(() => {
@@ -2657,7 +2683,7 @@ export default function TripsPage() {
       <div className="page-container">
         <TripDetail
           trip={selectedTrip}
-          onBack={() => { setSelectedTrip(null); navigate('/trips'); }}
+          onBack={() => { setSelectedTrip(null); navigate(`/trips?${searchParams.toString()}`); }}
           onEdit={handleEditTrip}
           onStageChange={handleStageChange}
           token={token}
