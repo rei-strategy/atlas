@@ -1,0 +1,182 @@
+[     163ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:85.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     164ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:93.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     164ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:101.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     165ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:109.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     165ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:117.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     165ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:125.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:133.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:85.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:93.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:101.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:109.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:117.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:125.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     166ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:133.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[     181ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/bundle.js:37950
+[     182ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/bundle.js:37950
+[   29676ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:93.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[   29677ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:101.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[   29677ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:109.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[   29678ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:93.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[   29678ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:101.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
+[   29678ms] [ERROR] Warning: React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check your code at App.js:109.
+AppRoutes
+div
+AuthProvider@http://localhost:3000/static/js/bundle.js:1316:22
+Router@http://localhost:3000/static/js/bundle.js:38209:7
+BrowserRouter@http://localhost:3000/static/js/bundle.js:36107:7
+App @ http://localhost:3000/static/js/bundle.js:38601
