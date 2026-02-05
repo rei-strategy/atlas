@@ -39,8 +39,8 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Routes will be added here as features are implemented
-// app.use('/api/auth', require('./routes/auth'));
+// Routes
+app.use('/api/auth', require('./routes/auth'));
 // app.use('/api/clients', require('./routes/clients'));
 // app.use('/api/trips', require('./routes/trips'));
 // app.use('/api/tasks', require('./routes/tasks'));
