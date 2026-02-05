@@ -33,11 +33,37 @@
 - 3/240 features passing (1.25%)
 
 **What should be worked on next:**
-- Features #4 and #5 (remaining Infrastructure features)
-- Then Authentication & Multi-tenancy features
+- Authentication & Multi-tenancy features (Feature #6+)
 - All other route modules need to be implemented (clients, trips, tasks, bookings, etc.)
 - Frontend pages need to be built
 
 **Known state:**
 - Test user exists in DB: restart_test_12345@test.com / TestPass123 (agency: RESTART_TEST_AGENCY_12345)
 - There may be another user from a previous session's init (id=1)
+
+### Session 2 - 2026-02-05 (Agent batch: Features #4, #5)
+
+**Features Completed: #4, #5 (Infrastructure - final)**
+
+**What was accomplished:**
+- Feature #4: No mock data patterns in codebase
+  - Scanned server/src/ and client/src/ for all prohibited patterns
+  - Grep results for: globalThis, devStore, dev-store, mockDb, mockData, fakeData, sampleData, dummyData, testData, TODO.*real, TODO.*database, STUB, MOCK, isDevelopment, isDev
+  - All grep commands returned empty - zero mock data patterns found
+  - Checked package.json files for json-server, miragejs, msw - none found
+
+- Feature #5: Backend API queries real database
+  - Verified health endpoint executes SELECT 1 as ok against SQLite
+  - Verified register endpoint executes real INSERT INTO agencies + INSERT INTO users
+  - Verified login endpoint executes SELECT * FROM users
+  - Verified /me endpoint executes SELECT from users + agencies
+  - All SQL queries visible in server logs with [SQL] prefix
+  - Data persists across server restart (login succeeds after restart)
+  - Browser screenshot of health endpoint confirms database: "connected"
+
+**Current state:**
+- 5/240 infrastructure features all passing (2.1%)
+- Backend server running on port 3001
+- Frontend dev server starting on port 3000
+- Auth routes: register, login, logout, me - all working with real SQLite
+- All infrastructure features complete, ready for app feature development
