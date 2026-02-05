@@ -265,6 +265,54 @@ router.put('/:id/stage', (req, res) => {
       UPDATE trips SET stage = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND agency_id = ?
     `).run(stage, tripId, req.agencyId);
 
+    // Log the stage transition in audit_logs
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'stage_change',
+      'trip',
+      tripId,
+      JSON.stringify({ from: oldStage, to: stage }),
+      tripId
+    );
+
+    // Record the change in trip_change_records
+    db.prepare(`
+      INSERT INTO trip_change_records (trip_id, changed_by, field_changed, old_value, new_value)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(tripId, req.user.id, 'stage', oldStage, stage);
+
+    // Generate system tasks based on stage transitions
+    const tasksByStage = {
+      quoted: { title: 'Follow up on quote', description: 'Follow up with client on the trip quote', category: 'follow_up', daysOut: 3 },
+      booked: { title: 'Confirm booking details', description: 'Verify all booking confirmations received', category: 'internal', daysOut: 1 },
+      final_payment_pending: { title: 'Collect final payment', description: 'Final payment is due - follow up with client', category: 'payment', daysOut: 7 },
+      traveling: { title: 'Send bon voyage message', description: 'Send trip documents and bon voyage message to client', category: 'client_request', daysOut: 0 },
+      completed: { title: 'Request trip feedback', description: 'Send feedback request to client and follow up on commission', category: 'follow_up', daysOut: 3 }
+    };
+
+    if (tasksByStage[stage]) {
+      const taskDef = tasksByStage[stage];
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + taskDef.daysOut);
+      db.prepare(`
+        INSERT INTO tasks (agency_id, trip_id, assigned_user_id, title, description, due_date, status, priority, category, is_system_generated, source_event)
+        VALUES (?, ?, ?, ?, ?, ?, 'open', 'normal', ?, 1, ?)
+      `).run(
+        req.agencyId,
+        tripId,
+        existing.assigned_user_id || req.user.id,
+        taskDef.title,
+        taskDef.description,
+        dueDate.toISOString().split('T')[0],
+        taskDef.category,
+        `stage_change:${oldStage}:${stage}`
+      );
+    }
+
     // Fetch updated trip
     const trip = db.prepare(`
       SELECT t.*,
