@@ -17,7 +17,7 @@ const VALID_STAGES = ['inquiry', 'quoted', 'booked', 'final_payment_pending', 't
 router.get('/', (req, res) => {
   try {
     const db = getDb();
-    const { search, stage, clientId, assignedTo, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
+    const { search, stage, clientId, assignedTo, dateFrom, dateTo, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
 
     let query = `
       SELECT t.*,
@@ -49,6 +49,17 @@ router.get('/', (req, res) => {
     if (assignedTo) {
       query += ` AND t.assigned_user_id = ?`;
       params.push(assignedTo);
+    }
+
+    // Date range filter - filters on travel_start_date
+    if (dateFrom) {
+      query += ` AND t.travel_start_date >= ?`;
+      params.push(dateFrom);
+    }
+
+    if (dateTo) {
+      query += ` AND t.travel_start_date <= ?`;
+      params.push(dateTo);
     }
 
     const allowedSortCols = ['name', 'destination', 'stage', 'travel_start_date', 'travel_end_date', 'created_at', 'updated_at'];

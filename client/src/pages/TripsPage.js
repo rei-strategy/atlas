@@ -2161,15 +2161,44 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
+  const [plannerFilter, setPlannerFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [clients, setClients] = useState([]);
+
+  // Fetch users and clients for filters
+  useEffect(() => {
+    if (!token) return;
+    // Fetch users
+    fetch(`${API_BASE}/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => { if (data.users) setUsers(data.users); })
+      .catch(() => {});
+    // Fetch clients
+    fetch(`${API_BASE}/clients`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => { if (data.clients) setClients(data.clients); })
+      .catch(() => {});
+  }, [token]);
 
   const fetchTrips = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (stageFilter) params.set('stage', stageFilter);
+      if (plannerFilter) params.set('assignedTo', plannerFilter);
+      if (clientFilter) params.set('clientId', clientFilter);
+      if (dateFromFilter) params.set('dateFrom', dateFromFilter);
+      if (dateToFilter) params.set('dateTo', dateToFilter);
       const res = await fetch(`${API_BASE}/trips?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2182,7 +2211,7 @@ export default function TripsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search, stageFilter]);
+  }, [token, search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter]);
 
   useEffect(() => {
     fetchTrips();
@@ -2291,26 +2320,92 @@ export default function TripsPage() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-        <input
-          type="text"
-          className="form-input"
-          placeholder="Search trips by name, destination, or client..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1 }}
-        />
-        <select
-          className="form-input"
-          value={stageFilter}
-          onChange={(e) => setStageFilter(e.target.value)}
-          style={{ width: '200px' }}
-        >
-          <option value="">All Stages</option>
-          {STAGE_ORDER.map(stage => (
-            <option key={stage} value={stage}>{STAGE_LABELS[stage]}</option>
-          ))}
-        </select>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
+        {/* Row 1: Search and Stage filter */}
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search trips by name, destination, or client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <select
+            className="form-input"
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            style={{ width: '200px' }}
+            aria-label="Filter by stage"
+          >
+            <option value="">All Stages</option>
+            {STAGE_ORDER.map(stage => (
+              <option key={stage} value={stage}>{STAGE_LABELS[stage]}</option>
+            ))}
+          </select>
+        </div>
+        {/* Row 2: Additional filters */}
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+          <select
+            className="form-input"
+            value={plannerFilter}
+            onChange={(e) => setPlannerFilter(e.target.value)}
+            style={{ width: '200px' }}
+            aria-label="Filter by planner"
+          >
+            <option value="">All Planners</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+            ))}
+          </select>
+          <select
+            className="form-input"
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            style={{ width: '200px' }}
+            aria-label="Filter by client"
+          >
+            <option value="">All Clients</option>
+            {clients.map(c => (
+              <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Travel dates:</label>
+            <input
+              type="date"
+              className="form-input"
+              value={dateFromFilter}
+              onChange={(e) => setDateFromFilter(e.target.value)}
+              style={{ width: '150px' }}
+              aria-label="Filter by date from"
+            />
+            <span style={{ color: 'var(--text-secondary)' }}>to</span>
+            <input
+              type="date"
+              className="form-input"
+              value={dateToFilter}
+              onChange={(e) => setDateToFilter(e.target.value)}
+              style={{ width: '150px' }}
+              aria-label="Filter by date to"
+            />
+          </div>
+          {(stageFilter || plannerFilter || clientFilter || dateFromFilter || dateToFilter) && (
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setStageFilter('');
+                setPlannerFilter('');
+                setClientFilter('');
+                setDateFromFilter('');
+                setDateToFilter('');
+              }}
+              style={{ marginLeft: 'auto' }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
