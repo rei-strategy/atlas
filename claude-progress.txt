@@ -185,3 +185,57 @@
 - Test client: Maria Rodriguez (all fields populated)
 - Test trip: Caribbean Cruise 2026, Western Caribbean, completed stage
 - Git commits: 964b817, 729d8be, e66f79f
+
+
+### Session - 2026-02-05 (Agent batch: Features #17, #26, #27)
+
+**Features Completed: #17, #26, #27 (Security & Access Control - Invites and Approval Workflow)**
+
+#### Feature #17: Admin can invite user to agency
+- Admin uses Settings > Team Members > "+ Invite User" button
+- Modal allows entering email, name, role, and optional password
+- User created in same agency with correct role
+- Invited user can login with provided credentials
+- Fixed sidebar role filtering to recognize planner/support roles
+- Screenshots: invite-form-filled.png, invite-success.png, invited-planner-with-nav.png
+
+#### Feature #26: Approval workflow - planner creates request
+- Created /api/approvals route for managing approval requests
+- Modified bookings route to check for restricted actions:
+  - Confirm booking (status change to "booked")
+  - Mark payment received (payment_status to "paid_in_full")
+  - Change commission status
+- Non-admin users get 202 response with approval request created
+- Action NOT executed until admin approves
+- Planner can view their pending requests via GET /api/approvals
+
+#### Feature #27: Admin can approve pending requests
+- Admin can view all pending approvals via GET /api/approvals
+- PUT /api/approvals/:id/approve executes the action with optional note
+- PUT /api/approvals/:id/deny rejects the request with optional note
+- Audit log entries created for approvals/denials
+- Notifications sent to requester on resolution
+- Verified booking status changed from "quoted" to "booked" upon approval
+- Data persists across server restart
+
+#### Key Implementation Details
+- server/src/routes/approvals.js: Full CRUD + approve/deny endpoints
+- server/src/routes/bookings.js: Approval check for restricted actions
+- client/src/components/Sidebar.js: Fixed role filtering for planner/support roles
+- Approval requests table stores: action_type, entity_type, entity_id, status, reason, response_note
+
+#### Test Data Created
+- Agency: Feature17 Test Agency (ID: 16)
+- Admin: admin_feature17@test.com / TestPass123
+- Planner: planner_invited@test.com / InvitePass123
+- Client: Test Client (ID: 4)
+- Trip: Approval Test Trip (ID: 4)
+- Booking: Paris Hotel (ID: 3) - status changed from quoted to booked via approval
+
+#### Current State
+- 24/240 features passing (~10%)
+- Backend on port 3001, Frontend on port 3000
+- Approval workflow fully functional via API
+- No mock data patterns in codebase
+- Data persists across server restart
+
