@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext';
 import { ToastProvider } from './components/Toast';
 import AppLayout from './components/AppLayout';
 import LoginPage from './pages/LoginPage';
@@ -13,6 +14,10 @@ import CommissionsPage from './pages/CommissionsPage';
 import ReportsPage from './pages/ReportsPage';
 import EmailTemplatesPage from './pages/EmailTemplatesPage';
 import SettingsPage from './pages/SettingsPage';
+import PortalLoginPage from './pages/portal/PortalLoginPage';
+import PortalDashboardPage from './pages/portal/PortalDashboardPage';
+import PortalTripDetailPage from './pages/portal/PortalTripDetailPage';
+import PortalLayout from './pages/portal/PortalLayout';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -47,6 +52,44 @@ function PublicRoute({ children }) {
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+function PortalProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = usePortalAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/portal/login" replace />;
+  }
+
+  return <PortalLayout>{children}</PortalLayout>;
+}
+
+function PortalPublicRoute({ children }) {
+  const { isAuthenticated, loading } = usePortalAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/portal/dashboard" replace />;
   }
 
   return children;
@@ -135,6 +178,34 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Portal Routes */}
+      <Route
+        path="/portal/login"
+        element={
+          <PortalPublicRoute>
+            <PortalLoginPage />
+          </PortalPublicRoute>
+        }
+      />
+      <Route
+        path="/portal/dashboard"
+        element={
+          <PortalProtectedRoute>
+            <PortalDashboardPage />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route
+        path="/portal/trips/:id"
+        element={
+          <PortalProtectedRoute>
+            <PortalTripDetailPage />
+          </PortalProtectedRoute>
+        }
+      />
+      <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
+
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
@@ -145,11 +216,13 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <ToastProvider>
-          <div className="App">
-            <AppRoutes />
-          </div>
-        </ToastProvider>
+        <PortalAuthProvider>
+          <ToastProvider>
+            <div className="App">
+              <AppRoutes />
+            </div>
+          </ToastProvider>
+        </PortalAuthProvider>
       </AuthProvider>
     </Router>
   );
