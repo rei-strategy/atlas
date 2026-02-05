@@ -726,15 +726,307 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) 
   );
 }
 
+/* =================== COMMISSION STATUS MODAL =================== */
+const COMMISSION_STATUS_OPTIONS = [
+  { value: 'expected', label: 'Expected', description: 'Commission is expected from this booking' },
+  { value: 'submitted', label: 'Submitted', description: 'Commission claim has been submitted to supplier' },
+  { value: 'paid', label: 'Paid', description: 'Commission has been received' }
+];
+
+function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, token, isAdmin }) {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    commissionStatus: '',
+    commissionAmountReceived: '',
+    commissionReceivedDate: '',
+    commissionPaymentReference: '',
+    commissionVarianceNote: ''
+  });
+
+  useEffect(() => {
+    if (booking) {
+      setForm({
+        commissionStatus: booking.commissionStatus || 'expected',
+        commissionAmountReceived: booking.commissionAmountReceived || '',
+        commissionReceivedDate: booking.commissionReceivedDate || '',
+        commissionPaymentReference: booking.commissionPaymentReference || '',
+        commissionVarianceNote: booking.commissionVarianceNote || ''
+      });
+    }
+    setError('');
+  }, [booking, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validate: if changing to paid, amount received is required
+    if (form.commissionStatus === 'paid' && !form.commissionAmountReceived) {
+      setError('Amount received is required when marking commission as paid');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Use the commission-specific endpoint
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings/${booking.id}/commission`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          commissionStatus: form.commissionStatus,
+          commissionAmountReceived: form.commissionAmountReceived ? parseFloat(form.commissionAmountReceived) : null,
+          commissionReceivedDate: form.commissionReceivedDate || null,
+          commissionPaymentReference: form.commissionPaymentReference || null,
+          commissionVarianceNote: form.commissionVarianceNote || null
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.status === 202) {
+        // Approval required (non-admin user)
+        addToast('Commission status change requires admin approval. Request submitted.', 'info');
+        onClose();
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update commission status');
+      }
+
+      addToast('Commission status updated successfully', 'success');
+      onSaved(data.booking);
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !booking) return null;
+
+  const currentStatus = booking.commissionStatus || 'expected';
+  const newStatus = form.commissionStatus;
+  const showPaymentFields = newStatus === 'paid';
+  const statusChanged = newStatus !== currentStatus;
+
+  // Calculate variance if amount received differs from expected
+  const variance = form.commissionAmountReceived && booking.commissionAmountExpected
+    ? parseFloat(form.commissionAmountReceived) - booking.commissionAmountExpected
+    : null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-md" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Update Commission Status</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <div className="auth-error">{error}</div>}
+
+            {/* Current Commission Info */}
+            <div style={{
+              marginBottom: '1.25rem',
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Booking</span>
+                <span style={{ fontWeight: 600 }}>
+                  {BOOKING_TYPES.find(bt => bt.value === booking.bookingType)?.label || booking.bookingType}
+                  {booking.supplierName ? ` — ${booking.supplierName}` : ''}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Expected Amount</span>
+                <span style={{ fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+                  {formatCurrency(booking.commissionAmountExpected)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Current Status</span>
+                <span className={`status-badge ${COMMISSION_STATUS_COLORS[currentStatus]}`}>
+                  {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+                </span>
+              </div>
+            </div>
+
+            {/* Commission Status Selector */}
+            <div className="form-group">
+              <label className="form-label">New Commission Status</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {COMMISSION_STATUS_OPTIONS.map(option => (
+                  <label
+                    key={option.value}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem',
+                      padding: '0.75rem',
+                      border: form.commissionStatus === option.value
+                        ? '2px solid var(--color-primary, #1a56db)'
+                        : '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background: form.commissionStatus === option.value
+                        ? 'var(--color-primary-light, #eff6ff)'
+                        : 'transparent'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="commissionStatus"
+                      value={option.value}
+                      checked={form.commissionStatus === option.value}
+                      onChange={handleChange}
+                      style={{ marginTop: '0.125rem' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{option.label}</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {option.description}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Fields (shown when status is "paid") */}
+            {showPaymentFields && (
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--border-color)'
+              }}>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9375rem' }}>Payment Details</h4>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="commissionAmountReceived">Amount Received ($) *</label>
+                    <input
+                      id="commissionAmountReceived"
+                      name="commissionAmountReceived"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      value={form.commissionAmountReceived}
+                      onChange={handleChange}
+                      placeholder={booking.commissionAmountExpected?.toString() || '0.00'}
+                      required
+                    />
+                    {variance !== null && variance !== 0 && (
+                      <p style={{
+                        fontSize: '0.8125rem',
+                        marginTop: '0.25rem',
+                        color: variance > 0 ? 'var(--color-success, #059669)' : 'var(--color-error, #dc2626)'
+                      }}>
+                        {variance > 0 ? '+' : ''}{formatCurrency(variance)} {variance > 0 ? 'over' : 'under'} expected
+                      </p>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="commissionReceivedDate">Date Received</label>
+                    <input
+                      id="commissionReceivedDate"
+                      name="commissionReceivedDate"
+                      type="date"
+                      className="form-input"
+                      value={form.commissionReceivedDate}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="commissionPaymentReference">Payment Reference</label>
+                  <input
+                    id="commissionPaymentReference"
+                    name="commissionPaymentReference"
+                    className="form-input"
+                    value={form.commissionPaymentReference}
+                    onChange={handleChange}
+                    placeholder="e.g., Check #1234, EFT Reference, etc."
+                  />
+                </div>
+
+                {variance !== null && variance !== 0 && (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="commissionVarianceNote">Variance Note</label>
+                    <textarea
+                      id="commissionVarianceNote"
+                      name="commissionVarianceNote"
+                      className="form-input form-textarea"
+                      value={form.commissionVarianceNote}
+                      onChange={handleChange}
+                      placeholder="Explain why the amount received differs from expected..."
+                      rows={2}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Approval warning for non-admins */}
+            {!isAdmin && statusChanged && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                background: 'var(--color-warning-light, #fef3c7)',
+                border: '1px solid var(--color-warning, #f59e0b)',
+                borderRadius: '8px',
+                fontSize: '0.875rem'
+              }}>
+                <strong>Note:</strong> Commission status changes require admin approval.
+                Your request will be submitted for review.
+              </div>
+            )}
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading || !statusChanged}
+            >
+              {loading ? 'Saving...' : (isAdmin ? 'Update Status' : 'Request Change')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* =================== BOOKINGS TAB =================== */
 function BookingsTab({ tripId, token }) {
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [bookings, setBookings] = useState([]);
   const [totals, setTotals] = useState({});
   const [loading, setLoading] = useState(true);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [editBooking, setEditBooking] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -877,7 +1169,16 @@ function BookingsTab({ tripId, token }) {
 
           {/* Commission Details */}
           <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Commission</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>Commission</h4>
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => setShowCommissionModal(true)}
+                style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
+              >
+                Update Status
+              </button>
+            </div>
             <div className="detail-grid">
               <div className="detail-field">
                 <span className="detail-field-label">Commission Rate</span>
@@ -893,10 +1194,30 @@ function BookingsTab({ tripId, token }) {
                   {b.commissionStatus ? b.commissionStatus.charAt(0).toUpperCase() + b.commissionStatus.slice(1) : 'Expected'}
                 </span>
               </div>
-              {b.commissionAmountReceived != null && (
+              {b.commissionAmountReceived != null && b.commissionAmountReceived > 0 && (
                 <div className="detail-field">
                   <span className="detail-field-label">Amount Received</span>
-                  <span className="detail-field-value">{formatCurrency(b.commissionAmountReceived)}</span>
+                  <span className="detail-field-value" style={{ fontWeight: 600, color: 'var(--color-success, #059669)' }}>
+                    {formatCurrency(b.commissionAmountReceived)}
+                  </span>
+                </div>
+              )}
+              {b.commissionReceivedDate && (
+                <div className="detail-field">
+                  <span className="detail-field-label">Date Received</span>
+                  <span className="detail-field-value">{new Date(b.commissionReceivedDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {b.commissionPaymentReference && (
+                <div className="detail-field">
+                  <span className="detail-field-label">Payment Reference</span>
+                  <span className="detail-field-value">{b.commissionPaymentReference}</span>
+                </div>
+              )}
+              {b.commissionVarianceNote && (
+                <div className="detail-field" style={{ gridColumn: '1 / -1' }}>
+                  <span className="detail-field-label">Variance Note</span>
+                  <span className="detail-field-value">{b.commissionVarianceNote}</span>
                 </div>
               )}
             </div>
@@ -935,6 +1256,19 @@ function BookingsTab({ tripId, token }) {
           booking={editBooking}
           tripId={tripId}
           token={token}
+        />
+
+        <CommissionStatusModal
+          isOpen={showCommissionModal}
+          onClose={() => setShowCommissionModal(false)}
+          onSaved={(updatedBooking) => {
+            setSelectedBooking(updatedBooking);
+            fetchBookings();
+          }}
+          booking={selectedBooking}
+          tripId={tripId}
+          token={token}
+          isAdmin={isAdmin}
         />
       </div>
     );
@@ -1055,27 +1389,32 @@ function BookingsTab({ tripId, token }) {
 
 /* =================== COMMISSIONS TAB =================== */
 function CommissionsTab({ tripId, token }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
+
+  const fetchCommissions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBookings(data.bookings || []);
+      }
+    } catch (err) {
+      console.error('Failed to load commissions:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, token]);
 
   useEffect(() => {
-    async function fetchCommissions() {
-      try {
-        const res = await fetch(`${API_BASE}/trips/${tripId}/bookings`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setBookings(data.bookings || []);
-        }
-      } catch (err) {
-        console.error('Failed to load commissions:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchCommissions();
-  }, [tripId, token]);
+  }, [fetchCommissions]);
 
   if (loading) {
     return (
@@ -1089,6 +1428,7 @@ function CommissionsTab({ tripId, token }) {
   const commissionsData = bookings.filter(b => b.commissionAmountExpected > 0 || b.commissionStatus !== 'expected');
   const totalExpected = commissionsData.reduce((sum, b) => sum + (b.commissionAmountExpected || 0), 0);
   const totalReceived = commissionsData.reduce((sum, b) => sum + (b.commissionAmountReceived || 0), 0);
+  const pendingCount = commissionsData.filter(b => b.commissionStatus !== 'paid').length;
 
   return (
     <div>
@@ -1108,8 +1448,8 @@ function CommissionsTab({ tripId, token }) {
           <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>{formatCurrency(totalReceived)}</div>
         </div>
         <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Bookings w/ Commission</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{commissionsData.length}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Pending</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: pendingCount > 0 ? 'var(--color-warning, #f59e0b)' : 'var(--color-success, #059669)' }}>{pendingCount}</div>
         </div>
       </div>
 
@@ -1129,6 +1469,7 @@ function CommissionsTab({ tripId, token }) {
                 <th>Expected</th>
                 <th>Received</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1142,11 +1483,22 @@ function CommissionsTab({ tripId, token }) {
                   <td>{b.supplierName || '—'}</td>
                   <td>{b.commissionRate ? `${b.commissionRate}%` : '—'}</td>
                   <td style={{ fontWeight: 600 }}>{formatCurrency(b.commissionAmountExpected)}</td>
-                  <td>{b.commissionAmountReceived != null ? formatCurrency(b.commissionAmountReceived) : '—'}</td>
+                  <td style={{ color: b.commissionAmountReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                    {b.commissionAmountReceived != null && b.commissionAmountReceived > 0 ? formatCurrency(b.commissionAmountReceived) : '—'}
+                  </td>
                   <td>
                     <span className={`status-badge ${COMMISSION_STATUS_COLORS[b.commissionStatus]}`}>
                       {b.commissionStatus ? b.commissionStatus.charAt(0).toUpperCase() + b.commissionStatus.slice(1) : 'Expected'}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={() => { setSelectedBooking(b); setShowCommissionModal(true); }}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      Update
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -1154,6 +1506,19 @@ function CommissionsTab({ tripId, token }) {
           </table>
         </div>
       )}
+
+      <CommissionStatusModal
+        isOpen={showCommissionModal}
+        onClose={() => { setShowCommissionModal(false); setSelectedBooking(null); }}
+        onSaved={(updatedBooking) => {
+          fetchCommissions();
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        tripId={tripId}
+        token={token}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
