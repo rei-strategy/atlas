@@ -51,7 +51,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 // app.use('/api/documents', require('./routes/documents'));
 // app.use('/api/email-templates', require('./routes/emailTemplates'));
 // app.use('/api/email-queue', require('./routes/emailQueue'));
-// app.use('/api/approvals', require('./routes/approvals'));
+app.use('/api/approvals', require('./routes/approvals'));
 // app.use('/api/notifications', require('./routes/notifications'));
 // app.use('/api/dashboard', require('./routes/dashboard'));
 // app.use('/api/reports', require('./routes/reports'));

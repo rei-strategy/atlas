@@ -178,11 +178,13 @@ router.post('/', (req, res) => {
 /**
  * PUT /api/trips/:tripId/bookings/:id
  * Update a booking
+ * Restricted actions (confirm booking, mark payment, change commission) require admin or approval
  */
 router.put('/:id', (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;
+    const isAdmin = req.user.role === 'admin';
 
     const existing = db.prepare('SELECT * FROM bookings WHERE id = ? AND trip_id = ? AND agency_id = ?').get(id, tripId, req.agencyId);
     if (!existing) {
@@ -211,6 +213,99 @@ router.put('/:id', (req, res) => {
     }
     if (commissionStatus && !VALID_COMMISSION_STATUSES.includes(commissionStatus)) {
       return res.status(400).json({ error: 'Invalid commission status' });
+    }
+
+    // Check for restricted actions that require admin approval
+    const restrictedChanges = [];
+
+    // Confirming a booking (status change to 'booked')
+    if (status === 'booked' && existing.status !== 'booked') {
+      restrictedChanges.push({ action: 'confirm_booking', reason: 'Confirm booking' });
+    }
+
+    // Marking payment as paid_in_full
+    if (paymentStatus === 'paid_in_full' && existing.payment_status !== 'paid_in_full') {
+      restrictedChanges.push({ action: 'mark_payment_received', reason: 'Mark payment as paid in full' });
+    }
+
+    // Changing commission status
+    if (commissionStatus && commissionStatus !== existing.commission_status) {
+      restrictedChanges.push({
+        action: 'change_commission_status',
+        reason: JSON.stringify({ newStatus: commissionStatus, oldStatus: existing.commission_status })
+      });
+    }
+
+    // If non-admin and there are restricted changes, create approval request
+    if (!isAdmin && restrictedChanges.length > 0) {
+      // Create approval request for the first restricted action
+      const restrictedAction = restrictedChanges[0];
+
+      // Check if there's already a pending approval for this booking
+      const existingPending = db.prepare(`
+        SELECT id FROM approval_requests
+        WHERE agency_id = ? AND entity_type = 'booking' AND entity_id = ?
+          AND action_type = ? AND status = 'pending'
+      `).get(req.agencyId, id, restrictedAction.action);
+
+      if (existingPending) {
+        return res.status(202).json({
+          message: 'An approval request for this action is already pending',
+          approvalRequired: true,
+          approvalRequestId: existingPending.id,
+          restrictedAction: restrictedAction.action
+        });
+      }
+
+      // Create new approval request
+      const result = db.prepare(`
+        INSERT INTO approval_requests (agency_id, requested_by, action_type, entity_type, entity_id, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(req.agencyId, req.user.id, restrictedAction.action, 'booking', id, restrictedAction.reason);
+
+      const requestId = result.lastInsertRowid;
+
+      // Create notifications for admins
+      const admins = db.prepare(
+        "SELECT id FROM users WHERE agency_id = ? AND role = 'admin' AND is_active = 1"
+      ).all(req.agencyId);
+
+      for (const admin of admins) {
+        db.prepare(`
+          INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          admin.id,
+          'normal',
+          'Approval Required',
+          `${req.user.firstName || req.user.email} requests to ${restrictedAction.action.replace(/_/g, ' ')}`,
+          'approval_request',
+          requestId
+        );
+      }
+
+      // Log the approval request creation
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, booking_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'create_approval_request',
+        'approval_request',
+        requestId,
+        JSON.stringify({ action: restrictedAction.action, bookingId: id }),
+        id
+      );
+
+      return res.status(202).json({
+        message: 'This action requires admin approval. An approval request has been created.',
+        approvalRequired: true,
+        approvalRequestId: requestId,
+        restrictedAction: restrictedAction.action,
+        booking: formatBooking(existing)
+      });
     }
 
     db.prepare(`
