@@ -1,0 +1,900 @@
+<project_specification>
+  <project_name>Atlas</project_name>
+
+  <overview>
+    Atlas is a centralized platform for travel planners to manage clients, trips, bookings, payments, and commissions in one place, replacing disconnected tools and spreadsheets. It consolidates trip lifecycle management, automated communications, commission tracking, task generation, and client-facing portals into a single system of record. The platform is multi-tenant, supporting independent agencies and planners with strict data isolation.
+  </overview>
+
+  <philosophy>
+    Atlas tracks, organizes, reminds, and supports human decision-making. It is not a booking engine, payment processor, or accounting system. The system assumes planners are busy, interrupted, and human — it remembers things so they don't have to. Bookings are records, not executors. Commissions are tracked and reminded, never auto-submitted or auto-paid. Trust comes from boring consistency, not clever automation.
+  </philosophy>
+
+  <explicit_non_goals>
+    - Do NOT book travel with suppliers
+    - Do NOT process or charge payments
+    - Do NOT search live pricing or inventory
+    - Do NOT replace accounting software
+    - Do NOT handle refunds or disputes
+    - Do NOT act as a legal compliance platform
+    - Bookings never trigger payments, submissions, or supplier actions automatically
+  </explicit_non_goals>
+
+  <technology_stack>
+    <frontend>
+      <framework>React</framework>
+      <styling>CSS Modules or Tailwind CSS</styling>
+      <state_management>React Context or lightweight state library</state_management>
+      <routing>React Router</routing>
+    </frontend>
+    <backend>
+      <runtime>Node.js</runtime>
+      <framework>Express</framework>
+      <database>SQLite</database>
+      <orm>Better-sqlite3 or Knex.js</orm>
+    </backend>
+    <communication>
+      <api>REST API</api>
+      <authentication>JWT-based with role encoding</authentication>
+    </communication>
+  </technology_stack>
+
+  <prerequisites>
+    <environment_setup>
+      - Node.js (v18+)
+      - npm or yarn
+      - SQLite3
+      - Git
+    </environment_setup>
+  </prerequisites>
+
+  <feature_count>239</feature_count>
+
+  <multi_tenancy>
+    Atlas is a multi-tenant system. Each agency or independent planner operates in an isolated account with strict data separation.
+    - Users can only see data within their own agency
+    - Branding, templates, settings, and permissions are scoped per agency
+    - No cross-agency visibility is allowed
+    - Database structure, authentication, and permissions enforce tenant isolation from day one
+  </multi_tenancy>
+
+  <security_and_access_control>
+    <user_roles>
+      <role name="admin">
+        <description>Business owner or lead advisor with full control</description>
+        <permissions>
+          - Approve quotes, bookings, payments, commissions, contracts
+          - Edit agency settings and templates
+          - Manage users and permissions
+          - All planner/advisor permissions
+          - Override locked trip states with logged reason
+          - Access audit logs
+          - View all commission and revenue reports
+        </permissions>
+        <approval_authority>
+          - Send final pricing
+          - Confirm bookings
+          - Process payments (marking as paid)
+          - Submit commissions
+          - Send contracts
+          - Make major trip changes
+          - Stage transitions involving money, bookings, or commissions
+        </approval_authority>
+      </role>
+      <role name="planner_advisor">
+        <description>Travel planner managing day-to-day client and trip operations</description>
+        <permissions>
+          - Manage clients, trips, bookings, tasks, and documents
+          - Prepare quotes and booking details
+          - Create and assign tasks
+          - View own commission data
+          - Send informational (non-financial) communications
+          - Cannot finalize restricted actions without Admin approval
+        </permissions>
+      </role>
+      <role name="support_assistant">
+        <description>Support staff completing assigned work</description>
+        <permissions>
+          - View trips and clients (read-only on sensitive data)
+          - Complete assigned tasks
+          - Upload documents
+          - Cannot approve pricing, bookings, payments, or commissions
+          - Cannot create or modify bookings
+        </permissions>
+      </role>
+      <role name="marketing">
+        <description>Marketing staff with limited access for campaigns</description>
+        <permissions>
+          - Access client lists (with consent flags respected)
+          - Send approved campaigns
+          - View marketing-related metrics only
+          - Cannot access financial data, commissions, or booking details
+        </permissions>
+      </role>
+      <role name="customer">
+        <description>Client accessing their own trip information via portal</description>
+        <permissions>
+          - View own upcoming trips (dates, destination, itinerary summary)
+          - View documents (confirmations, invoices, insurance info)
+          - View payment status (what's due, what's paid)
+          - Fill out forms (traveler info, preferences)
+          - Upload documents
+          - Submit card authorization forms (secure)
+          - Acknowledge receipt of info
+          - Complete post-trip feedback
+          - View messages/updates from planner
+        </permissions>
+        <restrictions>
+          - Cannot make payments directly
+          - Cannot edit bookings
+          - Cannot change dates or destinations
+          - Cannot see internal notes, tasks, commissions, or other clients
+          - No visibility into planner workflow or agency operations
+        </restrictions>
+        <protected_routes>
+          - /portal/* (customer only, scoped to own data)
+        </protected_routes>
+      </role>
+    </user_roles>
+    <authentication>
+      <method>Email and password</method>
+      <customer_auth>Email-based authentication for client portal</customer_auth>
+      <session_management>JWT with expiration</session_management>
+      <client_access_control>Client access can be disabled at any time by the planner</client_access_control>
+    </authentication>
+    <approval_workflow>
+      Regular users (planners, support) can prepare information, but the system requires an Admin approval step before critical actions are finalized. This keeps control with the business owner or lead advisor and prevents costly mistakes.
+      Actions requiring approval:
+      - Sending final pricing or quotes
+      - Confirming bookings
+      - Processing/marking payments
+      - Submitting commissions
+      - Sending contracts
+      - Major trip changes
+      - Stage transitions involving money
+    </approval_workflow>
+    <sensitive_operations>
+      - No destructive actions without confirmation dialog
+      - Locked trip states prevent silent corruption
+      - All changes logged and traceable
+      - Changes after trip lock require Admin approval + logged reason + change record
+    </sensitive_operations>
+  </security_and_access_control>
+
+  <core_features>
+    <infrastructure>
+      - Database connection established
+      - Database schema applied correctly
+      - Data persists across server restart
+      - No mock data patterns in codebase
+      - Backend API queries real database
+    </infrastructure>
+
+    <authentication_and_multi_tenancy>
+      - User registration with agency creation
+      - User login with JWT token
+      - User logout with session cleanup
+      - Password hashing and secure storage
+      - Role-based route protection
+      - Agency-scoped data isolation (all queries filtered by tenant)
+      - Customer portal separate authentication
+      - Customer access enable/disable by planner
+      - Invite user to agency (Admin only)
+      - User profile management
+      - Token refresh mechanism
+      - Session expiration handling
+    </authentication_and_multi_tenancy>
+
+    <user_roles_and_permissions>
+      - Admin role with full permissions
+      - Planner/Advisor role with operational permissions
+      - Support/Assistant role with limited permissions
+      - Marketing role with campaign-only access
+      - Customer role scoped to own data
+      - Approval workflow for restricted actions
+      - Approval request creation by non-admin users
+      - Approval grant/deny by admin users
+      - Pending approval queue visible to admins
+      - Permission check on all API endpoints
+      - Role assignment and modification (Admin only)
+      - Permission denied feedback (clear message, not silent failure)
+      - Configurable permissions per agency
+      - Approval audit trail
+    </user_roles_and_permissions>
+
+    <client_management>
+      - Create client with full profile (name, email, phone, location)
+      - Edit client details
+      - Delete client (with confirmation and cascade handling)
+      - View client list with search and filters
+      - Client preferred communication method
+      - Client travel preferences (Disney, cruises, luxury, budget, etc.)
+      - Client notes (relationship context, anniversaries, repeat preferences)
+      - Consent flags (marketing opt-in, contact permissions)
+      - Client trip history view
+      - Assigned planner/owner per client
+      - Reassign client to different planner
+      - Client detail page with all related trips
+      - Client list sortable by name, recent activity, planner
+      - Marketing consent respected in client list access
+      - CSV import for clients
+      - Client search across all fields
+    </client_management>
+
+    <trip_management_and_lifecycle>
+      - Create trip (destination, dates, client association)
+      - Edit trip details
+      - View trip detail page (all bookings, travelers, tasks, documents, communications, commissions)
+      - Trip list view with filters (stage, date, planner, client)
+      - Trip lifecycle stages: Inquiry, Quoted/Planning, Booked, Final Payment Pending, Traveling, Completed, Canceled, Archived
+      - Stage transition with automatic task generation
+      - Stage transitions involving money/bookings require Admin approval
+      - Trip assigned to planner/owner
+      - Trip locking after Booked + Final Payment Paid (dates, destination, supplier, travelers, pricing)
+      - Changes to locked trips require Admin approval + logged reason
+      - Change record creation (not silent edits) for locked trip modifications
+      - Partial cancellation handling (cancel one booking within a trip)
+      - Trip reopening from Completed or Canceled (with Admin approval)
+      - Stage rollback with Admin approval and reason
+      - Completed but commission not paid state logic
+      - Trip archival (move out of daily views, remain searchable)
+      - Trip search by destination, client name, dates, stage
+      - Trip dashboard metrics (count by stage, upcoming deadlines)
+      - Trip timeline/activity log
+      - Delete trip (with cascade confirmation)
+      - CSV import for trips
+      - Trip duplication (copy as template for repeat clients)
+      - Automatic deadline tracking (final payment, check-in, insurance cutoff, travel dates)
+      - Trip stage drives dashboard, alerts, and metrics
+    </trip_management_and_lifecycle>
+
+    <traveler_management>
+      - Add traveler to a trip
+      - Edit traveler details
+      - Remove traveler from trip
+      - Traveler full legal name
+      - Traveler date of birth with derived age
+      - Traveler passport status (yes/no/expiration date)
+      - Traveler special needs (dietary, mobility, medical notes)
+      - Traveler relationship to client (optional)
+      - Secure document attachment per traveler (passport scans, IDs)
+      - Sensitive documents never auto-shared or emailed
+    </traveler_management>
+
+    <booking_management>
+      - Create booking within a trip
+      - Edit booking details
+      - Delete booking (with confirmation)
+      - Booking type (hotel, cruise, resort, tour, insurance, transfer, etc.)
+      - Supplier/vendor name
+      - Booking status (planned, quoted, booked, canceled)
+      - Confirmation number(s)
+      - Booking date
+      - Travel start and end dates per booking
+      - Total booking cost
+      - Deposit amount and status
+      - Final payment amount and due date
+      - Payment status (deposit paid, final due, paid in full)
+      - Expected commission amount
+      - Commission rate
+      - Commission status (expected, submitted, paid)
+      - Supplier-specific notes
+      - What's included/excluded notes
+      - Change/cancellation rules (notes field)
+      - Booking list view within trip
+      - Booking totals rollup on trip view
+    </booking_management>
+
+    <commission_tracking_and_reconciliation>
+      - Commission recorded at booking creation (amount, rate, supplier)
+      - Commission starts in Expected status
+      - System creates reminder task after trip Completed to submit commission
+      - Manual status change: Expected to Submitted
+      - Manual status change: Submitted to Paid
+      - Record actual amount received, date received, payment method/reference
+      - Variance detection: expected vs actual (underpaid/overpaid flag)
+      - Variance notes field (supplier adjustment, rate change, host split)
+      - Commission report by status (expected, submitted, paid)
+      - Commission report by time period (month, quarter, year)
+      - Commission report by supplier
+      - Commission report by planner
+      - Variance report (expected vs received)
+      - Commission dashboard summary (what's owed, what's received, who underpays)
+      - Commission status changes require Admin approval
+      - Commission audit trail
+    </commission_tracking_and_reconciliation>
+
+    <task_system>
+      - System-generated tasks from trip stage changes
+      - System-generated tasks from approaching deadlines
+      - System-generated tasks for missing information
+      - System-generated tasks for commission follow-up
+      - Manual task creation by planners
+      - Task assignment to specific user
+      - Task auto-assignment to trip owner/assigned planner
+      - Task reassignment to another team member
+      - Task due date (required)
+      - Task status (open, completed, overdue)
+      - Task priority (normal, urgent)
+      - Task category (follow-up, payment, commission, client request, internal/admin)
+      - Task list view sorted by urgency and due date
+      - Task completion marking
+      - Overdue task highlighting and alerts
+    </task_system>
+
+    <automated_email_system>
+      - Default email templates per trip type
+      - Template editing (wording, subject lines) per agency
+      - Agency branding in templates (logo, colors, signature)
+      - Template versioning (edits don't break automation)
+      - Trip-type triggers (cruise, Disney, general sequences)
+      - Date-relative triggers (X days before/after travel, payment deadlines)
+      - Stage-based triggers (booking confirmed, quote sent, trip completed)
+      - Fully automatic emails: inquiry acknowledgment, informational emails (packing lists, reminders)
+      - Approval-required emails: quotes, pricing, anything involving money or commitments
+      - Planner option to switch more emails to review-required
+      - Email send queue with preview
+      - Email history per trip/client
+      - Follow-up if no response in X days trigger
+      - Post-trip feedback request email
+      - Re-engagement/marketing email triggers
+      - Email template preview before activation
+    </automated_email_system>
+
+    <document_management>
+      - Upload documents to a trip
+      - Upload documents to a specific booking within a trip
+      - Document types: contracts, invoices, insurance, itineraries, confirmations, authorization forms, feedback
+      - No loose documents (must be attached to trip or booking)
+      - Document list view per trip
+      - Document download
+      - Document deletion (with audit log)
+      - Generate basic itinerary summary
+      - Generate simple invoice
+      - Generate authorization form
+      - Secure storage for sensitive documents (passport scans, IDs)
+      - Document visibility control (internal vs client-facing)
+    </document_management>
+
+    <customer_portal>
+      - Customer login (email-based)
+      - View upcoming trips (dates, destination)
+      - View itinerary summary
+      - View documents (confirmations, invoices, insurance)
+      - View payment status (what's due, what's paid)
+      - View requests for missing information
+      - View messages/updates from planner
+      - Fill out traveler information forms
+      - Fill out preference forms
+      - Upload documents
+      - Submit card authorization forms (secure)
+      - Acknowledge receipt of information
+      - Complete post-trip feedback form
+      - No internal notes, commissions, or workflow visible
+    </customer_portal>
+
+    <dashboard_and_metrics>
+      - Main planner dashboard: today's tasks, active trips, upcoming deadlines
+      - Follow-up queue (who needs a response)
+      - At-risk payments (approaching or overdue)
+      - Commission pipeline overview (expected, submitted, paid)
+      - Active trip count by stage
+      - Inquiry to Booked conversion rate
+      - Revenue by period (booked amounts, not estimates)
+      - Overdue task count
+      - Upcoming travel departures
+      - Recent activity feed
+      - Quick access to most recent clients/trips
+      - Dashboard loads within seconds under normal usage
+      - Metrics derived from system data only (no manual overrides)
+      - Per-planner performance view (Admin only)
+    </dashboard_and_metrics>
+
+    <notifications_and_alerts>
+      - Urgent: New inquiry requiring response
+      - Urgent: Final payment due within 48 hours
+      - Urgent: Payment failure or non-receipt by due date
+      - Urgent: Travel within 24-48 hours with incomplete items
+      - Urgent: Missing required traveler info near booking/travel
+      - Urgent: Client-reported problem during active travel
+      - Normal: Upcoming final payment deadlines (>48 hours)
+      - Normal: Routine follow-ups, scheduled emails, general reminders
+      - Normal: Commission ready to submit / commission paid
+      - Normal: Re-engagement eligible clients
+      - Per-role notification differences
+      - Snooze/dismiss functionality
+      - Alert deduplication (no repeat alerts for same event)
+      - Escalation when urgent alert is ignored
+    </notifications_and_alerts>
+
+    <audit_logging>
+      - Log all approvals with user, timestamp, context
+      - Log all stage changes
+      - Log all booking status changes
+      - Log all commission status changes
+      - Log all payment-related actions
+      - Log document uploads and deletions
+      - Log locked trip modifications with reason
+      - Audit logs are read-only (cannot be edited or deleted by users)
+    </audit_logging>
+
+    <reports>
+      - Commission report by status
+      - Commission report by time period
+      - Commission report by supplier
+      - Commission report by planner
+      - Commission variance report (expected vs received)
+      - Revenue report by period
+      - Trip conversion report (inquiry to booked)
+      - Task completion report
+      - Client activity report
+      - Report filtering and date range selection
+    </reports>
+
+    <agency_settings_and_customization>
+      - Agency business name and logo
+      - Primary brand color
+      - Email signature defaults
+      - Default commission rates (optional)
+      - Trip stages enabled/disabled
+      - Task and reminder timing rules
+      - Email notification preferences per user
+      - Time zone setting
+      - User role management (Admin only)
+      - Approval rules configuration
+      - Connected email account setting
+      - Connected calendar setting
+    </agency_settings_and_customization>
+
+    <search>
+      - Global search across clients, trips, bookings
+      - Client search by name, email, phone
+      - Trip search by destination, client, dates, stage
+      - Booking search by confirmation number, supplier
+      - Search results with quick navigation to entity
+      - Recent searches or quick filters
+    </search>
+
+    <data_import>
+      - CSV upload for clients
+      - CSV upload for trips
+      - Import validation and error reporting
+      - Duplicate detection on import
+    </data_import>
+
+    <ui_ux>
+      - Responsive design: desktop (1920px), tablet (768px), mobile (375px)
+      - Light mode (default)
+      - Dark mode (optional toggle)
+      - Empty states with guidance (what to do when no data exists)
+      - Loading states for all async operations
+      - Confirmation dialogs for destructive actions
+      - Success/error toast notifications
+      - Consistent navigation (sidebar + top bar)
+      - Breadcrumb navigation for nested views
+      - No horizontal scroll at any breakpoint
+    </ui_ux>
+  </core_features>
+
+  <database_schema>
+    <tables>
+      <agencies>
+        - id, name, logo_url, primary_color, email_signature, default_commission_rate, timezone, created_at, updated_at
+      </agencies>
+      <users>
+        - id, agency_id (FK), email, password_hash, first_name, last_name, role (admin/planner/support/marketing), is_active, notification_preferences (JSON), created_at, updated_at
+      </users>
+      <customers>
+        - id, agency_id (FK), email, password_hash, is_active, created_at, updated_at
+      </customers>
+      <clients>
+        - id, agency_id (FK), assigned_user_id (FK), first_name, last_name, email, phone, city, state, country, preferred_communication, travel_preferences (JSON), notes, marketing_opt_in, contact_consent, created_at, updated_at
+      </clients>
+      <trips>
+        - id, agency_id (FK), client_id (FK), assigned_user_id (FK), name, destination, description, stage (inquiry/quoted/booked/final_payment_pending/traveling/completed/canceled/archived), is_locked, lock_reason, travel_start_date, travel_end_date, final_payment_deadline, insurance_cutoff_date, checkin_date, created_at, updated_at
+      </trips>
+      <travelers>
+        - id, trip_id (FK), full_legal_name, date_of_birth, passport_status (yes/no/unknown), passport_expiration, special_needs, relationship_to_client, created_at, updated_at
+      </travelers>
+      <bookings>
+        - id, trip_id (FK), agency_id (FK), booking_type (hotel/cruise/resort/tour/insurance/transfer/other), supplier_name, status (planned/quoted/booked/canceled), confirmation_number, booking_date, travel_start_date, travel_end_date, total_cost, deposit_amount, deposit_paid, final_payment_amount, final_payment_due_date, payment_status (deposit_paid/final_due/paid_in_full), commission_amount_expected, commission_rate, commission_status (expected/submitted/paid), commission_amount_received, commission_received_date, commission_payment_reference, commission_variance_note, supplier_notes, inclusions_exclusions, cancellation_rules, created_at, updated_at
+      </bookings>
+      <tasks>
+        - id, agency_id (FK), trip_id (FK nullable), assigned_user_id (FK), title, description, due_date, status (open/completed/overdue), priority (normal/urgent), category (follow_up/payment/commission/client_request/internal), is_system_generated, source_event, created_at, completed_at, updated_at
+      </tasks>
+      <email_templates>
+        - id, agency_id (FK), name, subject, body, trip_type (cruise/disney/general/all), trigger_type (stage_change/date_relative/manual), trigger_config (JSON), requires_approval, is_active, version, created_at, updated_at
+      </email_templates>
+      <email_queue>
+        - id, agency_id (FK), template_id (FK), trip_id (FK), client_id (FK), status (pending/approved/sent/failed), scheduled_send_date, requires_approval, approved_by (FK nullable), approved_at, sent_at, created_at
+      </email_queue>
+      <documents>
+        - id, agency_id (FK), trip_id (FK), booking_id (FK nullable), document_type (contract/invoice/insurance/itinerary/confirmation/authorization/feedback/other), file_name, file_path, is_sensitive, is_client_visible, uploaded_by (FK), created_at
+      </documents>
+      <approval_requests>
+        - id, agency_id (FK), requested_by (FK), approved_by (FK nullable), action_type, entity_type, entity_id, status (pending/approved/denied), reason, response_note, created_at, resolved_at
+      </approval_requests>
+      <audit_logs>
+        - id, agency_id (FK), user_id (FK), action, entity_type, entity_id, details (JSON), client_id (FK nullable), trip_id (FK nullable), booking_id (FK nullable), created_at
+      </audit_logs>
+      <trip_change_records>
+        - id, trip_id (FK), changed_by (FK), approved_by (FK), field_changed, old_value, new_value, reason, created_at
+      </trip_change_records>
+      <notifications>
+        - id, agency_id (FK), user_id (FK), type (urgent/normal), title, message, entity_type, entity_id, is_read, is_dismissed, snoozed_until, created_at
+      </notifications>
+      <agency_settings>
+        - id, agency_id (FK), setting_key, setting_value, created_at, updated_at
+      </agency_settings>
+    </tables>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <auth>
+      - POST /api/auth/register (create agency + admin user)
+      - POST /api/auth/login
+      - POST /api/auth/logout
+      - POST /api/auth/refresh
+      - POST /api/auth/customer/login
+      - GET /api/auth/me
+    </auth>
+    <users>
+      - GET /api/users (list agency users)
+      - POST /api/users/invite
+      - PUT /api/users/:id
+      - PUT /api/users/:id/role
+      - DELETE /api/users/:id
+    </users>
+    <clients>
+      - GET /api/clients
+      - GET /api/clients/:id
+      - POST /api/clients
+      - PUT /api/clients/:id
+      - DELETE /api/clients/:id
+      - POST /api/clients/import (CSV)
+      - GET /api/clients/:id/trips
+    </clients>
+    <trips>
+      - GET /api/trips
+      - GET /api/trips/:id
+      - POST /api/trips
+      - PUT /api/trips/:id
+      - DELETE /api/trips/:id
+      - PUT /api/trips/:id/stage
+      - POST /api/trips/:id/lock
+      - POST /api/trips/:id/unlock (admin + reason)
+      - POST /api/trips/import (CSV)
+      - POST /api/trips/:id/duplicate
+      - GET /api/trips/:id/timeline
+    </trips>
+    <travelers>
+      - GET /api/trips/:tripId/travelers
+      - POST /api/trips/:tripId/travelers
+      - PUT /api/trips/:tripId/travelers/:id
+      - DELETE /api/trips/:tripId/travelers/:id
+    </travelers>
+    <bookings>
+      - GET /api/trips/:tripId/bookings
+      - POST /api/trips/:tripId/bookings
+      - PUT /api/trips/:tripId/bookings/:id
+      - DELETE /api/trips/:tripId/bookings/:id
+      - PUT /api/trips/:tripId/bookings/:id/commission
+    </bookings>
+    <commissions>
+      - GET /api/commissions (with filters: status, period, supplier, planner)
+      - GET /api/commissions/report
+      - GET /api/commissions/variance
+      - PUT /api/commissions/:id/status
+    </commissions>
+    <tasks>
+      - GET /api/tasks (with filters: status, priority, category, assignee)
+      - GET /api/tasks/:id
+      - POST /api/tasks
+      - PUT /api/tasks/:id
+      - PUT /api/tasks/:id/complete
+      - PUT /api/tasks/:id/assign
+    </tasks>
+    <emails>
+      - GET /api/email-templates
+      - POST /api/email-templates
+      - PUT /api/email-templates/:id
+      - GET /api/email-queue
+      - POST /api/email-queue/:id/approve
+      - POST /api/email-queue/:id/send
+    </emails>
+    <documents>
+      - GET /api/trips/:tripId/documents
+      - POST /api/trips/:tripId/documents (upload)
+      - DELETE /api/documents/:id
+      - GET /api/documents/:id/download
+      - POST /api/trips/:tripId/documents/generate (itinerary/invoice/auth form)
+    </documents>
+    <approvals>
+      - GET /api/approvals (pending queue)
+      - POST /api/approvals
+      - PUT /api/approvals/:id/approve
+      - PUT /api/approvals/:id/deny
+    </approvals>
+    <notifications>
+      - GET /api/notifications
+      - PUT /api/notifications/:id/read
+      - PUT /api/notifications/:id/dismiss
+      - PUT /api/notifications/:id/snooze
+    </notifications>
+    <dashboard>
+      - GET /api/dashboard (aggregated dashboard data)
+      - GET /api/dashboard/metrics
+    </dashboard>
+    <reports>
+      - GET /api/reports/commissions
+      - GET /api/reports/revenue
+      - GET /api/reports/conversions
+      - GET /api/reports/tasks
+      - GET /api/reports/clients
+    </reports>
+    <settings>
+      - GET /api/settings
+      - PUT /api/settings
+      - PUT /api/settings/branding
+      - GET /api/audit-logs
+    </settings>
+    <search>
+      - GET /api/search?q= (global search across entities)
+    </search>
+    <customer_portal>
+      - GET /api/portal/trips
+      - GET /api/portal/trips/:id
+      - GET /api/portal/trips/:id/documents
+      - POST /api/portal/trips/:id/travelers (submit traveler info)
+      - POST /api/portal/trips/:id/documents (upload)
+      - POST /api/portal/trips/:id/feedback
+      - GET /api/portal/messages
+    </customer_portal>
+    <health>
+      - GET /api/health (includes DB status)
+    </health>
+  </api_endpoints_summary>
+
+  <ui_layout>
+    <main_structure>
+      Sidebar navigation (collapsible on mobile) with top bar showing user info, notifications bell, and search.
+      Main content area takes remaining space.
+      Sidebar sections: Dashboard, Clients, Trips, Tasks, Commissions, Reports, Email Templates, Settings (admin only).
+      Customer portal has its own simplified layout: top bar with trip selector, main content area.
+    </main_structure>
+    <key_screens>
+      <dashboard>
+        Grid layout with cards: Today's Tasks, Active Trips by Stage, Upcoming Deadlines, At-Risk Payments, Commission Pipeline, Recent Activity.
+        Tasks and deadlines sorted by urgency first, then due date.
+      </dashboard>
+      <client_list>
+        Searchable, filterable table. Columns: name, email, assigned planner, recent trip, last contact. Click to open client detail.
+      </client_list>
+      <client_detail>
+        Header: client info + edit button. Tabs: Overview (preferences, notes), Trips (list), Documents, Activity Log.
+      </client_detail>
+      <trip_list>
+        Filterable by stage, planner, date range, client. Card or table view toggle. Color-coded stage badges.
+      </trip_list>
+      <trip_detail>
+        Header: trip name, client, stage badge, lock indicator. Tabs: Overview (dates, destination, travelers), Bookings, Tasks, Documents, Communications, Commissions, Timeline/Activity.
+      </trip_detail>
+      <task_list>
+        Grouped by urgency (urgent first). Filters: status, category, assignee, date range. Quick complete toggle.
+      </task_list>
+      <commission_dashboard>
+        Summary cards (expected, submitted, paid totals). Filterable table below. Variance indicators (underpaid/overpaid highlighted).
+      </commission_dashboard>
+      <approval_queue>
+        Admin-only view. List of pending approvals with context (what, who requested, when). Approve/deny with optional note.
+      </approval_queue>
+      <customer_portal_trip>
+        Clean view: trip overview, itinerary, documents, payment status, action items (fill forms, upload docs, submit feedback). No internal data visible.
+      </customer_portal_trip>
+    </key_screens>
+  </ui_layout>
+
+  <design_system>
+    <color_palette>
+      Professional, trustworthy palette. Primary: deep blue (#1a56db or similar). Secondary: slate/gray tones. Accent: green for success/paid, amber for warnings/pending, red for urgent/overdue. Agency primary color overrides accent where configured.
+    </color_palette>
+    <typography>
+      Clean sans-serif font (Inter, system font stack). Clear hierarchy: page titles, section headers, body text, captions. Readable at all sizes.
+    </typography>
+    <design_principles>
+      - Clarity over decoration
+      - Consistent spacing and alignment
+      - Color-coded status indicators throughout
+      - Empty states with helpful guidance
+      - Loading skeletons for async content
+      - Accessible color contrast ratios
+    </design_principles>
+  </design_system>
+
+  <locking_and_versioning>
+    Once a trip is marked as Booked and Final Payment Paid, core details are locked:
+    - Dates, Destination, Supplier, Travelers, Pricing
+    Changes after lock require:
+    - Admin approval
+    - A logged reason for the change
+    - Creation of a change record (not silent edits)
+    This preserves historical accuracy.
+  </locking_and_versioning>
+
+  <automated_email_sequences>
+    <cruise_trip>
+      - Booking confirmed: "Next steps and documents" email
+      - 14 days before sailing: Packing + check-in instructions
+      - 3 days before sailing: Final reminders + emergency info
+      - 3-5 days after return: Post-trip follow-up + feedback request
+    </cruise_trip>
+    <disney_trip>
+      - Booking confirmed: Park planning basics
+      - 30 days out: Dining / Genie+ reminders
+      - 7 days out: Packing + arrival tips
+      - Post-trip: Feedback + future trip seed
+    </disney_trip>
+    <general_trip>
+      - Inquiry received: Auto acknowledgment
+      - Quote sent: Follow-up if no response in X days
+      - Final payment due: Reminder sequence
+      - Post-trip: Thank-you + re-engagement
+    </general_trip>
+  </automated_email_sequences>
+
+  <implementation_steps>
+    <step number="1">
+      <title>Foundation and Infrastructure</title>
+      <tasks>
+        - Set up project structure (React frontend, Node/Express backend)
+        - Configure SQLite database with schema
+        - Implement health endpoint
+        - Set up agency (tenant) table and isolation middleware
+        - Verify database connectivity and persistence
+      </tasks>
+    </step>
+    <step number="2">
+      <title>Authentication and Multi-tenancy</title>
+      <tasks>
+        - Implement user registration (creates agency + admin)
+        - Implement login/logout with JWT
+        - Implement role-based middleware
+        - Implement tenant isolation on all queries
+        - Customer portal authentication
+      </tasks>
+    </step>
+    <step number="3">
+      <title>Core Data: Clients, Trips, Travelers, Bookings</title>
+      <tasks>
+        - Full CRUD for clients
+        - Full CRUD for trips with lifecycle stages
+        - Traveler management per trip
+        - Booking management per trip with financial fields
+        - Trip locking and change record logic
+      </tasks>
+    </step>
+    <step number="4">
+      <title>Approval Workflow and Permissions</title>
+      <tasks>
+        - Approval request creation and queue
+        - Admin approval/deny flow
+        - Permission enforcement on all restricted actions
+        - Approval audit trail
+      </tasks>
+    </step>
+    <step number="5">
+      <title>Commission Tracking</title>
+      <tasks>
+        - Commission fields on bookings
+        - Status workflow (expected, submitted, paid)
+        - Variance tracking and reconciliation
+        - Commission reports (by status, period, supplier, planner)
+      </tasks>
+    </step>
+    <step number="6">
+      <title>Task System</title>
+      <tasks>
+        - Manual task CRUD
+        - System-generated task triggers (stage changes, deadlines, commissions)
+        - Task assignment and completion
+        - Overdue detection and urgency sorting
+      </tasks>
+    </step>
+    <step number="7">
+      <title>Automated Email System</title>
+      <tasks>
+        - Email template CRUD with versioning
+        - Trigger engine (stage, date-relative, manual)
+        - Approval queue for financial emails
+        - Email send queue and history
+      </tasks>
+    </step>
+    <step number="8">
+      <title>Document Management</title>
+      <tasks>
+        - File upload/download per trip and booking
+        - Basic document generation (itinerary, invoice, auth form)
+        - Sensitive document handling
+        - Client-visible vs internal document control
+      </tasks>
+    </step>
+    <step number="9">
+      <title>Customer Portal</title>
+      <tasks>
+        - Customer-facing views (trips, documents, payments, forms)
+        - Traveler info submission
+        - Document upload
+        - Post-trip feedback
+      </tasks>
+    </step>
+    <step number="10">
+      <title>Dashboard, Notifications, and Reports</title>
+      <tasks>
+        - Main planner dashboard with all widgets
+        - Notification system (urgent vs normal, snooze, dedup, escalation)
+        - All report views
+        - Global search
+      </tasks>
+    </step>
+    <step number="11">
+      <title>Agency Settings and Customization</title>
+      <tasks>
+        - Branding settings (logo, color, signature)
+        - Operational defaults
+        - Notification preferences
+        - User management
+      </tasks>
+    </step>
+    <step number="12">
+      <title>Audit Logging and Data Import</title>
+      <tasks>
+        - Audit log for all major actions
+        - CSV import for clients and trips
+        - Import validation and duplicate detection
+      </tasks>
+    </step>
+    <step number="13">
+      <title>UI Polish and Responsive Design</title>
+      <tasks>
+        - Responsive layouts (desktop, tablet, mobile)
+        - Light/dark mode toggle
+        - Empty states, loading states, error states
+        - Accessibility (keyboard nav, ARIA, contrast)
+        - Performance optimization
+      </tasks>
+    </step>
+  </implementation_steps>
+
+  <success_criteria>
+    <functionality>
+      A planner can manage the full lifecycle — inquiry to completed trip to commission collected — without leaving Atlas.
+    </functionality>
+    <reliability>
+      Atlas is the system of record. Data is accurate, auditable, and never silently lost or changed.
+    </reliability>
+    <efficiency>
+      Day-to-day work is dashboard-driven. The system remembers things so planners don't have to. Planners review and act, not hunt and remember.
+    </efficiency>
+    <access_control>
+      Admin approval gates work correctly. Nothing financial or binding slips through without sign-off.
+    </access_control>
+    <client_experience>
+      Customers see a clean, scoped portal — their trips, their docs, their status, nothing else. No internal mess leaking outward.
+    </client_experience>
+    <multi_tenancy>
+      Complete agency isolation. No data leaks between tenants, ever.
+    </multi_tenancy>
+    <recoverability>
+      When users make mistakes, Atlas makes them visible, reversible, or safely constrained. No destructive actions without confirmation. Locked states prevent silent corruption. Changes are logged and traceable. Mistakes don't require database surgery.
+    </recoverability>
+    <predictability>
+      Atlas behaves consistently. Same triggers always create the same tasks. Same stages always imply the same next steps. Automation never fires mysteriously. Approval gates are visible, not hidden.
+    </predictability>
+    <adoption>
+      A planner can stop using spreadsheets, inbox hunting, and memory crutches within weeks, not months. Core workflows are faster inside Atlas than outside. Empty states guide behavior. Partial data is acceptable and expected. The system meets planners where they are.
+    </adoption>
+  </success_criteria>
+
+  <definition_of_done>
+    Atlas is done when a travel agency can run its day-to-day operations entirely inside the platform, with confidence that nothing important is missed, nothing sensitive happens without approval, clients see only what they should, and the system remains predictable, auditable, and trustworthy under real-world usage.
+  </definition_of_done>
+</project_specification>
