@@ -313,6 +313,70 @@ router.put('/:id/stage', (req, res) => {
       );
     }
 
+    // Queue emails based on stage-change templates
+    // Map stage to trigger config values (transition targets)
+    const stageToTrigger = {
+      'booked': 'booking_confirmed',
+      'quoted': 'quote_sent',
+      'final_payment_pending': 'final_payment_due',
+      'traveling': 'trip_started',
+      'completed': 'trip_completed'
+    };
+
+    const triggerEvent = stageToTrigger[stage];
+    if (triggerEvent) {
+      // Get trip with client info for email queue
+      const tripForEmail = db.prepare(`
+        SELECT t.*, c.id as c_id, c.first_name as cf, c.last_name as cl, c.email as ce
+        FROM trips t
+        LEFT JOIN clients c ON t.client_id = c.id
+        WHERE t.id = ? AND t.agency_id = ?
+      `).get(tripId, req.agencyId);
+
+      // Find matching email templates with stage_change trigger and matching trip type
+      const matchingTemplates = db.prepare(`
+        SELECT * FROM email_templates
+        WHERE agency_id = ?
+          AND trigger_type = 'stage_change'
+          AND is_active = 1
+          AND (trip_type = 'all' OR trip_type = 'general')
+      `).all(req.agencyId);
+
+      // Queue each matching template
+      for (const template of matchingTemplates) {
+        // Parse trigger_config to check for specific stage match
+        let triggerConfig = {};
+        try {
+          triggerConfig = JSON.parse(template.trigger_config || '{}');
+        } catch (e) {
+          // Keep empty config
+        }
+
+        // If trigger_config specifies a stage, check if it matches
+        // If no specific stage configured, queue for all stage_change triggers
+        const configuredStage = triggerConfig.onStage || triggerConfig.stage;
+        if (configuredStage && configuredStage !== stage && configuredStage !== triggerEvent) {
+          continue; // Skip if doesn't match
+        }
+
+        db.prepare(`
+          INSERT INTO email_queue (
+            agency_id, template_id, trip_id, client_id,
+            status, requires_approval, scheduled_send_date
+          ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(
+          req.agencyId,
+          template.id,
+          tripId,
+          tripForEmail?.c_id || null,
+          template.requires_approval ? 'pending' : 'pending',
+          template.requires_approval ? 1 : 0
+        );
+
+        console.log(`[EMAIL] Queued template "${template.name}" for trip ${tripId} on stage change to ${stage}`);
+      }
+    }
+
     // Fetch updated trip
     const trip = db.prepare(`
       SELECT t.*,

@@ -481,6 +481,149 @@ router.put('/:id/toggle-active', (req, res) => {
   }
 });
 
+/**
+ * GET /api/email-templates/queue
+ * Get the email queue for the agency
+ */
+router.get('/queue/list', (req, res) => {
+  try {
+    const db = getDb();
+    const { status, tripId } = req.query;
+
+    let query = `
+      SELECT eq.*,
+        et.name as template_name, et.subject as template_subject, et.body as template_body,
+        t.name as trip_name, t.destination as trip_destination,
+        t.travel_start_date, t.travel_end_date,
+        c.first_name as client_first_name, c.last_name as client_last_name, c.email as client_email,
+        u.first_name as approved_by_first_name, u.last_name as approved_by_last_name
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      LEFT JOIN trips t ON eq.trip_id = t.id
+      LEFT JOIN clients c ON eq.client_id = c.id
+      LEFT JOIN users u ON eq.approved_by = u.id
+      WHERE eq.agency_id = ?
+    `;
+    const params = [req.agencyId];
+
+    if (status) {
+      query += ` AND eq.status = ?`;
+      params.push(status);
+    }
+
+    if (tripId) {
+      query += ` AND eq.trip_id = ?`;
+      params.push(tripId);
+    }
+
+    query += ` ORDER BY eq.created_at DESC`;
+
+    const queueItems = db.prepare(query).all(...params);
+
+    res.json({
+      queue: queueItems.map(formatQueueItem),
+      total: queueItems.length
+    });
+  } catch (error) {
+    console.error('[ERROR] List email queue failed:', error.message);
+    res.status(500).json({ error: 'Failed to list email queue' });
+  }
+});
+
+/**
+ * GET /api/email-templates/queue/:id
+ * Get a single email queue item with populated content
+ */
+router.get('/queue/:queueId', (req, res) => {
+  try {
+    const db = getDb();
+    const queueItem = db.prepare(`
+      SELECT eq.*,
+        et.name as template_name, et.subject as template_subject, et.body as template_body,
+        t.name as trip_name, t.destination as trip_destination,
+        t.travel_start_date, t.travel_end_date,
+        c.first_name as client_first_name, c.last_name as client_last_name, c.email as client_email,
+        u.first_name as approved_by_first_name, u.last_name as approved_by_last_name,
+        a.name as agency_name,
+        planner.first_name as planner_first_name, planner.last_name as planner_last_name
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      LEFT JOIN trips t ON eq.trip_id = t.id
+      LEFT JOIN clients c ON eq.client_id = c.id
+      LEFT JOIN users u ON eq.approved_by = u.id
+      LEFT JOIN agencies a ON eq.agency_id = a.id
+      LEFT JOIN users planner ON t.assigned_user_id = planner.id
+      WHERE eq.id = ? AND eq.agency_id = ?
+    `).get(req.params.queueId, req.agencyId);
+
+    if (!queueItem) {
+      return res.status(404).json({ error: 'Email queue item not found' });
+    }
+
+    // Populate email content with actual data
+    const populatedContent = populateEmailContent(queueItem);
+
+    res.json({
+      queueItem: {
+        ...formatQueueItem(queueItem),
+        populatedSubject: populatedContent.subject,
+        populatedBody: populatedContent.body
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Get email queue item failed:', error.message);
+    res.status(500).json({ error: 'Failed to get email queue item' });
+  }
+});
+
+function populateEmailContent(item) {
+  const data = {
+    clientFirstName: item.client_first_name || 'Valued Client',
+    clientLastName: item.client_last_name || '',
+    clientEmail: item.client_email || '',
+    tripName: item.trip_name || 'Your Trip',
+    tripDestination: item.trip_destination || 'your destination',
+    travelStartDate: item.travel_start_date || 'TBD',
+    travelEndDate: item.travel_end_date || 'TBD',
+    agencyName: item.agency_name || 'Our Agency',
+    plannerName: item.planner_first_name ? `${item.planner_first_name} ${item.planner_last_name || ''}`.trim() : 'Your Travel Planner'
+  };
+
+  let subject = item.template_subject || '';
+  let body = item.template_body || '';
+
+  Object.entries(data).forEach(([key, value]) => {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    subject = subject.replace(regex, value);
+    body = body.replace(regex, value);
+  });
+
+  return { subject, body };
+}
+
+function formatQueueItem(item) {
+  return {
+    id: item.id,
+    templateId: item.template_id,
+    templateName: item.template_name,
+    templateSubject: item.template_subject,
+    tripId: item.trip_id,
+    tripName: item.trip_name,
+    tripDestination: item.trip_destination,
+    clientId: item.client_id,
+    clientName: item.client_first_name ? `${item.client_first_name} ${item.client_last_name}` : null,
+    clientEmail: item.client_email,
+    status: item.status,
+    requiresApproval: !!item.requires_approval,
+    approvedBy: item.approved_by,
+    approvedByName: item.approved_by_first_name ? `${item.approved_by_first_name} ${item.approved_by_last_name}` : null,
+    approvedAt: item.approved_at,
+    sentAt: item.sent_at,
+    scheduledSendDate: item.scheduled_send_date,
+    createdAt: item.created_at
+  };
+}
+
 function formatTemplate(t) {
   let triggerConfig = {};
   try {
