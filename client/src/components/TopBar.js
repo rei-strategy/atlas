@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import GlobalSearch from './GlobalSearch';
 
 export default function TopBar({ onMenuToggle }) {
   const { user, agency, logout } = useAuth();
@@ -17,6 +18,10 @@ export default function TopBar({ onMenuToggle }) {
           </svg>
         </button>
         {agency && <span className="topbar-agency-name">{agency.name}</span>}
+      </div>
+
+      <div className="topbar-center">
+        <GlobalSearch />
       </div>
 
       <div className="topbar-right">
