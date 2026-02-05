@@ -351,7 +351,35 @@ export default function PortalTripDetailPage() {
       {/* Bookings Tab */}
       {activeTab === 'bookings' && (
         <div className="portal-tab-content" role="tabpanel">
-          <h2>Bookings</h2>
+          <h2>Bookings & Payment Status</h2>
+
+          {/* Payment Summary */}
+          {bookings.length > 0 && (
+            <div className="portal-payment-summary">
+              <h3>Payment Summary</h3>
+              <div className="portal-payment-grid">
+                <div className="portal-payment-card">
+                  <span className="portal-payment-label">Total Trip Cost</span>
+                  <span className="portal-payment-value">{formatCurrency(bookings.reduce((sum, b) => sum + (b.totalCost || 0), 0))}</span>
+                </div>
+                <div className="portal-payment-card">
+                  <span className="portal-payment-label">Deposits Due</span>
+                  <span className="portal-payment-value">{formatCurrency(bookings.reduce((sum, b) => sum + (b.depositAmount || 0), 0))}</span>
+                  <span className="portal-payment-status">
+                    {bookings.filter(b => b.depositPaid).length} of {bookings.length} paid
+                  </span>
+                </div>
+                <div className="portal-payment-card">
+                  <span className="portal-payment-label">Final Payments Due</span>
+                  <span className="portal-payment-value">{formatCurrency(bookings.reduce((sum, b) => sum + (b.finalPaymentAmount || 0), 0))}</span>
+                  <span className="portal-payment-status">
+                    {bookings.filter(b => b.paymentStatus === 'paid_in_full').length} of {bookings.length} complete
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {bookings.length === 0 ? (
             <div className="portal-empty-section">
               <p>No bookings have been added to this trip yet.</p>
@@ -371,14 +399,49 @@ export default function PortalTripDetailPage() {
                   <div className="portal-booking-dates">
                     {formatDate(b.travelStartDate)} - {formatDate(b.travelEndDate)}
                   </div>
-                  <div className="portal-booking-financial">
-                    <div>Total: {formatCurrency(b.totalCost)}</div>
-                    <div>Payment: {getPaymentLabel(b.paymentStatus)}</div>
-                    {b.finalPaymentDueDate && b.paymentStatus !== 'paid_in_full' && (
-                      <div className="portal-payment-due">
-                        Final payment due: {formatDate(b.finalPaymentDueDate)}
+
+                  {/* Payment Details Section */}
+                  <div className="portal-booking-payment-details">
+                    <div className="portal-payment-row">
+                      <span className="portal-payment-item-label">Total Cost:</span>
+                      <span className="portal-payment-item-value">{formatCurrency(b.totalCost)}</span>
+                    </div>
+                    {b.depositAmount > 0 && (
+                      <div className="portal-payment-row">
+                        <span className="portal-payment-item-label">Deposit:</span>
+                        <span className="portal-payment-item-value">
+                          {formatCurrency(b.depositAmount)}
+                          <span className={`portal-payment-badge ${b.depositPaid ? 'paid' : 'due'}`}>
+                            {b.depositPaid ? '✓ Paid' : 'Due'}
+                          </span>
+                        </span>
                       </div>
                     )}
+                    {b.finalPaymentAmount > 0 && (
+                      <div className="portal-payment-row">
+                        <span className="portal-payment-item-label">Final Payment:</span>
+                        <span className="portal-payment-item-value">
+                          {formatCurrency(b.finalPaymentAmount)}
+                          <span className={`portal-payment-badge ${b.paymentStatus === 'paid_in_full' ? 'paid' : 'due'}`}>
+                            {b.paymentStatus === 'paid_in_full' ? '✓ Paid' : 'Due'}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {b.finalPaymentDueDate && b.paymentStatus !== 'paid_in_full' && (
+                      <div className="portal-payment-row portal-payment-due-date">
+                        <span className="portal-payment-item-label">Due Date:</span>
+                        <span className="portal-payment-item-value portal-due-date-highlight">
+                          {formatDate(b.finalPaymentDueDate)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="portal-payment-row portal-payment-overall">
+                      <span className="portal-payment-item-label">Status:</span>
+                      <span className={`portal-payment-status-badge ${b.paymentStatus}`}>
+                        {getPaymentLabel(b.paymentStatus)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
