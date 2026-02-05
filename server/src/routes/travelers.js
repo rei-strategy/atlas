@@ -98,6 +98,39 @@ router.post('/', (req, res) => {
 
     const traveler = db.prepare('SELECT * FROM travelers WHERE id = ?').get(result.lastInsertRowid);
 
+    // Create system-generated task for missing passport info
+    const effectivePassportStatus = passportStatus || 'unknown';
+    if (effectivePassportStatus === 'unknown' || effectivePassportStatus === 'no') {
+      // Get trip details for task assignment
+      const tripDetails = db.prepare('SELECT assigned_user_id, name FROM trips WHERE id = ?').get(tripId);
+      const assigneeId = tripDetails?.assigned_user_id || req.user.id;
+
+      // Check if there's already an open task for missing passport info for this trip
+      const existingTask = db.prepare(`
+        SELECT id FROM tasks
+        WHERE trip_id = ? AND is_system_generated = 1
+          AND source_event = 'missing_passport_info'
+          AND status = 'open'
+      `).get(tripId);
+
+      if (!existingTask) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7); // 7 days to collect passport info
+
+        db.prepare(`
+          INSERT INTO tasks (agency_id, trip_id, assigned_user_id, title, description, due_date, status, priority, category, is_system_generated, source_event)
+          VALUES (?, ?, ?, ?, ?, ?, 'open', 'normal', 'client_request', 1, 'missing_passport_info')
+        `).run(
+          req.agencyId,
+          tripId,
+          assigneeId,
+          `Collect passport details for ${tripDetails?.name || 'trip'}`,
+          `Traveler "${fullLegalName}" has missing or unknown passport information. Please collect passport details before travel.`,
+          dueDate.toISOString().split('T')[0]
+        );
+      }
+    }
+
     res.status(201).json({
       message: 'Traveler added successfully',
       traveler: formatTraveler(traveler)
@@ -151,6 +184,28 @@ router.put('/:id', (req, res) => {
     );
 
     const updated = db.prepare('SELECT * FROM travelers WHERE id = ?').get(id);
+
+    // If passport status was updated to 'yes', check if all travelers now have passport info
+    if (passportStatus === 'yes') {
+      // Check if there are still travelers with missing passport info
+      const travelersWithMissingPassport = db.prepare(`
+        SELECT COUNT(*) as count FROM travelers
+        WHERE trip_id = ? AND (passport_status = 'unknown' OR passport_status = 'no')
+      `).get(tripId);
+
+      if (travelersWithMissingPassport.count === 0) {
+        // Complete the system-generated task for missing passport info
+        db.prepare(`
+          UPDATE tasks SET
+            status = 'completed',
+            completed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE trip_id = ? AND is_system_generated = 1
+            AND source_event = 'missing_passport_info'
+            AND status = 'open'
+        `).run(tripId);
+      }
+    }
 
     res.json({
       message: 'Traveler updated successfully',

@@ -1,0 +1,1 @@
+[     214ms] [ERROR] [JavaScript Error: "Content-Security-Policy: The page’s settings blocked the loading of a resource (img-src) at http://localhost:3001/favicon.ico because it violates the following directive: “default-src 'none'”" {file: "resource:///modules/FaviconLoader.sys.mjs" line: 164}] @ resource:///modules/FaviconLoader.sys.mjs:164
