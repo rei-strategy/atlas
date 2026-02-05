@@ -56,7 +56,7 @@ app.use('/api/approvals', require('./routes/approvals'));
 // app.use('/api/dashboard', require('./routes/dashboard'));
 // app.use('/api/reports', require('./routes/reports'));
 // app.use('/api/settings', require('./routes/settings'));
-// app.use('/api/search', require('./routes/search'));
+app.use('/api/search', require('./routes/search'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/portal', require('./routes/portal'));
 // app.use('/api/audit-logs', require('./routes/auditLogs'));
