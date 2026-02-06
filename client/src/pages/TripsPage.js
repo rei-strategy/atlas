@@ -1894,7 +1894,15 @@ function BookingsTab({ tripId, token }) {
             </thead>
             <tbody>
               {bookings.map(b => (
-                <tr key={b.id} className="data-table-row-clickable" onClick={() => setSelectedBooking(b)}>
+                <tr
+                  key={b.id}
+                  className="data-table-row-clickable"
+                  onClick={() => setSelectedBooking(b)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedBooking(b); } }}
+                  role="row"
+                  aria-label={`${BOOKING_TYPES.find(bt => bt.value === b.bookingType)?.label || b.bookingType} booking from ${b.supplierName || 'unknown supplier'}`}
+                >
                   <td>
                     <span className="table-user-name">
                       {BOOKING_TYPES.find(bt => bt.value === b.bookingType)?.label || b.bookingType}
@@ -2544,7 +2552,15 @@ function TravelersTab({ tripId, token }) {
               {travelers.map(t => {
                 const age = calculateAge(t.dateOfBirth);
                 return (
-                  <tr key={t.id} className="data-table-row-clickable" onClick={() => setSelectedTraveler(t)}>
+                  <tr
+                    key={t.id}
+                    className="data-table-row-clickable"
+                    onClick={() => setSelectedTraveler(t)}
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedTraveler(t); } }}
+                    role="row"
+                    aria-label={`Traveler ${t.fullLegalName}`}
+                  >
                     <td><span className="table-user-name">{t.fullLegalName}</span></td>
                     <td>{age !== null ? `${age} yrs` : '—'}</td>
                     <td>
@@ -4214,6 +4230,19 @@ export default function TripsPage() {
     setCurrentPage(1);
   }, [search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter]);
 
+  // Check if any filters are active
+  const hasActiveFilters = search || stageFilter || plannerFilter || clientFilter || dateFromFilter || dateToFilter;
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearch('');
+    setStageFilter('');
+    setPlannerFilter('');
+    setClientFilter('');
+    setDateFromFilter('');
+    setDateToFilter('');
+  };
+
   // Handle URL parameter for direct navigation to a trip
   useEffect(() => {
     if (urlTripId && token && !selectedTrip && !tripNotFound) {
@@ -4538,17 +4567,10 @@ export default function TripsPage() {
               aria-label="Filter by date to"
             />
           </div>
-          {(search || stageFilter || plannerFilter || clientFilter || dateFromFilter || dateToFilter) && (
+          {hasActiveFilters && (
             <button
               className="btn btn-outline btn-sm"
-              onClick={() => {
-                setSearch('');
-                setStageFilter('');
-                setPlannerFilter('');
-                setClientFilter('');
-                setDateFromFilter('');
-                setDateToFilter('');
-              }}
+              onClick={handleClearFilters}
               style={{ marginLeft: 'auto' }}
             >
               Clear Filters
@@ -4563,18 +4585,43 @@ export default function TripsPage() {
           <p>Loading trips...</p>
         </div>
       ) : trips.length === 0 ? (
-        <div className="page-empty-state">
-          <div className="empty-state-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+        hasActiveFilters ? (
+          <div className="page-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+            </div>
+            <h3 className="empty-state-title">No results found</h3>
+            <p className="empty-state-description">
+              {search ? `No trips match "${search}"` : 'No trips match your filters'}
+            </p>
+            <p className="empty-state-hint" style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: 'var(--spacing-sm)' }}>
+              Try different search terms or adjust your filters
+            </p>
+            <button
+              className="btn btn-outline"
+              style={{ marginTop: 'var(--spacing-md)' }}
+              onClick={handleClearFilters}
+            >
+              Clear Filters
+            </button>
           </div>
-          <h3 className="empty-state-title">No trips yet</h3>
-          <p className="empty-state-description">Create your first trip to start managing the travel lifecycle.</p>
-          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateTrip}>
-            + Create Your First Trip
-          </button>
-        </div>
+        ) : (
+          <div className="page-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+            </div>
+            <h3 className="empty-state-title">No trips yet</h3>
+            <p className="empty-state-description">Create your first trip to start managing the travel lifecycle.</p>
+            <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateTrip}>
+              + Create Your First Trip
+            </button>
+          </div>
+        )
       ) : (
         <div className="data-table-container">
           <table className="data-table">

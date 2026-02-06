@@ -4488,6 +4488,17 @@ html, body {
   font-size: var(--font-size-sm);
 }
 
+.global-search-empty-title {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.global-search-empty-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
 .global-search-section {
   padding: var(--spacing-sm) 0;
 }

@@ -2131,21 +2131,46 @@ export default function ClientsPage() {
           <p>Loading clients...</p>
         </div>
       ) : clients.length === 0 ? (
-        <div className="page-empty-state">
-          <div className="empty-state-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+        hasActiveFilters ? (
+          <div className="page-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+            </div>
+            <h3 className="empty-state-title">No results found</h3>
+            <p className="empty-state-description">
+              {search ? `No clients match "${search}"` : 'No clients match your filters'}
+            </p>
+            <p className="empty-state-hint" style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: 'var(--spacing-sm)' }}>
+              Try different search terms or adjust your filters
+            </p>
+            <button
+              className="btn btn-outline"
+              style={{ marginTop: 'var(--spacing-md)' }}
+              onClick={handleClearFilters}
+            >
+              Clear Filters
+            </button>
           </div>
-          <h3 className="empty-state-title">No clients yet</h3>
-          <p className="empty-state-description">Add your first client to get started managing your travel business.</p>
-          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateClient}>
-            + Add Your First Client
-          </button>
-        </div>
+        ) : (
+          <div className="page-empty-state">
+            <div className="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <h3 className="empty-state-title">No clients yet</h3>
+            <p className="empty-state-description">Add your first client to get started managing your travel business.</p>
+            <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateClient}>
+              + Add Your First Client
+            </button>
+          </div>
+        )
       ) : (
         <div className="data-table-container">
           <table className="data-table">
