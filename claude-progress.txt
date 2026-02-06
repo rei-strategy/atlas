@@ -1284,3 +1284,62 @@
 - Backend on port 3001, Frontend on port 3000
 - Test users created: lock_test@atlas.com, cancel_test@atlas.com
 
+
+
+### Session - 2026-02-06 (Agent batch: Features #66, #123, #128)
+
+**Features Completed: #66, #123, #128 (Commission Reports + Date Range Filtering)**
+
+#### Feature #66: Commission report by status
+- Added status filter dropdown to CommissionsPage All Commissions tab
+- Filter options: All Statuses, Expected, Submitted, Paid
+- Status count buttons for quick filtering
+- Fixed ToastContext import path (was context/ToastContext, now components/Toast)
+- Totals recalculate based on filtered results
+- Backend already supported status filtering via GET /api/commissions?status=X
+
+#### Feature #123: Commission report filterable by multiple criteria
+- Added date range filtering (startDate, endDate) to All Commissions tab
+- Added supplier filter dropdown populated from GET /api/commissions/suppliers
+- Created GET /api/commissions/suppliers endpoint for unique supplier list
+- Backend updated to support supplier parameter: ?supplier=X
+- Multiple filters combine correctly (status + date range + supplier)
+- Clear All Filters button when any filter is active
+
+#### Feature #128: Report date range filtering
+- Created full ReportsPage with 3 report types: Bookings, Revenue, Trips
+- All reports support date range selection (start/end date pickers)
+- Quick date range buttons: Last 7/30/90/365 days
+- Created server/src/routes/reports.js with:
+  - GET /api/reports/bookings - bookings with type breakdown, list
+  - GET /api/reports/revenue - revenue summary, monthly breakdown  
+  - GET /api/reports/trips - trips summary, stage breakdown, list
+- Enabled reports route in server/src/index.js
+- Link to Commission Report tab goes to existing /commissions page
+
+#### Test Data Created
+- Agency: Commission Status Test Agency (ID: 67)
+- User: commission_status_test@atlas.com / TestPass123
+- Trip: COMMISSION_STATUS_TEST_TRIP (ID: 51)
+- 3 bookings with different commission statuses:
+  - Expected: Expected Commission Hotel (hotel, $100 commission)
+  - Submitted: Submitted Commission Tour (tour, $160 commission)
+  - Paid: Paid Commission Cruise (cruise, $600 commission)
+
+#### Verification Summary
+- All filters work independently and combined
+- Date range filtering excludes data outside range (tested 2025 range - no data returned)
+- Supplier dropdown populates from real database data
+- No data outside date range shown
+- Totals accurately reflect filtered data
+- All reports compile successfully
+- Server starts without errors
+
+#### Current State
+- 97/240 features passing (~40.4%)
+- Backend on port 3001, Frontend on port 3000
+- Reports system fully functional with date range filtering
+- Commission reports have multi-criteria filtering
+- Zero console errors
+- Git commits: bed9d05, ff8dc37, 25f4163
+
