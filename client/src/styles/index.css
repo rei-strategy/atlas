@@ -446,6 +446,26 @@ fieldset:disabled .btn {
   cursor: not-allowed;
 }
 
+/* Button loading spinner - small inline spinner for button loading states */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.btn-spinner-light {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+}
+
+.btn-loading {
+  position: relative;
+}
+
 .btn-primary {
   color: #ffffff;
   background-color: var(--color-primary);

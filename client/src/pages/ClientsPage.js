@@ -8,6 +8,7 @@ import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit 
 import { useFormDraft } from '../hooks/useFormDraft';
 import Breadcrumb from '../components/Breadcrumb';
 import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
@@ -330,6 +331,13 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent double-click submission
+    if (submittingRef.current || loading) {
+      return;
+    }
+    submittingRef.current = true;
+
     setError('');
 
     // Validate all fields on submit
@@ -347,6 +355,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
     // If there are any errors, don't submit
     if (Object.keys(errors).length > 0) {
       setError('Please fix the errors below before submitting');
+      submittingRef.current = false;
       return;
     }
 
@@ -388,6 +397,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
         setShowConflictModal(true);
         setLoading(false);
         abortControllerRef.current = null;
+        submittingRef.current = false;
         return;
       }
 
@@ -419,6 +429,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
+      submittingRef.current = false;
     }
   };
 
@@ -743,9 +754,14 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
                   Cancel
                 </button>
               )}
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Saving...' : (client ? 'Save Changes' : 'Create Client')}
-              </button>
+              <LoadingButton
+                type="submit"
+                className="btn btn-primary"
+                loading={loading}
+                loadingText="Saving..."
+              >
+                {client ? 'Save Changes' : 'Create Client'}
+              </LoadingButton>
             </div>
             {isDirty && (
               <div className="form-dirty-indicator-text" style={{ marginTop: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
@@ -1747,9 +1763,14 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                   <button type="button" className="btn btn-outline" onClick={() => setShowPortalModal(false)} disabled={portalFormLoading}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={portalFormLoading}>
-                    {portalFormLoading ? 'Creating...' : 'Create Portal Access'}
-                  </button>
+                  <LoadingButton
+                    type="submit"
+                    className="btn btn-primary"
+                    loading={portalFormLoading}
+                    loadingText="Creating..."
+                  >
+                    Create Portal Access
+                  </LoadingButton>
                 </div>
               </form>
             </div>

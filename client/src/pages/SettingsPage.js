@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 
@@ -989,9 +990,14 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={handleClose}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Inviting...' : 'Invite User'}
-              </button>
+              <LoadingButton
+                type="submit"
+                className="btn btn-primary"
+                loading={loading}
+                loadingText="Inviting..."
+              >
+                Invite User
+              </LoadingButton>
             </div>
           </form>
         )}

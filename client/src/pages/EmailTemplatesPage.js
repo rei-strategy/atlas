@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 
@@ -41,6 +42,7 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false); // Prevent double-click submission
   const [form, setForm] = useState({
     name: '',
     subject: '',
@@ -105,20 +107,30 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent double-click submission
+    if (submittingRef.current || loading) {
+      return;
+    }
+    submittingRef.current = true;
+
     setError('');
 
     if (!form.name.trim()) {
       setError('Template name is required');
+      submittingRef.current = false;
       return;
     }
 
     if (!form.subject.trim()) {
       setError('Email subject is required');
+      submittingRef.current = false;
       return;
     }
 
     if (!form.body.trim()) {
       setError('Email body is required');
+      submittingRef.current = false;
       return;
     }
 
@@ -153,6 +165,7 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
       setError(err.message);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -282,9 +295,14 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (template ? 'Save Changes' : 'Create Template')}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              loadingText="Saving..."
+            >
+              {template ? 'Save Changes' : 'Create Template'}
+            </LoadingButton>
           </div>
         </form>
       </div>

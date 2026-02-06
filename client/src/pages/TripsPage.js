@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import Modal from '../components/Modal';
 import Breadcrumb from '../components/Breadcrumb';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 
@@ -120,6 +121,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const [showChangeReason, setShowChangeReason] = useState(false);
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
+  const submittingRef = useRef(false); // Prevent double-click submission
   const [form, setForm] = useState({
     clientId: '', name: '', destination: '', description: '',
     travelStartDate: '', travelEndDate: '', changeReason: ''
@@ -223,10 +225,18 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent double-click submission
+    if (submittingRef.current || loading) {
+      return;
+    }
+    submittingRef.current = true;
+
     setError('');
 
     if (!form.name.trim()) {
       setError('Trip name is required');
+      submittingRef.current = false;
       return;
     }
 
@@ -235,6 +245,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
     if (Object.keys(errors).length > 0) {
       setDateErrors(errors);
       setError('Please fix the date errors before submitting');
+      submittingRef.current = false;
       return;
     }
 
@@ -267,6 +278,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
         setError('Please provide a reason for changing this locked trip.');
         setShowChangeReason(true);
         setLoading(false);
+        submittingRef.current = false;
         return;
       }
 
@@ -285,6 +297,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
       setError(err.message);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -433,9 +446,14 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (trip?.isLocked && showChangeReason ? 'Request Changes' : (trip ? 'Save Changes' : 'Create Trip'))}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              loadingText="Saving..."
+            >
+              {trip?.isLocked && showChangeReason ? 'Request Changes' : (trip ? 'Save Changes' : 'Create Trip')}
+            </LoadingButton>
           </div>
         </form>
       </div>
@@ -451,6 +469,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   const [fieldErrors, setFieldErrors] = useState({});
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
+  const submittingRef = useRef(false); // Prevent double-click submission
 
   // Validate date constraints for booking
   const validateBookingDates = (startDate, endDate) => {
@@ -690,10 +709,18 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent double-click submission
+    if (submittingRef.current || loading) {
+      return;
+    }
+    submittingRef.current = true;
+
     setError('');
 
     if (!form.bookingType) {
       setError('Booking type is required');
+      submittingRef.current = false;
       return;
     }
 
@@ -702,12 +729,14 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
     if (Object.keys(dateValidationErrors).length > 0) {
       setDateErrors(dateValidationErrors);
       setError('Please fix the date errors before submitting');
+      submittingRef.current = false;
       return;
     }
 
     // Validate all financial fields before submission
     if (!validateAllFinancialFields()) {
       setError('Please fix the errors in the financial fields');
+      submittingRef.current = false;
       return;
     }
 
@@ -715,6 +744,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
     if (form.status === 'booked' && !form.confirmationNumber?.trim()) {
       setFieldErrors(prev => ({ ...prev, confirmationNumber: 'Confirmation number is required for booked status' }));
       setError('Confirmation number is required when status is "Booked"');
+      submittingRef.current = false;
       return;
     }
 
@@ -757,6 +787,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
       setError(err.message);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -1101,9 +1132,14 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (booking ? 'Save Changes' : 'Add Booking')}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              loadingText="Saving..."
+            >
+              {booking ? 'Save Changes' : 'Add Booking'}
+            </LoadingButton>
           </div>
         </form>
       </div>
@@ -2296,9 +2332,14 @@ function TravelerFormModal({ isOpen, onClose, onSaved, traveler, tripId, token }
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (traveler ? 'Save Changes' : 'Add Traveler')}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              loadingText="Saving..."
+            >
+              {traveler ? 'Save Changes' : 'Add Traveler'}
+            </LoadingButton>
           </div>
         </form>
       </div>
@@ -2767,9 +2808,15 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading || !selectedFile}>
-              {loading ? 'Uploading...' : 'Upload Document'}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              disabled={!selectedFile}
+              loadingText="Uploading..."
+            >
+              Upload Document
+            </LoadingButton>
           </div>
         </form>
       </div>

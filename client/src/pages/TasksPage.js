@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 
@@ -29,6 +30,7 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false); // Prevent double-click submission
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -77,15 +79,24 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent double-click submission
+    if (submittingRef.current || loading) {
+      return;
+    }
+    submittingRef.current = true;
+
     setError('');
 
     if (!form.title.trim()) {
       setError('Task title is required');
+      submittingRef.current = false;
       return;
     }
 
     if (!form.dueDate) {
       setError('Due date is required');
+      submittingRef.current = false;
       return;
     }
 
@@ -127,6 +138,7 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
       setError(err.message);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -254,9 +266,14 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (task ? 'Save Changes' : 'Create Task')}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="btn btn-primary"
+              loading={loading}
+              loadingText="Saving..."
+            >
+              {task ? 'Save Changes' : 'Create Task'}
+            </LoadingButton>
           </div>
         </form>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LoadingButton from '../components/LoadingButton';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -318,13 +319,14 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <button
+          <LoadingButton
             type="submit"
             className="btn btn-primary btn-full"
-            disabled={loading}
+            loading={loading}
+            loadingText="Creating account..."
           >
-            {loading ? 'Creating account...' : 'Create account'}
-          </button>
+            Create account
+          </LoadingButton>
           </fieldset>
 
           <p className="auth-footer-text">
