@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useBlocker } from 'react-router-dom';
+import { useParams, useNavigate, useBlocker, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
@@ -1541,6 +1541,10 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                         key={trip.id}
                         className="data-table-row-clickable"
                         onClick={() => onNavigateToTrip(trip.id)}
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigateToTrip(trip.id); } }}
+                        role="row"
+                        aria-label={`Trip ${trip.name} to ${trip.destination || 'unknown destination'}`}
                         style={{ cursor: 'pointer' }}
                       >
                         <td>
@@ -1796,12 +1800,14 @@ export default function ClientsPage() {
   const { token } = useAuth();
   const { id: urlClientId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { formatDate } = useTimezone();
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [plannerFilter, setPlannerFilter] = useState('');
+  // Initialize filter states from URL search params for persistence
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [plannerFilter, setPlannerFilter] = useState(() => searchParams.get('planner') || '');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showModal, setShowModal] = useState(false);
@@ -1816,6 +1822,14 @@ export default function ClientsPage() {
   const [pageSize] = useState(10);
   // Track form dirty state for navigation blocking
   const [formIsDirty, setFormIsDirty] = useState(false);
+
+  // Sync filter state to URL search params for persistence during navigation
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (plannerFilter) params.set('planner', plannerFilter);
+    setSearchParams(params, { replace: true });
+  }, [search, plannerFilter, setSearchParams]);
 
   // Block navigation when form has unsaved changes
   const blocker = useBlocker(
@@ -2023,7 +2037,7 @@ export default function ClientsPage() {
       <div className="page-container">
         <ClientDetail
           client={selectedClient}
-          onBack={() => { setSelectedClient(null); navigate('/clients'); }}
+          onBack={() => { setSelectedClient(null); navigate(`/clients?${searchParams.toString()}`); }}
           onEdit={handleEditClient}
           onDelete={handleDeleteClient}
           token={token}
@@ -2196,6 +2210,10 @@ export default function ClientsPage() {
                   key={client.id}
                   className="data-table-row-clickable"
                   onClick={() => handleViewClient(client)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewClient(client); } }}
+                  role="row"
+                  aria-label={`Client ${client.firstName} ${client.lastName}`}
                 >
                   <td>
                     <div className="table-user-cell">

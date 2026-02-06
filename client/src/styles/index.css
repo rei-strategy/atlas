@@ -1724,6 +1724,16 @@ fieldset:disabled .btn {
   background-color: var(--color-bg-secondary);
 }
 
+.data-table-row-clickable:focus {
+  outline: none;
+  background-color: var(--color-bg-secondary);
+}
+
+.data-table-row-clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .table-user-cell {
   display: flex;
   align-items: center;

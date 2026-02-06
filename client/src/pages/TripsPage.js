@@ -4641,6 +4641,10 @@ export default function TripsPage() {
                   key={trip.id}
                   className="data-table-row-clickable"
                   onClick={() => handleViewTrip(trip)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewTrip(trip); } }}
+                  role="row"
+                  aria-label={`Trip ${trip.name} to ${trip.destination || 'unknown destination'}`}
                 >
                   <td><span className="table-user-name">{trip.name}</span></td>
                   <td>{trip.clientName || '—'}</td>
