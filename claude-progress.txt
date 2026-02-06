@@ -941,3 +941,59 @@
 - CSV import fully functional with validation
 - Zero console errors
 - Git commit: c29d36c
+
+
+### Session - 2026-02-06 (Agent batch: Features #14, #24, #16)
+
+**Features Completed: #14, #24, #16 (Security & Access Control)**
+
+#### Feature #14: JWT token contains role and agency information
+- JWT tokens already include: id, email, role, agency_id, iat, exp
+- Verified by decoding token from login response
+- Token has 24-hour expiration (configurable via JWT_EXPIRES_IN)
+- All required claims present: user_id, role, agency_id, expiration
+
+#### Feature #24: Session expiration redirects to login
+- Backend auth middleware returns 401 with code: 'TOKEN_EXPIRED' for expired tokens
+- AuthContext has handleSessionExpired() that clears auth state and sets sessionExpired flag
+- LoginPage displays warning message: "Your session has expired. Please sign in again."
+- DashboardPage updated to check for token expiration on API calls
+- clearSessionExpiredMessage() clears the warning after successful login
+- No stale data shown - clearAuth() removes user, agency, token state
+
+#### Feature #16: Agency data isolation prevents cross-tenant access
+- Tested with two separate agencies (A and B)
+- Agency A's client NOT visible in Agency B's client list
+- Direct access to Agency A's client by ID returns 404 for Agency B
+- Reverse verified: Agency B's data NOT accessible to Agency A
+- All database queries include agency_id filtering
+- Verified in clients.js and trips.js routes
+
+#### Verification Steps Completed
+1. JWT decoding confirmed: id:58, role:"admin", agency_id:52, exp claim present
+2. Expired token test: Server returns 401 with TOKEN_EXPIRED code
+3. Tenant isolation test:
+   - Agency A created client (ID: 126)
+   - Agency B GET /api/clients returns 0 clients (isolation works)
+   - Agency B GET /api/clients/126 returns 404 (direct access blocked)
+   - Reverse test passed: Agency A cannot see Agency B's client (ID: 127)
+
+#### Key Implementation Details
+- server/src/middleware/auth.js: JWT verification with TOKEN_EXPIRED error code
+- client/src/context/AuthContext.js: sessionExpired state, handleSessionExpired()
+- client/src/pages/LoginPage.js: Session expired warning display
+- client/src/pages/DashboardPage.js: Token expiration checking on API calls
+- All API routes filter by agency_id (tenantScope middleware)
+
+#### Test Data Created
+- Agency A: agency_a_test@example.com / TestPass123 (ID: 56)
+- Agency B: agency_b_test@example.com / TestPass123 (ID: 57)
+- Client A_Only (ID: 126), Client B_Only (ID: 127)
+
+#### Current State
+- 68/240 features passing (~28.3%)
+- Backend on port 3001, Frontend on port 3000
+- JWT authentication fully implemented with expiration handling
+- Multi-tenant isolation verified and working
+- Zero console errors
+- Git commit: 2502d74
