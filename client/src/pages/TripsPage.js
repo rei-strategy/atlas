@@ -4306,32 +4306,63 @@ export default function TripsPage() {
   };
 
   // Handle URL parameter for direct navigation to a trip
+  // Also handles rapid navigation between different trips by checking if URL differs from selected
   useEffect(() => {
-    if (urlTripId && token && !selectedTrip && !tripNotFound) {
-      // Fetch the specific trip by ID
-      fetch(`${API_BASE}/trips/${urlTripId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => {
-          if (!res.ok) {
-            setTripNotFound(true);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data && data.trip) {
-            setSelectedTrip(data.trip);
-          } else if (data === null) {
-            setTripNotFound(true);
-          }
-        })
-        .catch(err => {
-          console.error('Failed to load trip:', err);
-          setTripNotFound(true);
-        });
+    // If no URL trip ID, clear selection when navigating back to list
+    if (!urlTripId) {
+      if (selectedTrip) {
+        setSelectedTrip(null);
+      }
+      return;
     }
-  }, [urlTripId, token, selectedTrip, tripNotFound]);
+
+    // If we already have the correct trip loaded, do nothing
+    if (selectedTrip && String(selectedTrip.id) === String(urlTripId)) {
+      return;
+    }
+
+    // Reset tripNotFound when navigating to a different trip
+    if (tripNotFound) {
+      setTripNotFound(false);
+    }
+
+    // Create abort controller to handle rapid navigation
+    const controller = new AbortController();
+
+    // Fetch the specific trip by ID
+    fetch(`${API_BASE}/trips/${urlTripId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal
+    })
+      .then(res => {
+        if (!res.ok) {
+          setTripNotFound(true);
+          setSelectedTrip(null);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.trip) {
+          setSelectedTrip(data.trip);
+        } else if (data === null) {
+          setTripNotFound(true);
+          setSelectedTrip(null);
+        }
+      })
+      .catch(err => {
+        // Ignore abort errors from rapid navigation
+        if (err.name === 'AbortError') {
+          return;
+        }
+        console.error('Failed to load trip:', err);
+        setTripNotFound(true);
+        setSelectedTrip(null);
+      });
+
+    // Cleanup: abort fetch if URL changes before response arrives
+    return () => controller.abort();
+  }, [urlTripId, token]);
 
   const handleTripSaved = (savedTrip) => {
     setTrips(prev => {
