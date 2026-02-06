@@ -2718,3 +2718,48 @@
 - Backend on port 3001, Frontend on port 3000
 - All three report features verified working
 - Git commits: 81722df (#125), 34822f1 (#126), 9c68d16 (#127)
+
+
+### Session - 2026-02-06 (Agent batch: Features #137, #139, #145)
+
+**Features Completed: #137, #139, #145 (Role Management, Notification Preferences, CSV Import)**
+
+#### Feature #137: User role management (admin only)
+- RoleSelector component added to SettingsPage Team Members table
+- Admin can click edit button to change user roles
+- Dropdown shows available roles: Admin, Planner, Support, Marketing
+- Prevents admin from changing their own role
+- Role changes take effect immediately on next login
+- Audit log records all role changes
+- Non-admins only see role badges without edit capability
+
+#### Feature #139: Email notification preferences per user
+- Added PUT /api/auth/notification-preferences endpoint
+- 9 notification types: taskAssigned, taskDue, paymentReminder, commissionUpdate, tripStageChange, approvalRequired, approvalResolved, documentUploaded, clientMessage
+- NotificationPreferencesCard component added to ProfilePage
+- Toggle switches for each notification type
+- Preferences stored in users.notification_preferences JSON column
+- Audit log records preference updates
+
+#### Feature #145: CSV import for trips
+- Added POST /api/trips/import endpoint with multer CSV handling
+- Supports columns: name, destination, clientEmail, travelStartDate, travelEndDate, description
+- CSV parser handles quoted fields and various date formats
+- Auto-creates client if clientEmail provided but not found
+- Uses placeholder client for rows without clientEmail
+- Import modal on Trips page with column documentation
+- Shows detailed results: imported count, errors, created trip links
+
+#### Test Data Created
+- Agency: Role Test Agency F137 (ID: 94)
+- Admin: role_test_admin@atlas.com / TestPass123
+- Planner→Support: role_test_planner@atlas.com / TestPass123
+- Imported Trips: CSV Test Trip 1-3 (Paris, Tokyo, London)
+- Imported Trip with client: Client Trip Test (Hawaii)
+
+#### Current State
+- 170/240 features passing (~70.8%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commits: 9c68d16 (merged with #127), 5ee6aa3 (#145)
+
