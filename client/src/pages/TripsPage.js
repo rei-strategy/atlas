@@ -1085,6 +1085,7 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
 
 /* =================== BOOKINGS TAB =================== */
 function BookingsTab({ tripId, token }) {
+  const { formatDate } = useTimezone();
   const { addToast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
