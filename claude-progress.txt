@@ -516,3 +516,48 @@
 - Backend on port 3001, Frontend on port 3000
 - Client list sorting fully functional
 - Zero console errors
+
+### Session - 2026-02-06 (Feature #120)
+
+**Feature Completed: #120 (Notification snooze and dismiss)**
+
+#### Feature #120: Notification snooze and dismiss
+- Added snooze button (clock icon) to notification items in NotificationBell component
+- Snooze menu provides 4 options: 1 hour, 3 hours, 1 day, Tomorrow morning
+- Clicking snooze option sends PUT /api/notifications/:id/snooze with calculated snoozeUntil timestamp
+- Snoozed notifications hidden from list until snooze time passes (verified by query filter)
+- Dismiss button (X icon) already existed, verified it works correctly
+- Dismissed notifications permanently removed from list (is_dismissed = 1)
+
+#### Verification Steps Completed
+1. Created test user: snoozetest@example.com / TestPass123 (Snooze Test Agency, ID: 43)
+2. Created test client and 2 trips to generate urgent notifications
+3. Tested snooze via API: Notification 5 snoozed until 2026-02-07T09:00:00.000Z
+4. Verified notification hidden from list after snooze (count went from 2 to 1)
+5. Tested dismiss via API: Notification 6 dismissed
+6. Verified dismissed notification removed from list
+7. Server restart persistence test: PASSED
+   - Notification 5 still snoozed (is_dismissed=0, snoozed_until set)
+   - Notification 6 still dismissed (is_dismissed=1)
+8. Verified snoozed notification reappears when snooze time passes (updated snoozed_until to past)
+9. Mock data grep: No mock patterns in production code
+10. Client build: Compiled successfully with no errors
+
+#### Key Implementation Details
+- client/src/components/NotificationBell.js: Added snoozeMenuId state, handleSnoozeClick, handleSnooze functions
+- client/src/styles/index.css: Added .notification-actions, .notification-snooze, .snooze-menu, .snooze-option styles
+- Backend already had snooze endpoint (PUT /api/notifications/:id/snooze)
+- Backend filtering excludes snoozed notifications where snoozed_until > now
+
+#### Test Data Created
+- Agency: Snooze Test Agency (ID: 43)
+- User: snoozetest@example.com / TestPass123
+- Client: John Snoozerson (ID: 74)
+- Trips: SNOOZE_TEST_TRIP (Paris), DISMISS_TEST_TRIP (Tokyo)
+- Notifications: ID 5 (snoozed), ID 6 (dismissed)
+
+#### Current State
+- 47/240 features passing (~19.6%)
+- Backend on port 3001, Frontend on port 3000
+- Notification snooze and dismiss fully functional
+- Zero console errors
