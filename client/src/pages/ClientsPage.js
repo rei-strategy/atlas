@@ -299,6 +299,260 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
   );
 }
 
+function CsvImportModal({ isOpen, onClose, onImported, token }) {
+  const { addToast } = useToast();
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [importResult, setImportResult] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const resetState = () => {
+    setFile(null);
+    setValidationErrors([]);
+    setImportResult(null);
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    resetState();
+    onClose();
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile.name.endsWith('.csv') || droppedFile.type === 'text/csv') {
+        setFile(droppedFile);
+        setValidationErrors([]);
+        setImportResult(null);
+      } else {
+        addToast('Please upload a CSV file', 'error');
+      }
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setValidationErrors([]);
+      setImportResult(null);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const res = await fetch('/api/clients/import/template', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'client-import-template.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      addToast('Failed to download template', 'error');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      addToast('Please select a CSV file', 'error');
+      return;
+    }
+
+    setLoading(true);
+    setValidationErrors([]);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/clients/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.validationErrors) {
+          setValidationErrors(data.validationErrors);
+        } else {
+          addToast(data.error || 'Import failed', 'error');
+        }
+        return;
+      }
+
+      setImportResult(data);
+      addToast(`Successfully imported ${data.imported} clients`, 'success');
+      onImported(data.imported);
+    } catch (err) {
+      addToast('Failed to import CSV file', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Import Clients from CSV</h2>
+          <button className="modal-close-btn" onClick={handleClose} aria-label="Close">×</button>
+        </div>
+        <div className="modal-body">
+          {importResult ? (
+            <div className="import-success">
+              <div className="success-icon" style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>✓</div>
+              <h3 style={{ color: 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>Import Complete!</h3>
+              <p>{importResult.imported} client{importResult.imported !== 1 ? 's' : ''} imported successfully.</p>
+              <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-lg)' }} onClick={handleClose}>
+                Done
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="import-instructions" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <p style={{ marginBottom: 'var(--spacing-sm)' }}>
+                  Upload a CSV file with client data. The file should include columns for:
+                </p>
+                <ul style={{ marginLeft: 'var(--spacing-lg)', marginBottom: 'var(--spacing-md)', color: 'var(--color-text-secondary)' }}>
+                  <li><strong>first_name</strong> (required)</li>
+                  <li><strong>last_name</strong> (required)</li>
+                  <li>email, phone, city, state, country</li>
+                  <li>preferred_communication, notes</li>
+                  <li>marketing_opt_in, contact_consent (true/false)</li>
+                </ul>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={handleDownloadTemplate}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}
+                >
+                  ⬇ Download Template
+                </button>
+              </div>
+
+              <div
+                className={`dropzone ${dragActive ? 'dropzone-active' : ''} ${file ? 'dropzone-has-file' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed var(--color-border)',
+                  borderRadius: 'var(--border-radius)',
+                  padding: 'var(--spacing-xl)',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  backgroundColor: dragActive ? 'var(--color-primary-light, #f0f7ff)' : 'var(--color-bg-secondary)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+                {file ? (
+                  <div>
+                    <div style={{ fontSize: '24px', marginBottom: 'var(--spacing-sm)' }}>📄</div>
+                    <p style={{ fontWeight: '500' }}>{file.name}</p>
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ marginTop: 'var(--spacing-sm)' }}
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                    >
+                      Choose Different File
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '24px', marginBottom: 'var(--spacing-sm)' }}>📤</div>
+                    <p>Drag and drop your CSV file here</p>
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                      or click to browse
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {validationErrors.length > 0 && (
+                <div className="validation-errors" style={{ marginTop: 'var(--spacing-lg)' }}>
+                  <h4 style={{ color: 'var(--color-danger)', marginBottom: 'var(--spacing-sm)' }}>
+                    Validation Errors ({validationErrors.length} row{validationErrors.length !== 1 ? 's' : ''})
+                  </h4>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--border-radius)', padding: 'var(--spacing-sm)' }}>
+                    {validationErrors.map((err, idx) => (
+                      <div key={idx} style={{ padding: 'var(--spacing-xs) 0', borderBottom: idx < validationErrors.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                        <strong>Row {err.row}:</strong>{' '}
+                        <span style={{ color: 'var(--color-text-secondary)' }}>
+                          {err.data.firstName} {err.data.lastName}
+                        </span>
+                        <ul style={{ marginLeft: 'var(--spacing-lg)', marginTop: 'var(--spacing-xs)', color: 'var(--color-danger)' }}>
+                          {err.errors.map((e, i) => <li key={i}>{e}</li>)}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ marginTop: 'var(--spacing-sm)', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                    Please fix these errors in your CSV file and try again.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        {!importResult && (
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={handleClose}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleImport}
+              disabled={!file || loading}
+            >
+              {loading ? 'Importing...' : 'Import Clients'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tripCount, setTripCount] = useState(0);
@@ -499,6 +753,7 @@ export default function ClientsPage() {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editClient, setEditClient] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [notFound, setNotFound] = useState(false);
@@ -609,6 +864,12 @@ export default function ClientsPage() {
     setPlannerFilter('');
   };
 
+  const handleImportComplete = (count) => {
+    // Refresh the client list after import
+    fetchClients();
+    setShowImportModal(false);
+  };
+
   const handleDeleteClient = (deletedId) => {
     setClients(prev => prev.filter(c => c.id !== deletedId));
     setSelectedClient(null);
@@ -698,9 +959,14 @@ export default function ClientsPage() {
           <h1 className="page-title">Clients</h1>
           <p className="page-subtitle">Manage your clients and their information.</p>
         </div>
-        <button className="btn btn-primary" onClick={handleCreateClient}>
-          + Add Client
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+          <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
+            ⬆ Import CSV
+          </button>
+          <button className="btn btn-primary" onClick={handleCreateClient}>
+            + Add Client
+          </button>
+        </div>
       </div>
 
       <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -811,6 +1077,12 @@ export default function ClientsPage() {
         onClose={() => { setShowModal(false); setEditClient(null); }}
         onSaved={handleClientSaved}
         client={editClient}
+        token={token}
+      />
+      <CsvImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={handleImportComplete}
         token={token}
       />
     </div>

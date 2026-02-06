@@ -34,13 +34,18 @@ router.get('/', (req, res) => {
       ORDER BY created_at DESC
     `).all(tripId, req.agencyId);
 
-    // Calculate totals
+    // Calculate totals (exclude canceled bookings from commission totals)
     const totals = bookings.reduce((acc, b) => {
+      // Include all bookings in cost totals
       acc.totalCost += b.total_cost || 0;
       acc.totalDeposit += b.deposit_amount || 0;
       acc.totalFinalPayment += b.final_payment_amount || 0;
-      acc.totalCommissionExpected += b.commission_amount_expected || 0;
-      acc.totalCommissionReceived += (b.commission_amount_received || 0);
+
+      // Only include non-canceled bookings in commission totals
+      if (b.status !== 'canceled') {
+        acc.totalCommissionExpected += b.commission_amount_expected || 0;
+        acc.totalCommissionReceived += (b.commission_amount_received || 0);
+      }
       return acc;
     }, { totalCost: 0, totalDeposit: 0, totalFinalPayment: 0, totalCommissionExpected: 0, totalCommissionReceived: 0 });
 
@@ -308,6 +313,13 @@ router.put('/:id', (req, res) => {
       });
     }
 
+    // When canceling a booking, set commission_amount_expected to 0
+    // The commission tracking should no longer expect this amount
+    let effectiveCommissionExpected = commissionAmountExpected;
+    if (status === 'canceled' && existing.status !== 'canceled') {
+      effectiveCommissionExpected = 0;
+    }
+
     db.prepare(`
       UPDATE bookings SET
         booking_type = COALESCE(?, booking_type),
@@ -349,7 +361,7 @@ router.put('/:id', (req, res) => {
       finalPaymentAmount !== undefined ? finalPaymentAmount : null,
       finalPaymentDueDate !== undefined ? finalPaymentDueDate : existing.final_payment_due_date,
       paymentStatus || null,
-      commissionAmountExpected !== undefined ? commissionAmountExpected : null,
+      effectiveCommissionExpected !== undefined ? effectiveCommissionExpected : null,
       commissionRate !== undefined ? commissionRate : null,
       commissionStatus || null,
       commissionAmountReceived !== undefined ? commissionAmountReceived : existing.commission_amount_received,

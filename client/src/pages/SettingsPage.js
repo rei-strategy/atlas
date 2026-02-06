@@ -5,6 +5,37 @@ import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
+// Audit Log Action Filter Options
+const APPROVAL_ACTIONS = [
+  { value: 'create_approval_request', label: 'Created Approval Request' },
+  { value: 'approve_request', label: 'Approved Request' },
+  { value: 'deny_request', label: 'Denied Request' }
+];
+
+// All audit log actions
+const ALL_ACTIONS = [
+  { value: 'create_approval_request', label: 'Created Approval Request', category: 'Approvals' },
+  { value: 'approve_request', label: 'Approved Request', category: 'Approvals' },
+  { value: 'deny_request', label: 'Denied Request', category: 'Approvals' },
+  { value: 'create_user', label: 'Created User', category: 'Users' },
+  { value: 'update_user', label: 'Updated User', category: 'Users' },
+  { value: 'deactivate_user', label: 'Deactivated User', category: 'Users' },
+  { value: 'create_booking', label: 'Created Booking', category: 'Bookings' },
+  { value: 'update_booking', label: 'Updated Booking', category: 'Bookings' },
+  { value: 'delete_booking', label: 'Deleted Booking', category: 'Bookings' },
+  { value: 'update_commission_status', label: 'Updated Commission', category: 'Bookings' },
+  { value: 'stage_change', label: 'Changed Trip Stage', category: 'Trips' },
+  { value: 'create_task', label: 'Created Task', category: 'Tasks' },
+  { value: 'complete_task', label: 'Completed Task', category: 'Tasks' },
+  { value: 'update_task', label: 'Updated Task', category: 'Tasks' },
+  { value: 'delete_task', label: 'Deleted Task', category: 'Tasks' },
+  { value: 'upload_document', label: 'Uploaded Document', category: 'Documents' },
+  { value: 'update_settings', label: 'Updated Settings', category: 'Settings' },
+  { value: 'create_email_template', label: 'Created Email Template', category: 'Email' },
+  { value: 'update_email_template', label: 'Updated Email Template', category: 'Email' },
+  { value: 'delete_email_template', label: 'Deleted Email Template', category: 'Email' }
+];
+
 // Common timezones for travel industry
 const TIMEZONES = [
   'America/New_York',
@@ -861,6 +892,317 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
   );
 }
 
+// Audit Logs Component
+function AuditLogsTable({ token, isAdmin }) {
+  const { formatDateTime } = useTimezone();
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [filters, setFilters] = useState({
+    action: '',
+    entityType: '',
+    showApprovalsOnly: true
+  });
+  const limit = 20;
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      let url;
+      if (filters.showApprovalsOnly) {
+        // Use the approvals endpoint
+        url = `${API_BASE}/audit-logs/approvals?limit=${limit}&offset=${offset}`;
+      } else {
+        // Use the general endpoint with filters
+        url = `${API_BASE}/audit-logs?limit=${limit}&offset=${offset}`;
+        if (filters.action) {
+          url += `&action=${encodeURIComponent(filters.action)}`;
+        }
+        if (filters.entityType) {
+          url += `&entityType=${encodeURIComponent(filters.entityType)}`;
+        }
+      }
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch audit logs');
+      }
+
+      setLogs(data.auditLogs || []);
+      setTotal(data.total || 0);
+    } catch (err) {
+      console.error('Failed to fetch audit logs:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, offset, filters]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Reset offset when filters change
+  useEffect(() => {
+    setOffset(0);
+  }, [filters.action, filters.entityType, filters.showApprovalsOnly]);
+
+  const handleFilterChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const formatDetails = (details, action) => {
+    if (!details || Object.keys(details).length === 0) {
+      return '-';
+    }
+
+    // Format approval-specific details
+    if (action.includes('approval') || action.includes('approve') || action.includes('deny')) {
+      const parts = [];
+      if (details.actionType) {
+        parts.push(`Action: ${details.actionType.replace(/_/g, ' ')}`);
+      }
+      if (details.entityType) {
+        parts.push(`Entity: ${details.entityType}`);
+      }
+      if (details.entityId) {
+        parts.push(`ID: ${details.entityId}`);
+      }
+      if (details.responseNote) {
+        parts.push(`Note: "${details.responseNote}"`);
+      }
+      if (details.reason) {
+        parts.push(`Reason: ${details.reason}`);
+      }
+      return parts.length > 0 ? parts.join(', ') : '-';
+    }
+
+    // Default: show key-value pairs
+    return Object.entries(details)
+      .filter(([k, v]) => v !== null && v !== undefined && k !== 'raw')
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+      .join(', ') || '-';
+  };
+
+  const getActionBadgeClass = (action) => {
+    if (action === 'approve_request') return 'action-badge action-approve';
+    if (action === 'deny_request') return 'action-badge action-deny';
+    if (action === 'create_approval_request') return 'action-badge action-create';
+    if (action.includes('delete')) return 'action-badge action-delete';
+    if (action.includes('create') || action.includes('upload')) return 'action-badge action-create';
+    if (action.includes('update') || action.includes('change')) return 'action-badge action-update';
+    return 'action-badge';
+  };
+
+  const totalPages = Math.ceil(total / limit);
+  const currentPage = Math.floor(offset / limit) + 1;
+
+  return (
+    <div className="dashboard-card">
+      <div className="dashboard-card-header">
+        <h3>Audit Logs</h3>
+      </div>
+      <div className="dashboard-card-body">
+        {error && <div className="form-error">{error}</div>}
+
+        {/* Filters */}
+        <div className="audit-log-filters">
+          <div className="filter-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                name="showApprovalsOnly"
+                checked={filters.showApprovalsOnly}
+                onChange={handleFilterChange}
+              />
+              <span>Show approval actions only</span>
+            </label>
+          </div>
+
+          {!filters.showApprovalsOnly && (
+            <div className="filter-group">
+              <label htmlFor="action-filter">Action Type</label>
+              <select
+                id="action-filter"
+                name="action"
+                value={filters.action}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Actions</option>
+                <optgroup label="Approvals">
+                  {ALL_ACTIONS.filter(a => a.category === 'Approvals').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Users">
+                  {ALL_ACTIONS.filter(a => a.category === 'Users').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Bookings">
+                  {ALL_ACTIONS.filter(a => a.category === 'Bookings').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Trips">
+                  {ALL_ACTIONS.filter(a => a.category === 'Trips').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Tasks">
+                  {ALL_ACTIONS.filter(a => a.category === 'Tasks').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Documents">
+                  {ALL_ACTIONS.filter(a => a.category === 'Documents').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Settings">
+                  {ALL_ACTIONS.filter(a => a.category === 'Settings').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Email Templates">
+                  {ALL_ACTIONS.filter(a => a.category === 'Email').map(a => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+          )}
+
+          {!filters.showApprovalsOnly && (
+            <div className="filter-group">
+              <label htmlFor="entity-filter">Entity Type</label>
+              <select
+                id="entity-filter"
+                name="entityType"
+                value={filters.entityType}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Entities</option>
+                <option value="approval_request">Approval Request</option>
+                <option value="user">User</option>
+                <option value="booking">Booking</option>
+                <option value="trip">Trip</option>
+                <option value="task">Task</option>
+                <option value="document">Document</option>
+                <option value="email_template">Email Template</option>
+                <option value="agency">Agency</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Results */}
+        {loading ? (
+          <p className="dashboard-empty-state">Loading audit logs...</p>
+        ) : logs.length === 0 ? (
+          <p className="dashboard-empty-state">
+            {filters.showApprovalsOnly
+              ? 'No approval-related audit logs found. Create and resolve approval requests to see them here.'
+              : 'No audit logs found matching your filters.'}
+          </p>
+        ) : (
+          <>
+            <div className="audit-log-count">
+              Showing {logs.length} of {total} logs
+            </div>
+            <div className="table-responsive">
+              <table className="data-table audit-logs-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map(log => (
+                    <tr key={log.id}>
+                      <td className="timestamp-cell">
+                        {formatDateTime(log.createdAt)}
+                      </td>
+                      <td>
+                        <div className="user-name-cell">
+                          {log.userName || log.userEmail || 'System'}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={getActionBadgeClass(log.action)}>
+                          {log.actionLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="entity-info">
+                          {log.entityType?.replace(/_/g, ' ')}
+                          {log.entityId && <span className="entity-id">#{log.entityId}</span>}
+                        </span>
+                      </td>
+                      <td className="details-cell">
+                        <span className="details-text">
+                          {formatDetails(log.details, log.action)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={offset === 0}
+                >
+                  Previous
+                </button>
+                <span className="pagination-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setOffset(offset + limit)}
+                  disabled={offset + limit >= total}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {!isAdmin && (
+          <div className="form-info-box" style={{ marginTop: '16px' }}>
+            <span className="info-icon">ℹ️</span>
+            <span>You are viewing your own actions only. Administrators can view all audit logs.</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RoleBadge({ role }) {
   const roleColors = {
     admin: '#dc2626',
@@ -946,6 +1288,12 @@ export default function SettingsPage() {
         >
           Workflow Timing
         </button>
+        <button
+          className={`settings-tab ${activeTab === 'audit' ? 'active' : ''}`}
+          onClick={() => setActiveTab('audit')}
+        >
+          Audit Logs
+        </button>
       </div>
 
       {activeTab === 'team' && (
@@ -1014,6 +1362,10 @@ export default function SettingsPage() {
 
       {activeTab === 'workflow' && (
         <WorkflowSettingsForm token={token} isAdmin={isAdmin} />
+      )}
+
+      {activeTab === 'audit' && (
+        <AuditLogsTable token={token} isAdmin={isAdmin} />
       )}
 
       <InviteUserModal

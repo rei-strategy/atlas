@@ -4441,3 +4441,145 @@ html, body {
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
+
+/* Audit Logs Styles */
+.audit-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.audit-log-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.audit-log-filters .filter-group label:not(.checkbox-label) {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.audit-log-filters .filter-group select {
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-bg);
+  font-size: var(--font-size-sm);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+
+.audit-log-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.audit-logs-table {
+  width: 100%;
+}
+
+.audit-logs-table .timestamp-cell {
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.audit-logs-table .details-cell {
+  max-width: 300px;
+}
+
+.audit-logs-table .details-text {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.entity-info {
+  text-transform: capitalize;
+}
+
+.entity-id {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-left: var(--spacing-xs);
+}
+
+/* Action Badges */
+.action-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.action-badge.action-approve {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.action-badge.action-deny {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.action-badge.action-create {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.action-badge.action-update {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.action-badge.action-delete {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.table-responsive {
+  overflow-x: auto;
+}

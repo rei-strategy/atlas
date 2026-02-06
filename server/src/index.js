@@ -59,7 +59,7 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/portal', require('./routes/portal'));
-// app.use('/api/audit-logs', require('./routes/auditLogs'));
+app.use('/api/audit-logs', require('./routes/auditLogs'));
 
 // 404 handler
 app.use('/api/*', (req, res) => {
