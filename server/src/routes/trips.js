@@ -328,6 +328,12 @@ router.put('/:id', (req, res) => {
       changeReason // Required when requesting changes to locked fields
     } = req.body;
 
+    // Max length validation
+    const lengthErrors = validateTripFields(req.body);
+    if (lengthErrors.length > 0) {
+      return res.status(400).json({ error: formatValidationErrors(lengthErrors) });
+    }
+
     const isAdmin = req.user.role === 'admin';
 
     // Check if trip is locked and user is trying to edit locked fields

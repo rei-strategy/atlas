@@ -266,14 +266,36 @@ export default function RegisterPage() {
               value={formData.password}
               onChange={handleChange}
               onBlur={handleBlur}
-              placeholder="At least 6 characters"
+              placeholder="Create a strong password"
               autoComplete="new-password"
               aria-invalid={!!(fieldErrors.password && touched.password)}
-              aria-describedby={fieldErrors.password && touched.password ? 'password-error' : undefined}
+              aria-describedby="password-requirements"
             />
             {fieldErrors.password && touched.password && (
               <span id="password-error" className="form-error-message">{fieldErrors.password}</span>
             )}
+            {/* Password requirements checklist */}
+            <div id="password-requirements" className="password-requirements" style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)'
+            }}>
+              <div style={{ marginBottom: '0.25rem', fontWeight: 500 }}>Password requirements:</div>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'none' }}>
+                <li style={{ color: formData.password.length >= 8 ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  {formData.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                </li>
+                <li style={{ color: /[A-Z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  {/[A-Z]/.test(formData.password) ? '✓' : '○'} One uppercase letter
+                </li>
+                <li style={{ color: /[a-z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  {/[a-z]/.test(formData.password) ? '✓' : '○'} One lowercase letter
+                </li>
+                <li style={{ color: /[0-9]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  {/[0-9]/.test(formData.password) ? '✓' : '○'} One number
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div className={`form-group ${fieldErrors.confirmPassword && touched.confirmPassword ? 'form-group-error' : ''}`}>
