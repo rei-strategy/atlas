@@ -60,6 +60,7 @@ function TaskItem({ task, onComplete, onClick, formatShortDate }) {
 export default function DashboardPage() {
   const { token, handleSessionExpired, user } = useAuth();
   const { addToast } = useToast();
+  const { showNetworkError } = useNetworkError();
   const navigate = useNavigate();
   const location = useLocation();
   const { formatShortDate, isOverdue: checkOverdue, timezone } = useTimezone();
@@ -74,6 +75,7 @@ export default function DashboardPage() {
   const [plannerPerformance, setPlannerPerformance] = useState({ planners: [], totals: {} });
   const [recentActivity, setRecentActivity] = useState({ activities: [], count: 0 });
   const [loading, setLoading] = useState(true);
+  const [networkErrorState, setNetworkErrorState] = useState(null);
 
   const isAdmin = user?.role === 'admin';
 
@@ -127,6 +129,10 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load tasks:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchTasks);
+      }
     }
   }, [token, checkTokenExpiration, timezone]);
 
