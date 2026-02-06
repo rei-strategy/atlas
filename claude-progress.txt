@@ -1084,3 +1084,55 @@
 - Approval workflow fully functional with audit trail
 - Login security properly handles invalid credentials
 - Zero console errors
+
+
+### Session - 2026-02-06 (Agent batch: Features #19, #197, #25)
+
+**Features Completed: #19, #197, #25 (Security & Access Control + User Profile)**
+
+#### Feature #19: Non-admin cannot access admin-only API endpoints
+- Verified planner role gets 403 on PUT /api/settings/agency
+- Verified planner role gets 403 on DELETE /api/users/:id
+- Verified support role gets 403 on POST /api/users/invite
+- Verified marketing role gets 403 on GET /api/commissions
+- Created /api/commissions route with authorize('admin', 'planner') middleware
+- Support and marketing roles blocked from commission data per spec
+
+#### Feature #197: Direct access to admin routes by non-admin
+- Created AdminRoute component in App.js that checks user.role === 'admin'
+- Non-admin users redirected to /dashboard with accessDenied state
+- DashboardPage shows toast error when redirected from admin routes
+- Settings page already filtered from sidebar for non-admin (line 94 in Sidebar.js)
+- Direct URL access to /settings now properly blocked for non-admins
+
+#### Feature #25: User profile management
+- Created ProfilePage.js with view and edit modes
+- Shows user info: name, email, role, member since, user ID
+- Edit mode allows updating firstName, lastName, email
+- Profile accessible via clicking username in TopBar
+- Route added at /profile with ProtectedRoute (any logged-in user)
+- PUT /api/users/:id endpoint allows users to edit their own profile
+- Verified data persists after server restart
+
+#### Key Implementation Details
+- server/src/routes/commissions.js: New route with admin/planner authorization
+- server/src/index.js: Enabled /api/commissions route
+- client/src/App.js: AdminRoute component, /profile route
+- client/src/pages/ProfilePage.js: New page for profile viewing/editing
+- client/src/pages/DashboardPage.js: Access denied toast handling
+- client/src/components/TopBar.js: Username links to /profile
+- client/src/styles/index.css: Profile page styles
+
+#### Test Data Created
+- Agency: Access Test Agency (ID: 55)
+- Admin: access_test_admin@test.com / TestPass123
+- Planner: access_test_planner@test.com / TestPass123 (ID: 62, updated to "Updated Name")
+- Support: access_test_support@test.com / TestPass123
+- Marketing: access_test_marketing@test.com / TestPass123
+
+#### Current State
+- 75/240 features passing (~31.3%)
+- Backend on port 3001, Frontend on port 3000
+- Role-based route protection fully functional
+- User profile management working
+- Zero console errors

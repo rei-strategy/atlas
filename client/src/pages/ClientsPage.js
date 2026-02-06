@@ -13,7 +13,7 @@ const TRAVEL_PREFERENCE_OPTIONS = [
   'Europe', 'Caribbean', 'Asia', 'Domestic'
 ];
 
-function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
+function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +24,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
     travelPreferences: [],
     notes: '',
     marketingOptIn: false,
-    contactConsent: true
+    contactConsent: true,
+    assignedUserId: ''
   });
 
   useEffect(() => {
@@ -41,7 +42,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
         travelPreferences: client.travelPreferences || [],
         notes: client.notes || '',
         marketingOptIn: !!client.marketingOptIn,
-        contactConsent: client.contactConsent !== false
+        contactConsent: client.contactConsent !== false,
+        assignedUserId: client.assignedUserId || ''
       });
     } else {
       setForm({
@@ -51,7 +53,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
         travelPreferences: [],
         notes: '',
         marketingOptIn: false,
-        contactConsent: true
+        contactConsent: true,
+        assignedUserId: ''
       });
     }
     setError('');
