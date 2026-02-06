@@ -175,7 +175,104 @@ function getUrgentPaymentDeadlines(agencyId, hoursThreshold = 48) {
   });
 }
 
+/**
+ * Get at-risk payments for a specific agency
+ * Includes both overdue payments and payments due within specified days
+ *
+ * @param {number} agencyId - Agency ID
+ * @param {number} [daysAhead=7] - Days ahead to look for near-due payments
+ * @returns {Object} - { overdue: [], nearDue: [], totalAtRisk: number }
+ */
+function getAtRiskPayments(agencyId, daysAhead = 7) {
+  const db = getDb();
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+  const futureStr = futureDate.toISOString().split('T')[0];
+
+  // Get overdue payments (due date has passed, not paid in full)
+  const overdueBookings = db.prepare(`
+    SELECT
+      b.id as bookingId,
+      b.trip_id as tripId,
+      b.supplier_name as supplierName,
+      b.booking_type as bookingType,
+      b.confirmation_number as confirmationNumber,
+      b.final_payment_due_date as finalPaymentDueDate,
+      b.final_payment_amount as finalPaymentAmount,
+      b.payment_status as paymentStatus,
+      t.name as tripName,
+      c.first_name || ' ' || c.last_name as clientName
+    FROM bookings b
+    JOIN trips t ON b.trip_id = t.id
+    LEFT JOIN clients c ON t.client_id = c.id
+    WHERE b.agency_id = ?
+      AND b.final_payment_due_date IS NOT NULL
+      AND b.final_payment_due_date < ?
+      AND b.payment_status != 'paid_in_full'
+      AND b.status != 'canceled'
+    ORDER BY b.final_payment_due_date ASC
+  `).all(agencyId, todayStr);
+
+  // Get near-due payments (due within daysAhead, not paid in full)
+  const nearDueBookings = db.prepare(`
+    SELECT
+      b.id as bookingId,
+      b.trip_id as tripId,
+      b.supplier_name as supplierName,
+      b.booking_type as bookingType,
+      b.confirmation_number as confirmationNumber,
+      b.final_payment_due_date as finalPaymentDueDate,
+      b.final_payment_amount as finalPaymentAmount,
+      b.payment_status as paymentStatus,
+      t.name as tripName,
+      c.first_name || ' ' || c.last_name as clientName
+    FROM bookings b
+    JOIN trips t ON b.trip_id = t.id
+    LEFT JOIN clients c ON t.client_id = c.id
+    WHERE b.agency_id = ?
+      AND b.final_payment_due_date IS NOT NULL
+      AND b.final_payment_due_date >= ?
+      AND b.final_payment_due_date <= ?
+      AND b.payment_status != 'paid_in_full'
+      AND b.status != 'canceled'
+    ORDER BY b.final_payment_due_date ASC
+  `).all(agencyId, todayStr, futureStr);
+
+  // Add days until due / days overdue
+  const overdueWithDetails = overdueBookings.map(b => {
+    const dueDate = new Date(b.finalPaymentDueDate);
+    const daysOverdue = Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24));
+    return {
+      ...b,
+      daysOverdue,
+      isOverdue: true
+    };
+  });
+
+  const nearDueWithDetails = nearDueBookings.map(b => {
+    const dueDate = new Date(b.finalPaymentDueDate);
+    const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+    return {
+      ...b,
+      daysUntilDue,
+      isOverdue: false,
+      isUrgent: daysUntilDue <= 2
+    };
+  });
+
+  return {
+    overdue: overdueWithDetails,
+    nearDue: nearDueWithDetails,
+    totalAtRisk: overdueWithDetails.length + nearDueWithDetails.length,
+    totalOverdueAmount: overdueWithDetails.reduce((sum, b) => sum + (b.finalPaymentAmount || 0), 0),
+    totalNearDueAmount: nearDueWithDetails.reduce((sum, b) => sum + (b.finalPaymentAmount || 0), 0)
+  };
+}
+
 module.exports = {
   checkUrgentPaymentDeadlines,
-  getUrgentPaymentDeadlines
+  getUrgentPaymentDeadlines,
+  getAtRiskPayments
 };

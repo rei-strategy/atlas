@@ -726,6 +726,7 @@ fieldset:disabled .btn {
   background-color: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
   min-height: 57px;
+  box-shadow: var(--shadow-sm);
 }
 
 .topbar-left {
