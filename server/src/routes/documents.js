@@ -299,6 +299,97 @@ router.post('/generate', (req, res) => {
       });
     }
 
+    if (type === 'authorization') {
+      // Get client details for pre-population
+      const client = trip.client_id ? db.prepare(`
+        SELECT * FROM clients WHERE id = ? AND agency_id = ?
+      `).get(trip.client_id, req.agencyId) : null;
+
+      // Get bookings to calculate total amount
+      const bookings = db.prepare(`
+        SELECT * FROM bookings
+        WHERE trip_id = ? AND agency_id = ? AND status != 'canceled'
+        ORDER BY created_at ASC
+      `).all(tripId, req.agencyId);
+
+      // Calculate outstanding amount
+      const totals = bookings.reduce((acc, b) => {
+        acc.totalCost += b.total_cost || 0;
+        acc.totalPaid += b.payment_status === 'paid_in_full' ? (b.total_cost || 0) : (b.deposit_paid ? (b.deposit_amount || 0) : 0);
+        return acc;
+      }, { totalCost: 0, totalPaid: 0 });
+      totals.totalDue = totals.totalCost - totals.totalPaid;
+
+      // Generate authorization form HTML
+      const authNumber = `AUTH-${trip.id}-${Date.now().toString().slice(-6)}`;
+      const generatedDate = new Date().toISOString().split('T')[0];
+
+      const authHtml = generateAuthorizationFormHtml(trip, client, totals, agency, authNumber, generatedDate);
+
+      // Create a filename
+      const fileName = `authorization_${trip.name.replace(/[^a-zA-Z0-9]/g, '_')}_${authNumber}.html`;
+      const filePath = `/generated/authorizations/${fileName}`;
+
+      // Save auth form file to disk
+      const generatedDir = path.join(UPLOAD_DIR, 'generated', 'authorizations');
+      if (!fs.existsSync(generatedDir)) {
+        fs.mkdirSync(generatedDir, { recursive: true });
+      }
+      const fullFilePath = path.join(generatedDir, fileName);
+      fs.writeFileSync(fullFilePath, authHtml, 'utf8');
+
+      // Create document record
+      const result = db.prepare(`
+        INSERT INTO documents (agency_id, trip_id, booking_id, document_type, file_name, file_path, is_sensitive, is_client_visible, uploaded_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        tripId,
+        null, // not tied to a specific booking
+        'authorization',
+        fileName,
+        filePath,
+        1, // authorization forms are sensitive (contain card info)
+        1, // client visible (they need to sign it)
+        req.user.id
+      );
+
+      // Log to audit
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'generate_authorization',
+        'document',
+        result.lastInsertRowid,
+        JSON.stringify({ authNumber, totalDue: totals.totalDue }),
+        tripId
+      );
+
+      const doc = db.prepare(`
+        SELECT d.*, u.first_name as uploader_first_name, u.last_name as uploader_last_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        WHERE d.id = ?
+      `).get(result.lastInsertRowid);
+
+      return res.status(201).json({
+        message: 'Authorization form generated successfully',
+        document: formatDocument(doc),
+        authorization: {
+          authNumber,
+          generatedDate,
+          tripName: trip.name,
+          clientName: client ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : 'N/A',
+          clientEmail: client ? client.email : 'N/A',
+          totalDue: totals.totalDue,
+          bookingCount: bookings.length
+        }
+      });
+    }
+
     // Other document types not yet implemented
     return res.status(400).json({ error: `Document type "${type}" is not yet implemented` });
 
