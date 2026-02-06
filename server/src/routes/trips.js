@@ -513,12 +513,13 @@ router.put('/:id', (req, res) => {
 /**
  * PUT /api/trips/:id/stage
  * Update trip stage (lifecycle transition)
+ * Financial stage transitions require admin approval for non-admins
  */
 router.put('/:id/stage', (req, res) => {
   try {
     const db = getDb();
     const tripId = req.params.id;
-    const { stage } = req.body;
+    const { stage, reason } = req.body;
 
     if (!stage || !VALID_STAGES.includes(stage)) {
       return res.status(400).json({ error: 'Invalid stage. Valid stages: ' + VALID_STAGES.join(', ') });
@@ -530,6 +531,97 @@ router.put('/:id/stage', (req, res) => {
     }
 
     const oldStage = existing.stage;
+
+    // Define financial stage transitions that require admin approval
+    const financialTransitions = [
+      { from: 'quoted', to: 'booked' },        // Committing to booking
+      { from: 'booked', to: 'final_payment_pending' },  // Payment stage
+      { from: 'final_payment_pending', to: 'traveling' }  // Confirming trip is paid
+    ];
+
+    const isFinancialTransition = financialTransitions.some(
+      t => t.from === oldStage && t.to === stage
+    );
+    const isAdmin = req.user.role === 'admin';
+
+    // Non-admins require approval for financial stage transitions
+    if (isFinancialTransition && !isAdmin) {
+      // Check if there's already a pending approval for this stage change
+      const existingPending = db.prepare(`
+        SELECT id FROM approval_requests
+        WHERE agency_id = ? AND entity_type = 'trip' AND entity_id = ?
+          AND action_type = 'stage_change' AND status = 'pending'
+      `).get(req.agencyId, tripId);
+
+      if (existingPending) {
+        return res.status(409).json({
+          error: 'An approval request for this stage transition is already pending',
+          approvalRequired: true,
+          approvalRequestId: existingPending.id
+        });
+      }
+
+      // Create approval request for the financial stage transition
+      const result = db.prepare(`
+        INSERT INTO approval_requests (agency_id, requested_by, action_type, entity_type, entity_id, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'stage_change',
+        'trip',
+        tripId,
+        JSON.stringify({
+          fromStage: oldStage,
+          toStage: stage,
+          reason: reason || 'Financial stage transition requires approval'
+        })
+      );
+
+      const requestId = result.lastInsertRowid;
+
+      // Create notifications for admins
+      const admins = db.prepare(
+        "SELECT id FROM users WHERE agency_id = ? AND role = 'admin' AND is_active = 1"
+      ).all(req.agencyId);
+
+      for (const admin of admins) {
+        db.prepare(`
+          INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          admin.id,
+          'urgent',
+          'Stage Change Approval Required',
+          `${req.user.firstName || req.user.email} requested to change trip "${existing.name}" from ${oldStage} to ${stage}`,
+          'approval_request',
+          requestId
+        );
+      }
+
+      // Log the approval request creation in audit
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'create_approval_request',
+        'approval_request',
+        requestId,
+        JSON.stringify({ actionType: 'stage_change', fromStage: oldStage, toStage: stage, tripId }),
+        tripId
+      );
+
+      return res.status(202).json({
+        message: 'Financial stage transitions require admin approval. Your request has been submitted.',
+        approvalRequired: true,
+        approvalRequestId: requestId,
+        currentStage: oldStage,
+        requestedStage: stage
+      });
+    }
 
     // Check if trip should be auto-locked after stage transition
     const lockCheck = shouldTripBeLocked(db, tripId, stage);

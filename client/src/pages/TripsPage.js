@@ -2936,7 +2936,7 @@ function TimelineTab({ tripId, token }) {
                 {getActionLabel(activity.action)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                {activity.userFirstName} {activity.userLastName} • {new Date(activity.createdAt).toLocaleString()}
+                {activity.userName || 'System'} • {new Date(activity.createdAt).toLocaleString()}
               </div>
               {activity.details && (
                 <div style={{
