@@ -1,5 +1,57 @@
 ## Atlas Progress Log
 
+### Session - 2026-02-06 (Agent batch: Features #189, #190, #191)
+
+**Features Completed: #189, #190, #191 (State & Persistence)**
+
+#### Feature #189: Multi-tab behavior consistency
+- Verified data is stored in SQLite database (not in-memory)
+- Each API request fetches fresh data from the database
+- Test: Created client in Tab 1 → visible in Tab 2 after refresh
+- Test: Deleted client in Tab 1 → removed from Tab 2 after refresh
+- Feature already implemented - no code changes needed
+
+#### Feature #190: Back button after form submit
+- SPA pattern: Forms use JavaScript fetch(), not HTML form POST
+- e.preventDefault() prevents default form submission
+- Modal-based form doesn't trigger page navigation
+- Loading state disables submit button to prevent double-click
+- Browser back navigates to previous route, not resubmit
+- Feature already implemented - no code changes needed
+
+#### Feature #191: Unsaved changes warning
+- Created UnsavedChangesDialog component (confirmation modal)
+- Created useNavigationBlocker hook (React Router integration)
+- Enhanced ClientFormModal with:
+  - showUnsavedWarning state
+  - handleAttemptClose function that checks isDirty before closing
+  - handleConfirmLeave and handleCancelLeave handlers
+  - Visual indicator "You have unsaved changes" when form is dirty
+  - onDirtyChange prop to notify parent of dirty state changes
+- Enhanced ClientsPage with:
+  - formIsDirty state to track modal's dirty state
+  - useBlocker from React Router for in-app navigation blocking
+  - handleConfirmNavigation and handleCancelNavigation handlers
+  - UnsavedChangesDialog rendered for navigation blocking
+- Added CSS styles for unsaved changes dialog
+- Existing useFormDraft hook already provided isDirty and beforeunload
+
+#### Files Created
+- client/src/components/UnsavedChangesDialog.js
+- client/src/hooks/useNavigationBlocker.js (not actually used, replaced with direct useBlocker)
+
+#### Files Modified
+- client/src/pages/ClientsPage.js - unsaved changes warning implementation
+- client/src/styles/index.css - unsaved changes dialog styles
+
+#### Current State
+- ~203/240 features passing (~84.6%)
+- Backend on port 3001, Frontend on port 3000
+- All features verified working
+- Git commit: d60718d
+
+---
+
 ### Session - 2026-02-06 (Agent batch: Features #180, #181, #182)
 
 **Features Verified: #180, #181, #182 (UI-Backend Integration)**
