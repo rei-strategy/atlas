@@ -2529,3 +2529,40 @@
 - All audit logging verified working
 - Git commit: 2f02561
 
+---
+
+### Session - 2026-02-06 (Agent batch: Features #118, #119, #122)
+
+**Features Completed: #118, #119, #122 (Notifications)**
+
+#### Feature #118: Urgent notification - travel within 48 hours incomplete items
+- Created travelReadinessService.js with checkTripReadiness() function
+- Checks for: missing passport/DOB, unconfirmed bookings, unpaid bookings
+- Added checkImminentTravelReadiness() for urgent notifications
+- Added /api/notifications/imminent-travel endpoint
+- Test: Trip 81 traveling in 8 hours with incomplete traveler and booking
+
+#### Feature #119: Normal notifications - follow-ups and reminders
+- Created followUpReminderService.js with:
+  - checkQuoteFollowUps(): Trips in quoted stage > 3 days
+  - checkUpcomingTaskReminders(): Tasks due within 7 days
+  - checkFeedbackReminders(): Completed trips without feedback > 7 days
+  - checkCommissionFollowUps(): Pending commissions > 30 days
+- Added /api/notifications/follow-ups endpoint
+- Added /api/notifications/grouped endpoint for urgent/normal separation
+- Test: Trip 84 quoted for 5 days, task 62 due in 4 days
+
+#### Feature #122: Notification read/unread tracking
+- Already fully implemented - verified via API testing
+- Backend: PUT /api/notifications/:id/read, read-all
+- Frontend: NotificationBell with unread count and visual styling
+- Verified count decreases on mark read
+
+#### Test Data
+- Agency 91: travel_readiness_test@atlas.com, Trip 81
+- Agency 92: normal_notif_test@atlas.com, Trip 84, Task 62
+
+#### Current State
+- ~168/240 features passing (~70%)
+- Git commit: ef1f83e
+
