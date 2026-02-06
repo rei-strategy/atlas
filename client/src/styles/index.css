@@ -6517,3 +6517,61 @@ html, body {
   color: var(--color-error);
   font-weight: 600;
 }
+
+/* ============================================
+   Form Draft Persistence
+   ============================================ */
+
+.draft-restored-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-info-bg, #dbeafe);
+  border: 1px solid var(--color-info-border, #93c5fd);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-info-text, #1e40af);
+  font-size: var(--font-size-sm);
+}
+
+.draft-restored-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.draft-restored-text {
+  flex: 1;
+}
+
+.draft-restored-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  font-size: var(--font-size-lg);
+  color: var(--color-info-text, #1e40af);
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+  line-height: 1;
+}
+
+.draft-restored-dismiss:hover {
+  opacity: 1;
+}
+
+/* Unsaved changes indicator (optional dot next to title) */
+.form-dirty-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-warning);
+  border-radius: 50%;
+  margin-left: var(--spacing-sm);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -438,6 +438,24 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
           <div className="modal-body">
             {error && <div className="auth-error">{error}</div>}
 
+            {/* Draft restored notification */}
+            {draftRestored && (
+              <div className="draft-restored-banner">
+                <span className="draft-restored-icon">&#128190;</span>
+                <span className="draft-restored-text">
+                  Draft restored from {draftAge || 'a previous session'}
+                </span>
+                <button
+                  type="button"
+                  className="draft-restored-dismiss"
+                  onClick={dismissDraftNotification}
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
             <h3 className="form-section-title">Personal Information</h3>
             <div className="form-row">
