@@ -14,6 +14,7 @@ import CommissionsPage from './pages/CommissionsPage';
 import ReportsPage from './pages/ReportsPage';
 import EmailTemplatesPage from './pages/EmailTemplatesPage';
 import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
 import PortalLoginPage from './pages/portal/PortalLoginPage';
 import PortalDashboardPage from './pages/portal/PortalDashboardPage';
 import PortalTripDetailPage from './pages/portal/PortalTripDetailPage';
@@ -216,6 +217,14 @@ function AppRoutes() {
           <AdminRoute>
             <SettingsPage />
           </AdminRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
         }
       />
 
