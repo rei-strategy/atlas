@@ -728,6 +728,9 @@ function AgencySettingsForm({ token, isAdmin }) {
   );
 }
 
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
   const [formData, setFormData] = useState({
     email: '',
@@ -737,17 +740,101 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
     password: ''
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Validate individual field
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'email':
+        if (!value || !value.trim()) {
+          return 'Email is required';
+        }
+        if (!EMAIL_REGEX.test(value.trim())) {
+          return 'Please enter a valid email address';
+        }
+        return '';
+      case 'firstName':
+        if (!value || !value.trim()) {
+          return 'First name is required';
+        }
+        return '';
+      case 'lastName':
+        if (!value || !value.trim()) {
+          return 'Last name is required';
+        }
+        return '';
+      case 'password':
+        if (!value) {
+          return 'Password is required';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Validate all fields
+  const validateAllFields = () => {
+    const errors = {};
+    const fields = ['email', 'firstName', 'lastName', 'password'];
+    fields.forEach(field => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    return errors;
+  };
+
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
+
+    // Real-time validation for touched fields
+    if (touched[name]) {
+      const fieldError = validateField(name, value);
+      setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validate all fields on submit
+    const errors = validateAllFields();
+    setFieldErrors(errors);
+
+    // Mark all fields as touched
+    setTouched({
+      email: true,
+      firstName: true,
+      lastName: true,
+      password: true
+    });
+
+    // If there are any errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the errors below before submitting');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -779,6 +866,8 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
   const handleClose = () => {
     setFormData({ email: '', firstName: '', lastName: '', role: 'planner', password: '' });
     setError('');
+    setFieldErrors({});
+    setTouched({});
     setResult(null);
     onClose();
   };
@@ -813,43 +902,61 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
           <form onSubmit={handleSubmit}>
             <div className="modal-body">
               {error && <div className="form-error">{error}</div>}
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.email && touched.email ? 'form-group-error' : ''}`}>
                 <label htmlFor="invite-email">Email *</label>
                 <input
                   id="invite-email"
                   type="email"
                   name="email"
+                  className={fieldErrors.email && touched.email ? 'form-input-error' : ''}
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="team@example.com"
-                  required
                   autoFocus
+                  aria-invalid={!!(fieldErrors.email && touched.email)}
+                  aria-describedby={fieldErrors.email && touched.email ? 'invite-email-error' : undefined}
                 />
+                {fieldErrors.email && touched.email && (
+                  <span id="invite-email-error" className="form-error-message">{fieldErrors.email}</span>
+                )}
               </div>
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.firstName && touched.firstName ? 'form-group-error' : ''}`}>
                   <label htmlFor="invite-firstName">First Name *</label>
                   <input
                     id="invite-firstName"
                     type="text"
                     name="firstName"
+                    className={fieldErrors.firstName && touched.firstName ? 'form-input-error' : ''}
                     value={formData.firstName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="First name"
-                    required
+                    aria-invalid={!!(fieldErrors.firstName && touched.firstName)}
+                    aria-describedby={fieldErrors.firstName && touched.firstName ? 'invite-firstName-error' : undefined}
                   />
+                  {fieldErrors.firstName && touched.firstName && (
+                    <span id="invite-firstName-error" className="form-error-message">{fieldErrors.firstName}</span>
+                  )}
                 </div>
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.lastName && touched.lastName ? 'form-group-error' : ''}`}>
                   <label htmlFor="invite-lastName">Last Name *</label>
                   <input
                     id="invite-lastName"
                     type="text"
                     name="lastName"
+                    className={fieldErrors.lastName && touched.lastName ? 'form-input-error' : ''}
                     value={formData.lastName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Last name"
-                    required
+                    aria-invalid={!!(fieldErrors.lastName && touched.lastName)}
+                    aria-describedby={fieldErrors.lastName && touched.lastName ? 'invite-lastName-error' : undefined}
                   />
+                  {fieldErrors.lastName && touched.lastName && (
+                    <span id="invite-lastName-error" className="form-error-message">{fieldErrors.lastName}</span>
+                  )}
                 </div>
               </div>
               <div className="form-group">

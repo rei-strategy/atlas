@@ -207,4 +207,40 @@ export function isServerError(res) {
   return res.status >= 500;
 }
 
+/**
+ * Handle auth error response and return standardized error message
+ * @param {Response} res - Fetch API Response object
+ * @param {Object} data - Parsed JSON response body
+ * @returns {{ isAuthError: boolean, message: string, code: string }}
+ */
+export function handleAuthErrorResponse(res, data) {
+  if (res.status !== 401) {
+    return { isAuthError: false, message: null, code: null };
+  }
+
+  const code = data?.code || 'AUTH_ERROR';
+  const message = code === 'TOKEN_EXPIRED'
+    ? 'Your session has expired. Please sign in again.'
+    : 'Authentication required. Please sign in.';
+
+  return { isAuthError: true, message, code };
+}
+
+/**
+ * Check a response for auth errors and throw with standardized message if found
+ * Use this in API calls that don't use authFetch
+ * @param {Response} res - Fetch API Response object
+ * @param {Function} onAuthError - Callback to handle auth error (e.g., handleAuthError from AuthContext)
+ */
+export async function checkAuthResponse(res, onAuthError) {
+  if (res.status === 401) {
+    const data = await res.clone().json().catch(() => ({}));
+    const { message, code } = handleAuthErrorResponse(res, data);
+    if (onAuthError) {
+      onAuthError(code, data.error);
+    }
+    throw new Error(message);
+  }
+}
+
 // Note: isTimeoutError and fetchWithTimeout are defined above (lines 73-75 and 17-52)

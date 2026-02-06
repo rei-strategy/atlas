@@ -364,6 +364,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [form, setForm] = useState({
     bookingType: 'hotel',
     supplierName: '',
@@ -431,7 +432,71 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
       });
     }
     setError('');
+    setFieldErrors({});
   }, [booking, isOpen, defaultCommissionRate]);
+
+  // Validate numeric financial fields
+  const validateFinancialField = (name, value) => {
+    const strValue = String(value).trim();
+
+    // Empty is OK for optional fields
+    if (strValue === '') {
+      return null;
+    }
+
+    // Check if it's a valid number (not just any string)
+    const numValue = parseFloat(strValue);
+    if (isNaN(numValue)) {
+      return 'Please enter a valid number';
+    }
+
+    // Check for negative values on monetary fields
+    if (['totalCost', 'depositAmount', 'finalPaymentAmount', 'commissionAmountExpected'].includes(name)) {
+      if (numValue < 0) {
+        return 'Amount cannot be negative';
+      }
+    }
+
+    // Special validation for commission rate (0-100 range)
+    if (name === 'commissionRate') {
+      if (numValue < 0) {
+        return 'Commission rate cannot be negative';
+      }
+      if (numValue > 100) {
+        return 'Commission rate cannot exceed 100%';
+      }
+    }
+
+    return null; // No error
+  };
+
+  // Handle blur to validate field
+  const handleFinancialBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateFinancialField(name, value);
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  // Validate all financial fields before submit
+  const validateAllFinancialFields = () => {
+    const fieldsToValidate = ['totalCost', 'depositAmount', 'finalPaymentAmount', 'commissionRate', 'commissionAmountExpected'];
+    const errors = {};
+    let hasErrors = false;
+
+    for (const field of fieldsToValidate) {
+      const error = validateFinancialField(field, form[field]);
+      if (error) {
+        errors[field] = error;
+        hasErrors = true;
+      }
+    }
+
+    setFieldErrors(errors);
+    return !hasErrors;
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -450,6 +515,16 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
       newForm.commissionAmountExpected = ((rate / 100) * total).toFixed(2);
     }
 
+    // Clear field error when typing valid value
+    const fieldError = validateFinancialField(name, value);
+    if (!fieldError && fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
+
     setForm(newForm);
   };
 
@@ -459,6 +534,12 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
 
     if (!form.bookingType) {
       setError('Booking type is required');
+      return;
+    }
+
+    // Validate all financial fields before submission
+    if (!validateAllFinancialFields()) {
+      setError('Please fix the errors in the financial fields');
       return;
     }
 
@@ -617,33 +698,43 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
             <div className="detail-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
               <h3 className="detail-section-title" style={{ fontSize: '0.9375rem', marginBottom: '1rem' }}>Financial Details</h3>
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.totalCost ? 'form-group-error' : ''}`}>
                   <label className="form-label" htmlFor="totalCost">Total Cost ($)</label>
                   <input
                     id="totalCost"
                     name="totalCost"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
+                    type="text"
+                    inputMode="decimal"
+                    className={`form-input ${fieldErrors.totalCost ? 'form-input-error' : ''}`}
                     value={form.totalCost}
                     onChange={handleFinancialChange}
+                    onBlur={handleFinancialBlur}
                     placeholder="0.00"
+                    aria-invalid={!!fieldErrors.totalCost}
+                    aria-describedby={fieldErrors.totalCost ? 'totalCost-error' : undefined}
                   />
+                  {fieldErrors.totalCost && (
+                    <span id="totalCost-error" className="form-error-message" role="alert">{fieldErrors.totalCost}</span>
+                  )}
                 </div>
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.depositAmount ? 'form-group-error' : ''}`}>
                   <label className="form-label" htmlFor="depositAmount">Deposit Amount ($)</label>
                   <input
                     id="depositAmount"
                     name="depositAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
+                    type="text"
+                    inputMode="decimal"
+                    className={`form-input ${fieldErrors.depositAmount ? 'form-input-error' : ''}`}
                     value={form.depositAmount}
-                    onChange={handleChange}
+                    onChange={handleFinancialChange}
+                    onBlur={handleFinancialBlur}
                     placeholder="0.00"
+                    aria-invalid={!!fieldErrors.depositAmount}
+                    aria-describedby={fieldErrors.depositAmount ? 'depositAmount-error' : undefined}
                   />
+                  {fieldErrors.depositAmount && (
+                    <span id="depositAmount-error" className="form-error-message" role="alert">{fieldErrors.depositAmount}</span>
+                  )}
                 </div>
               </div>
 

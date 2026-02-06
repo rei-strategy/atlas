@@ -170,6 +170,8 @@ export default function ProfilePage() {
 
       showToast('Profile updated successfully!', 'success');
       setIsEditing(false);
+      setFieldErrors({});
+      setTouched({});
       // Refresh profile data
       fetchProfile();
     } catch (err) {
@@ -188,6 +190,8 @@ export default function ProfilePage() {
     });
     setIsEditing(false);
     setError('');
+    setFieldErrors({});
+    setTouched({});
   };
 
   const getRoleLabel = (role) => {
@@ -411,22 +415,32 @@ export default function ProfilePage() {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       placeholder="Last name"
-                      required
+                      aria-invalid={!!(fieldErrors.lastName && touched.lastName)}
+                      aria-describedby={fieldErrors.lastName && touched.lastName ? 'lastName-error' : undefined}
                     />
+                    {fieldErrors.lastName && touched.lastName && (
+                      <span id="lastName-error" className="form-error-message">{fieldErrors.lastName}</span>
+                    )}
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.email && touched.email ? 'form-group-error' : ''}`}>
                   <label htmlFor="email">Email Address *</label>
                   <input
                     id="email"
                     type="email"
                     name="email"
+                    className={fieldErrors.email && touched.email ? 'form-input-error' : ''}
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="email@example.com"
-                    required
+                    aria-invalid={!!(fieldErrors.email && touched.email)}
+                    aria-describedby={fieldErrors.email && touched.email ? 'email-error' : undefined}
                   />
+                  {fieldErrors.email && touched.email && (
+                    <span id="email-error" className="form-error-message">{fieldErrors.email}</span>
+                  )}
                   <span className="form-hint">This is used for logging in.</span>
                 </div>
 

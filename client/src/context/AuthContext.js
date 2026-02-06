@@ -106,6 +106,17 @@ export function AuthProvider({ children }) {
     clearAuth();
   };
 
+  // Handle any 401 authentication error - can be called by any component
+  const handleAuthError = useCallback((errorCode, errorMessage) => {
+    if (errorCode === 'TOKEN_EXPIRED') {
+      clearAuth(true); // Session expired - show specific message
+    } else {
+      // For other 401 errors (invalid token, corrupt token, etc.)
+      // Clear auth and redirect - user will see "session expired" or can log in fresh
+      clearAuth(true);
+    }
+  }, [clearAuth]);
+
   // Helper function to make authenticated API calls with automatic token expiration handling
   const authFetch = useCallback(async (url, options = {}) => {
     const headers = {
@@ -115,17 +126,18 @@ export function AuthProvider({ children }) {
 
     const res = await fetch(url, { ...options, headers });
 
-    // Check for token expiration
+    // Check for any authentication error (401)
     if (res.status === 401) {
       const data = await res.clone().json().catch(() => ({}));
-      if (data.code === 'TOKEN_EXPIRED') {
-        handleSessionExpired();
-        throw new Error('Session expired');
-      }
+      handleAuthError(data.code, data.error);
+      const errorMsg = data.code === 'TOKEN_EXPIRED'
+        ? 'Your session has expired. Please sign in again.'
+        : 'Authentication required. Please sign in.';
+      throw new Error(errorMsg);
     }
 
     return res;
-  }, [token, handleSessionExpired]);
+  }, [token, handleAuthError]);
 
   const value = {
     user,
@@ -138,6 +150,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     handleSessionExpired,
+    handleAuthError,
     clearSessionExpiredMessage,
     authFetch
   };

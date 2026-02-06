@@ -299,6 +299,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'First name and last name are required' });
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email.trim())) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
     const db = getDb();
 
     // Check email uniqueness within agency if email is provided
