@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -10,18 +11,10 @@ const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
-
 export default function CommissionsPage() {
   const { token } = useAuth();
   const { addToast } = useToast();
+  const { formatDate } = useTimezone();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('variance');
   const [varianceData, setVarianceData] = useState({ commissions: [], summary: {}, count: 0 });

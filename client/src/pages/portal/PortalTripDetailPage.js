@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { usePortalAuth } from '../../context/PortalAuthContext';
+import { usePortalTimezone } from '../../hooks/usePortalTimezone';
 import { useParams, Link } from 'react-router-dom';
 import LoadingButton from '../../components/LoadingButton';
 
 export default function PortalTripDetailPage() {
   const { id } = useParams();
   const { token } = usePortalAuth();
+  const { formatDate: formatDateTz } = usePortalTimezone();
   const [trip, setTrip] = useState(null);
   const [travelers, setTravelers] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -144,9 +146,7 @@ export default function PortalTripDetailPage() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'TBD';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric'
-    });
+    return formatDateTz(dateStr);
   };
 
   const formatCurrency = (amount) => {

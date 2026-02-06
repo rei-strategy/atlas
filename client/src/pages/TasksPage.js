@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
@@ -32,6 +33,8 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef } = useModalAccessibility(isOpen, onClose);
   // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
   const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
@@ -149,15 +152,22 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-md" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={modalRef}
+        className="modal-content modal-md"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="task-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{task ? 'Edit Task' : 'Create Task'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
+          <h2 className="modal-title" id="task-form-modal-title">{task ? 'Edit Task' : 'Create Task'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
             <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
             <div className="form-group">
               <label className="form-label" htmlFor="title">Title *</label>

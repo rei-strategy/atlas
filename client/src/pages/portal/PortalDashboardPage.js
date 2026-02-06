@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { usePortalAuth } from '../../context/PortalAuthContext';
+import { usePortalTimezone } from '../../hooks/usePortalTimezone';
 import { Link } from 'react-router-dom';
 
 export default function PortalDashboardPage() {
   const { customer, token } = usePortalAuth();
+  const { formatDate: formatDateTz } = usePortalTimezone();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,11 +31,7 @@ export default function PortalDashboardPage() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'TBD';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    return formatDateTz(dateStr);
   };
 
   const getStageLabel = (stage) => {

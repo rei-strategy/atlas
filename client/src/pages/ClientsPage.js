@@ -37,6 +37,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
   const [draftChecked, setDraftChecked] = useState(false);
   // Modal accessibility: focus trapping, Escape key, focus restoration
   const { modalRef } = useModalAccessibility(isOpen, onClose);
+  const { modalRef: conflictModalRef } = useModalAccessibility(showConflictModal, () => setShowConflictModal(false));
+  const { modalRef: unsavedModalRef } = useModalAccessibility(showUnsavedWarning, () => setShowUnsavedWarning(false));
   // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
   const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
@@ -476,15 +478,22 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleAttemptClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleAttemptClose} role="presentation">
+      <div
+        ref={modalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="client-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{client ? 'Edit Client' : 'Create Client'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="client-form-modal-title">{client ? 'Edit Client' : 'Create Client'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             {/* Draft restored notification */}
             {draftRestored && (
@@ -781,14 +790,21 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
 
         {/* Concurrent Edit Conflict Modal */}
         {showConflictModal && (
-          <div className="modal-overlay" onClick={() => setShowConflictModal(false)} style={{ zIndex: 1001 }}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={() => setShowConflictModal(false)} style={{ zIndex: 1001 }} role="presentation">
+            <div
+              ref={conflictModalRef}
+              className="modal-content"
+              onClick={e => e.stopPropagation()}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="conflict-modal-title"
+            >
               <div className="modal-header">
-                <h2 className="modal-title">
+                <h2 className="modal-title" id="conflict-modal-title">
                   <span style={{ marginRight: 'var(--spacing-sm)', color: 'var(--color-warning)' }}>⚠️</span>
                   Edit Conflict Detected
                 </h2>
-                <button className="modal-close-btn" onClick={() => setShowConflictModal(false)} aria-label="Close">×</button>
+                <button className="modal-close-btn" onClick={() => setShowConflictModal(false)} aria-label="Close dialog">×</button>
               </div>
               <div className="modal-body">
                 <div style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-lg)' }}>
@@ -818,16 +834,24 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
 
         {/* Unsaved Changes Warning Modal */}
         {showUnsavedWarning && (
-          <div className="modal-overlay" onClick={handleCancelLeave} style={{ zIndex: 1002 }}>
-            <div className="modal-content unsaved-changes-dialog" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={handleCancelLeave} style={{ zIndex: 1002 }} role="presentation">
+            <div
+              ref={unsavedModalRef}
+              className="modal-content unsaved-changes-dialog"
+              onClick={e => e.stopPropagation()}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="unsaved-modal-title"
+              aria-describedby="unsaved-modal-desc"
+            >
               <div className="modal-header">
-                <h2 className="modal-title">
+                <h2 className="modal-title" id="unsaved-modal-title">
                   <span className="unsaved-warning-icon">&#9888;</span>
                   {' '}Unsaved Changes
                 </h2>
               </div>
               <div className="modal-body">
-                <p style={{ margin: 0 }}>
+                <p id="unsaved-modal-desc" style={{ margin: 0 }}>
                   You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
                 </p>
               </div>
@@ -864,6 +888,8 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
   const [importResult, setImportResult] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = React.useRef(null);
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: csvModalRef } = useModalAccessibility(isOpen, onClose);
 
   const resetState = () => {
     setFile(null);
@@ -978,11 +1004,18 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose} role="presentation">
+      <div
+        ref={csvModalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="csv-import-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">Import Clients from CSV</h2>
-          <button className="modal-close-btn" onClick={handleClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="csv-import-modal-title">Import Clients from CSV</h2>
+          <button className="modal-close-btn" onClick={handleClose} aria-label="Close dialog">×</button>
         </div>
         <div className="modal-body">
           {importResult ? (
@@ -1136,6 +1169,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
   const { addToast } = useToast();
+  const { formatDate, formatDateTime } = useTimezone();
   const deletingRef = useRef(false); // Prevent rapid delete clicks
 
   // Portal access state
@@ -1145,6 +1179,10 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
   const [portalForm, setPortalForm] = useState({ email: '', password: '' });
   const [portalFormLoading, setPortalFormLoading] = useState(false);
   const [portalToggling, setPortalToggling] = useState(false);
+
+  // Modal accessibility hooks
+  const { modalRef: deleteModalRef } = useModalAccessibility(showDeleteConfirm, () => setShowDeleteConfirm(false));
+  const { modalRef: portalModalRef } = useModalAccessibility(showPortalModal, () => setShowPortalModal(false));
 
   // Communications state
   const [emails, setEmails] = useState([]);
@@ -1325,14 +1363,22 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
       </div>
 
       {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)} role="presentation">
+          <div
+            ref={deleteModalRef}
+            className="modal-content"
+            onClick={e => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-client-modal-title"
+            aria-describedby="delete-client-modal-desc"
+          >
             <div className="modal-header">
-              <h2 className="modal-title">Delete Client</h2>
-              <button className="modal-close-btn" onClick={() => setShowDeleteConfirm(false)} aria-label="Close">×</button>
+              <h2 className="modal-title" id="delete-client-modal-title">Delete Client</h2>
+              <button className="modal-close-btn" onClick={() => setShowDeleteConfirm(false)} aria-label="Close dialog">×</button>
             </div>
             <div className="modal-body">
-              <div className="delete-warning">
+              <div className="delete-warning" id="delete-client-modal-desc">
                 <p style={{ marginBottom: 'var(--spacing-md)', fontWeight: '500' }}>
                   Are you sure you want to delete <strong>{client.firstName} {client.lastName}</strong>?
                 </p>
@@ -1564,9 +1610,9 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                         </td>
                         <td>
                           {trip.startDate && trip.endDate
-                            ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}`
+                            ? `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`
                             : trip.startDate
-                              ? new Date(trip.startDate).toLocaleDateString()
+                              ? formatDate(trip.startDate)
                               : '—'
                           }
                         </td>
@@ -1623,7 +1669,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                     <div className="detail-field">
                       <span className="detail-field-label">Created</span>
                       <span className="detail-field-value">
-                        {new Date(portalStatus.portalAccount.createdAt).toLocaleDateString()}
+                        {formatDate(portalStatus.portalAccount.createdAt)}
                       </span>
                     </div>
                   </div>
@@ -1718,9 +1764,9 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                           </td>
                           <td>
                             {email.sentAt
-                              ? new Date(email.sentAt).toLocaleString()
+                              ? formatDateTime(email.sentAt)
                               : email.scheduledSendDate
-                                ? `Scheduled: ${new Date(email.scheduledSendDate).toLocaleString()}`
+                                ? `Scheduled: ${formatDateTime(email.scheduledSendDate)}`
                                 : '—'
                             }
                           </td>
@@ -1737,11 +1783,18 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
 
         {/* Portal Access Creation Modal */}
         {showPortalModal && (
-          <div className="modal-overlay" onClick={() => setShowPortalModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={() => setShowPortalModal(false)} role="presentation">
+            <div
+              ref={portalModalRef}
+              className="modal-content"
+              onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="portal-access-modal-title"
+            >
               <div className="modal-header">
-                <h2 className="modal-title">Enable Portal Access</h2>
-                <button className="modal-close-btn" onClick={() => setShowPortalModal(false)} aria-label="Close">×</button>
+                <h2 className="modal-title" id="portal-access-modal-title">Enable Portal Access</h2>
+                <button className="modal-close-btn" onClick={() => setShowPortalModal(false)} aria-label="Close dialog">×</button>
               </div>
               <form onSubmit={handleCreatePortalAccess}>
                 <div className="modal-body">

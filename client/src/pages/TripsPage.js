@@ -3266,6 +3266,7 @@ function DocumentsTab({ tripId, token }) {
 /* =================== TASKS TAB =================== */
 function TasksTab({ tripId, token }) {
   const { addToast } = useToast();
+  const { formatDate } = useTimezone();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3368,7 +3369,7 @@ function TasksTab({ tripId, token }) {
                     {task.status.replace('_', ' ')}
                   </span>
                 </td>
-                <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '—'}</td>
+                <td>{task.dueDate ? formatDate(task.dueDate) : '—'}</td>
                 <td>{task.assignedUserName || '—'}</td>
               </tr>
             ))}
@@ -3382,6 +3383,7 @@ function TasksTab({ tripId, token }) {
 /* =================== COMMUNICATIONS TAB =================== */
 function CommunicationsTab({ tripId, token }) {
   const { addToast } = useToast();
+  const { formatDateTime } = useTimezone();
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3477,9 +3479,9 @@ function CommunicationsTab({ tripId, token }) {
                 </td>
                 <td>
                   {email.sentAt
-                    ? new Date(email.sentAt).toLocaleString()
+                    ? formatDateTime(email.sentAt)
                     : email.scheduledFor
-                      ? `Scheduled: ${new Date(email.scheduledFor).toLocaleString()}`
+                      ? `Scheduled: ${formatDateTime(email.scheduledFor)}`
                       : '—'
                   }
                 </td>

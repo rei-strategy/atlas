@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
@@ -43,6 +44,8 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef } = useModalAccessibility(isOpen, onClose);
   const [form, setForm] = useState({
     name: '',
     subject: '',
@@ -172,15 +175,22 @@ function TemplateFormModal({ isOpen, onClose, onSaved, template, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-xl" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={modalRef}
+        className="modal-content modal-xl"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="template-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{template ? 'Edit Template' : 'Create Template'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="template-form-modal-title">{template ? 'Edit Template' : 'Create Template'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             <div className="form-row">
               <div className="form-group" style={{ flex: 2 }}>
@@ -314,6 +324,8 @@ function TemplatePreviewModal({ isOpen, onClose, template, token }) {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: previewModalRef } = useModalAccessibility(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && template) {
@@ -351,16 +363,23 @@ function TemplatePreviewModal({ isOpen, onClose, template, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={previewModalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="template-preview-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">Template Preview</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="template-preview-modal-title">Template Preview</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <div className="modal-body">
           {loading ? (
             <div className="loading-screen" style={{ minHeight: '200px' }}>
-              <div className="loading-spinner" />
+              <div className="loading-spinner" role="status" aria-label="Loading preview" />
               <p>Loading preview...</p>
             </div>
           ) : error ? (
@@ -555,6 +574,8 @@ function EmailQueuePreviewModal({ isOpen, onClose, queueItem, token, onApprove, 
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: queueModalRef } = useModalAccessibility(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && queueItem) {
