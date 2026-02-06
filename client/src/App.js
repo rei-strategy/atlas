@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/Toast';
 import AppLayout from './components/AppLayout';
 import LoginPage from './pages/LoginPage';
@@ -264,15 +265,17 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <PortalAuthProvider>
-          <ToastProvider>
-            <div className="App">
-              <AppRoutes />
-            </div>
-          </ToastProvider>
-        </PortalAuthProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <PortalAuthProvider>
+            <ToastProvider>
+              <div className="App">
+                <AppRoutes />
+              </div>
+            </ToastProvider>
+          </PortalAuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

@@ -63,7 +63,10 @@ export default function PortalDashboardPage() {
   if (loading) {
     return (
       <div className="portal-page">
-        <div className="portal-loading">Loading your trips...</div>
+        <div className="portal-loading">
+          <div className="loading-spinner" />
+          <p>Loading your trips...</p>
+        </div>
       </div>
     );
   }

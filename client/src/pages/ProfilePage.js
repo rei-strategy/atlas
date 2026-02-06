@@ -126,10 +126,9 @@ export default function ProfilePage() {
         <div className="page-header">
           <h1 className="page-title">My Profile</h1>
         </div>
-        <div className="dashboard-card">
-          <div className="dashboard-card-body">
-            <p className="dashboard-empty-state">Loading profile...</p>
-          </div>
+        <div className="loading-screen" style={{ minHeight: '200px' }}>
+          <div className="loading-spinner" />
+          <p>Loading profile...</p>
         </div>
       </div>
     );

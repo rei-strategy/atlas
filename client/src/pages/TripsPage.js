@@ -1382,66 +1382,59 @@ function BookingsTab({ tripId, token }) {
           isAdmin={isAdmin}
         />
 
-        {/* Delete Booking Confirmation Modal (Detail View) */}
-        {showDeleteConfirm && bookingToDelete && (
-          <div className="modal-overlay" onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2 className="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
-                  Delete Booking
-                </h2>
-                <button
-                  className="modal-close-btn"
-                  onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
-                  aria-label="Close"
-                >
-                  ×
-                </button>
+        {/* Delete Booking Confirmation Modal (Detail View) - Keyboard Accessible */}
+        <Modal
+          isOpen={showDeleteConfirm && !!bookingToDelete}
+          onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
+          title="Delete Booking"
+        >
+          <Modal.Header onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
+            <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+              Delete Booking
+            </h2>
+          </Modal.Header>
+          <Modal.Body>
+            <div style={{
+              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              border: '1px solid var(--color-error, #dc2626)',
+              borderRadius: '8px',
+              padding: '1rem 1.25rem',
+              marginBottom: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+                <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
               </div>
-              <div className="modal-body">
-                <div style={{
-                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                  border: '1px solid var(--color-error, #dc2626)',
-                  borderRadius: '8px',
-                  padding: '1rem 1.25rem',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-                    <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
-                  </div>
-                  <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
-                    You are about to delete the booking for <strong>"{bookingToDelete.supplierName || 'Unknown Supplier'}"</strong>.
-                  </p>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  This will remove all booking details including payment and commission tracking for this booking.
-                </p>
-              </div>
-              <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
-                  disabled={deleteLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn"
-                  style={{
-                    background: 'var(--color-error, #dc2626)',
-                    color: '#fff',
-                    border: 'none'
-                  }}
-                  onClick={handleDeleteBookingConfirm}
-                  disabled={deleteLoading}
-                >
-                  {deleteLoading ? 'Deleting...' : 'Delete Booking'}
-                </button>
-              </div>
+              <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+                You are about to delete the booking for <strong>"{bookingToDelete?.supplierName || 'Unknown Supplier'}"</strong>.
+              </p>
             </div>
-          </div>
-        )}
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              This will remove all booking details including payment and commission tracking for this booking.
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <button
+              className="btn btn-outline"
+              onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn"
+              style={{
+                background: 'var(--color-error, #dc2626)',
+                color: '#fff',
+                border: 'none'
+              }}
+              onClick={handleDeleteBookingConfirm}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete Booking'}
+            </button>
+          </Modal.Footer>
+        </Modal>
       </div>
     );
   }
@@ -1556,66 +1549,59 @@ function BookingsTab({ tripId, token }) {
         token={token}
       />
 
-      {/* Delete Booking Confirmation Modal */}
-      {showDeleteConfirm && bookingToDelete && (
-        <div className="modal-overlay" onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
-                Delete Booking
-              </h2>
-              <button
-                className="modal-close-btn"
-                onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
-                aria-label="Close"
-              >
-                ×
-              </button>
+      {/* Delete Booking Confirmation Modal - Keyboard Accessible */}
+      <Modal
+        isOpen={showDeleteConfirm && !!bookingToDelete}
+        onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
+        title="Delete Booking"
+      >
+        <Modal.Header onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
+          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+            Delete Booking
+          </h2>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            border: '1px solid var(--color-error, #dc2626)',
+            borderRadius: '8px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+              <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
             </div>
-            <div className="modal-body">
-              <div style={{
-                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                border: '1px solid var(--color-error, #dc2626)',
-                borderRadius: '8px',
-                padding: '1rem 1.25rem',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-                  <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
-                  You are about to delete the booking for <strong>"{bookingToDelete.supplierName || 'Unknown Supplier'}"</strong>.
-                </p>
-              </div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                This will remove all booking details including payment and commission tracking for this booking.
-              </p>
-            </div>
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-              <button
-                className="btn btn-outline"
-                onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
-                disabled={deleteLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn"
-                style={{
-                  background: 'var(--color-error, #dc2626)',
-                  color: '#fff',
-                  border: 'none'
-                }}
-                onClick={handleDeleteBookingConfirm}
-                disabled={deleteLoading}
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete Booking'}
-              </button>
-            </div>
+            <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+              You are about to delete the booking for <strong>"{bookingToDelete?.supplierName || 'Unknown Supplier'}"</strong>.
+            </p>
           </div>
-        </div>
-      )}
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            This will remove all booking details including payment and commission tracking for this booking.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            className="btn btn-outline"
+            onClick={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn"
+            style={{
+              background: 'var(--color-error, #dc2626)',
+              color: '#fff',
+              border: 'none'
+            }}
+            onClick={handleDeleteBookingConfirm}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete Booking'}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

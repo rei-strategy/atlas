@@ -151,7 +151,14 @@ export default function PortalTripDetailPage() {
   };
 
   if (loading) {
-    return <div className="portal-page"><div className="portal-loading">Loading trip details...</div></div>;
+    return (
+      <div className="portal-page">
+        <div className="portal-loading">
+          <div className="loading-spinner" />
+          <p>Loading trip details...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error || !trip) {
