@@ -3297,3 +3297,44 @@
 - Backend on port 3001, Frontend on port 3000
 - Feature verified working via API testing
 
+---
+
+### Session - 2026-02-06 (Agent batch: Features 205, 206, 208)
+
+**Features Verified: 205, 206, 208 (Data Cleanup and Cascade)**
+
+#### Feature 205: Deleting client cascades to trips
+- Verified database schema has ON DELETE CASCADE on trips.client_id
+- Test: Created client ID 189 with 3 trips (IDs 101, 102, 103)
+- Deleted client 189
+- All 3 trips automatically cascade deleted
+- Verified trips 101, 102, 103 all return Trip not found after client deletion
+- No orphaned records - agency has 0 trips after client deletion
+- No code changes needed - feature already implemented via foreign key constraints
+
+#### Feature 206: Deleting trip cascades to bookings and tasks
+- Database schema: bookings.trip_id ON DELETE CASCADE, documents.trip_id ON DELETE CASCADE
+- Database schema: tasks.trip_id ON DELETE SET NULL (preserves tasks but unlinks from trip)
+- Test: Created trip ID 104 with booking ID 78, task ID 69, document ID 17
+- Deleted trip 104
+- Response: deletedRelatedData bookings 1, documents 1, tasksUnlinked 1
+- Verified booking and document cascade deleted, task preserved but tripId set to null
+- No code changes needed - feature already implemented
+
+#### Feature 208: Deleted entity removed from search results
+- Test: Created client ID 191 (SEARCHABLE_TEST UniqueF208)
+- Verified searchable via /api/clients search and /api/search
+- Deleted client 191
+- Verified client no longer appears in search results or client list
+- No code changes needed - DELETE removes records from database
+
+#### Test Data Created
+- Agency: Cascade Test Agency F205 (ID: 109)
+- User: cascade_test_f205@test.com / TestPass123
+
+#### Current State
+- 215/240 features passing (89.6%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working via API testing
+- No code changes required - features already implemented
+
