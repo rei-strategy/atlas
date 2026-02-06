@@ -408,16 +408,38 @@ export default function ClientsPage() {
   const { id: urlClientId } = useParams();
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [plannerFilter, setPlannerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editClient, setEditClient] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+
+  // Fetch users for planner filter dropdown
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // Filter to only planners and admins who can be assigned to clients
+          setUsers(data.users.filter(u => ['admin', 'planner'].includes(u.role)));
+        }
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      }
+    };
+    fetchUsers();
+  }, [token]);
 
   const fetchClients = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
+      if (plannerFilter) params.set('assignedTo', plannerFilter);
       const res = await fetch(`${API_BASE}/clients?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -430,7 +452,7 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search]);
+  }, [token, search, plannerFilter]);
 
   useEffect(() => {
     fetchClients();
@@ -482,6 +504,13 @@ export default function ClientsPage() {
     navigate(`/clients/${client.id}`);
   };
 
+  const handleClearFilters = () => {
+    setSearch('');
+    setPlannerFilter('');
+  };
+
+  const hasActiveFilters = search !== '' || plannerFilter !== '';
+
   // Detail view
   if (selectedClient) {
     return (
@@ -515,14 +544,40 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      <div className="search-bar" style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <input
-          type="text"
-          className="form-input"
-          placeholder="Search clients by name, email, phone, or city..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1', minWidth: '200px' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search clients by name, email, phone, or city..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div style={{ minWidth: '180px' }}>
+          <select
+            className="form-input"
+            value={plannerFilter}
+            onChange={(e) => setPlannerFilter(e.target.value)}
+            aria-label="Filter by planner"
+          >
+            <option value="">All Planners</option>
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.firstName} {user.lastName}
+              </option>
+            ))}
+          </select>
+        </div>
+        {hasActiveFilters && (
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleClearFilters}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
       {loading ? (
