@@ -2821,3 +2821,50 @@
 - All three features verified working
 - Git commits: 3d37aa7 (#160), 8f44814 (#162)
 
+
+
+### Session - 2026-02-06 (Agent batch: Features #164, #165, #166)
+
+**Features Completed: #164, #165, #166 (Error Handling)**
+
+#### Feature #164: Invalid form submission shows field-level errors
+- Added validateField() for real-time field validation
+- Validates: firstName (required, min 2 chars), lastName (required, min 2 chars), email (format), phone (min 7 digits)
+- Form shows individual error messages under each field
+- Error styling: red border, error icon, red label text
+- Errors clear when user fixes the field (blur and change events)
+- Form prevents submission until all errors are resolved
+- CSS classes: form-input-error, form-error-message, form-group-error
+
+#### Feature #165: Timeout handling for slow API responses
+- Added fetchWithTimeout utility in apiErrors.js with configurable timeout (30s default)
+- Tracks loading elapsed time with visual feedback
+- Warning message appears after 10 seconds ("Still working...")
+- Timeout warning (red) appears after 25 seconds ("This is taking longer than expected")
+- Cancel Request button appears after 10s to abort long requests
+- Proper cleanup on unmount via AbortController
+- Created LoadingWithCancel component for reusable loading state display
+- Applied to ClientFormModal as implementation example
+
+#### Feature #166: Concurrent edit conflict detection
+- Implemented optimistic locking via updatedAt timestamp comparison
+- Backend PUT /api/clients/:id now checks if updatedAt matches before saving
+- Returns 409 CONCURRENT_EDIT_CONFLICT with server/client timestamps when mismatch
+- Frontend stores updatedAt in form state when editing a client
+- Conflict modal shows with clear explanation of the conflict
+- Two resolution options: "Refresh & Review" (loads latest data, keeps user changes) or "Discard Changes"
+- API test verified: old timestamp → 409 error, matching timestamp → success
+
+#### Code Changes
+- client/src/pages/ClientsPage.js: Field validation, timeout handling, conflict detection
+- client/src/styles/index.css: Error states, loading with cancel styles
+- client/src/utils/apiErrors.js: fetchWithTimeout, isTimeoutError, createCancellableRequest
+- client/src/hooks/useApiFetch.js: Custom hook for API calls with timeout
+- client/src/components/LoadingWithCancel.js: Reusable loading component
+- server/src/routes/clients.js: Optimistic locking in PUT endpoint
+
+#### Current State
+- 186/240 features passing (~77.5%)
+- Backend on port 3001, Frontend on port 3000
+- All features verified working via API testing
+- Git commits: c6880bd (#164), dba96f3 (#165), d159b5a (#166)
