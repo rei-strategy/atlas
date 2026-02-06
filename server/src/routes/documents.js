@@ -211,6 +211,94 @@ router.post('/generate', (req, res) => {
       });
     }
 
+    if (type === 'itinerary') {
+      // Get bookings for this trip, sorted by travel date
+      const bookings = db.prepare(`
+        SELECT * FROM bookings
+        WHERE trip_id = ? AND agency_id = ?
+        ORDER BY travel_start_date ASC, created_at ASC
+      `).all(tripId, req.agencyId);
+
+      // Get travelers for this trip
+      const travelers = db.prepare(`
+        SELECT * FROM travelers
+        WHERE trip_id = ?
+        ORDER BY created_at ASC
+      `).all(tripId);
+
+      // Generate itinerary HTML
+      const itineraryNumber = `ITN-${trip.id}-${Date.now().toString().slice(-6)}`;
+      const generatedDate = new Date().toISOString().split('T')[0];
+
+      const itineraryHtml = generateItineraryHtml(trip, bookings, travelers, agency, itineraryNumber, generatedDate);
+
+      // Create a filename
+      const fileName = `itinerary_${trip.name.replace(/[^a-zA-Z0-9]/g, '_')}_${itineraryNumber}.html`;
+      const filePath = `/generated/itineraries/${fileName}`;
+
+      // Save itinerary file to disk
+      const generatedDir = path.join(UPLOAD_DIR, 'generated', 'itineraries');
+      if (!fs.existsSync(generatedDir)) {
+        fs.mkdirSync(generatedDir, { recursive: true });
+      }
+      const fullFilePath = path.join(generatedDir, fileName);
+      fs.writeFileSync(fullFilePath, itineraryHtml, 'utf8');
+
+      // Create document record
+      const result = db.prepare(`
+        INSERT INTO documents (agency_id, trip_id, booking_id, document_type, file_name, file_path, is_sensitive, is_client_visible, uploaded_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        tripId,
+        null, // not tied to a specific booking
+        'itinerary',
+        fileName,
+        filePath,
+        0, // not sensitive
+        1, // client visible by default
+        req.user.id
+      );
+
+      // Log to audit
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'generate_itinerary',
+        'document',
+        result.lastInsertRowid,
+        JSON.stringify({ itineraryNumber, bookingCount: bookings.length, travelerCount: travelers.length }),
+        tripId
+      );
+
+      const doc = db.prepare(`
+        SELECT d.*, u.first_name as uploader_first_name, u.last_name as uploader_last_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        WHERE d.id = ?
+      `).get(result.lastInsertRowid);
+
+      return res.status(201).json({
+        message: 'Itinerary generated successfully',
+        document: formatDocument(doc),
+        itinerary: {
+          itineraryNumber,
+          generatedDate,
+          tripName: trip.name,
+          destination: trip.destination,
+          clientName: `${trip.client_first_name || ''} ${trip.client_last_name || ''}`.trim() || 'N/A',
+          travelDates: trip.travel_start_date && trip.travel_end_date
+            ? `${trip.travel_start_date} to ${trip.travel_end_date}`
+            : 'Dates TBD',
+          bookingCount: bookings.length,
+          travelerCount: travelers.length
+        }
+      });
+    }
+
     // Other document types not yet implemented
     return res.status(400).json({ error: `Document type "${type}" is not yet implemented` });
 
@@ -444,134 +532,6 @@ router.delete('/:id', (req, res) => {
   } catch (error) {
     console.error('[ERROR] Delete document failed:', error.message);
     res.status(500).json({ error: 'Failed to delete document' });
-  }
-});
-
-/**
- * POST /api/trips/:tripId/documents/generate
- * Generate a document (invoice, itinerary, authorization form)
- * Currently supports: invoice
- */
-router.post('/generate', (req, res) => {
-  try {
-    const db = getDb();
-    const { tripId } = req.params;
-    const { type } = req.body;
-
-    if (!type || !['invoice', 'itinerary', 'authorization'].includes(type)) {
-      return res.status(400).json({ error: 'Document type is required. Supported types: invoice, itinerary, authorization' });
-    }
-
-    // Verify trip belongs to this agency and get trip details
-    const trip = db.prepare(`
-      SELECT t.*, c.first_name as client_first_name, c.last_name as client_last_name, c.email as client_email
-      FROM trips t
-      LEFT JOIN clients c ON t.client_id = c.id
-      WHERE t.id = ? AND t.agency_id = ?
-    `).get(tripId, req.agencyId);
-
-    if (!trip) {
-      return res.status(404).json({ error: 'Trip not found' });
-    }
-
-    // Get agency details for invoice header
-    const agency = db.prepare('SELECT * FROM agencies WHERE id = ?').get(req.agencyId);
-
-    if (type === 'invoice') {
-      // Get bookings for this trip
-      const bookings = db.prepare(`
-        SELECT * FROM bookings
-        WHERE trip_id = ? AND agency_id = ?
-        ORDER BY created_at ASC
-      `).all(tripId, req.agencyId);
-
-      // Calculate totals
-      const totals = bookings.reduce((acc, b) => {
-        acc.totalCost += b.total_cost || 0;
-        acc.totalDeposit += b.deposit_amount || 0;
-        acc.totalPaid += b.payment_status === 'paid_in_full' ? (b.total_cost || 0) : (b.deposit_paid ? (b.deposit_amount || 0) : 0);
-        return acc;
-      }, { totalCost: 0, totalDeposit: 0, totalPaid: 0 });
-
-      totals.totalDue = totals.totalCost - totals.totalPaid;
-
-      // Generate invoice HTML
-      const invoiceNumber = `INV-${trip.id}-${Date.now().toString().slice(-6)}`;
-      const generatedDate = new Date().toISOString().split('T')[0];
-
-      const invoiceHtml = generateInvoiceHtml(trip, bookings, totals, agency, invoiceNumber, generatedDate);
-
-      // Create a filename
-      const fileName = `invoice_${trip.name.replace(/[^a-zA-Z0-9]/g, '_')}_${invoiceNumber}.html`;
-      const filePath = `/generated/invoices/${fileName}`;
-
-      // Save invoice file to disk
-      const generatedDir = path.join(UPLOAD_DIR, 'generated', 'invoices');
-      if (!fs.existsSync(generatedDir)) {
-        fs.mkdirSync(generatedDir, { recursive: true });
-      }
-      const fullFilePath = path.join(generatedDir, fileName);
-      fs.writeFileSync(fullFilePath, invoiceHtml, 'utf8');
-
-      // Create document record
-      const result = db.prepare(`
-        INSERT INTO documents (agency_id, trip_id, booking_id, document_type, file_name, file_path, is_sensitive, is_client_visible, uploaded_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        req.agencyId,
-        tripId,
-        null, // not tied to a specific booking
-        'invoice',
-        fileName,
-        filePath,
-        0, // not sensitive
-        1, // client visible by default
-        req.user.id
-      );
-
-      // Log to audit
-      db.prepare(`
-        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        req.agencyId,
-        req.user.id,
-        'generate_invoice',
-        'document',
-        result.lastInsertRowid,
-        JSON.stringify({ invoiceNumber, totalCost: totals.totalCost, totalDue: totals.totalDue }),
-        tripId
-      );
-
-      const doc = db.prepare(`
-        SELECT d.*, u.first_name as uploader_first_name, u.last_name as uploader_last_name
-        FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        WHERE d.id = ?
-      `).get(result.lastInsertRowid);
-
-      return res.status(201).json({
-        message: 'Invoice generated successfully',
-        document: formatDocument(doc),
-        invoice: {
-          invoiceNumber,
-          generatedDate,
-          tripName: trip.name,
-          clientName: `${trip.client_first_name || ''} ${trip.client_last_name || ''}`.trim() || 'N/A',
-          totalCost: totals.totalCost,
-          totalPaid: totals.totalPaid,
-          totalDue: totals.totalDue,
-          bookingCount: bookings.length
-        }
-      });
-    }
-
-    // Other document types not yet implemented
-    return res.status(400).json({ error: `Document type "${type}" is not yet implemented` });
-
-  } catch (error) {
-    console.error('[ERROR] Generate document failed:', error.message);
-    res.status(500).json({ error: 'Failed to generate document' });
   }
 });
 
