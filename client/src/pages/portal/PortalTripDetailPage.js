@@ -193,6 +193,22 @@ export default function PortalTripDetailPage() {
       return;
     }
 
+    // Client-side file size validation
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+      setDocMessage(`Error: File too large (${fileSizeMB}MB). Maximum file size is 10MB.`);
+      return;
+    }
+
+    // Client-side file type validation
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'jpg', 'jpeg', 'png', 'gif', 'html'];
+    const fileExt = selectedFile.name.split('.').pop()?.toLowerCase();
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+      setDocMessage(`Error: Invalid file type (.${fileExt || 'unknown'}). Allowed types: PDF, Word, Excel, images, text, and CSV files.`);
+      return;
+    }
+
     setDocSubmitting(true);
     setDocMessage('');
 
@@ -201,16 +217,42 @@ export default function PortalTripDetailPage() {
       formData.append('file', selectedFile);
       formData.append('documentType', docForm.documentType);
 
-      const res = await fetch(`/api/portal/trips/${id}/documents`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
-      });
+      let res;
+      try {
+        res = await fetch(`/api/portal/trips/${id}/documents`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+      } catch (networkErr) {
+        throw new Error('Network error: Unable to upload file. Please check your internet connection and try again.');
+      }
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload document');
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Server error: Received an unexpected response. Please try again later.');
+      }
+
+      if (!res.ok) {
+        // Handle specific error codes from backend
+        if (res.status === 413 || data.code === 'FILE_TOO_LARGE') {
+          throw new Error(data.error || 'File too large. Maximum file size is 10MB.');
+        }
+        if (res.status === 415 || data.code === 'INVALID_FILE_TYPE') {
+          throw new Error(data.error || 'Invalid file type. Please upload a supported file format.');
+        }
+        if (res.status === 401) {
+          throw new Error('Session expired. Please log in again to upload files.');
+        }
+        if (res.status >= 500) {
+          throw new Error('Server error: Unable to process upload. Please try again later.');
+        }
+        throw new Error(data.error || 'Failed to upload document');
+      }
 
       setDocuments([...documents, data.document]);
       setSelectedFile(null);

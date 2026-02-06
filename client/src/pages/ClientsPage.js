@@ -22,6 +22,9 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
+  const abortControllerRef = useRef(null);
+  const loadingStartRef = useRef(null);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     city: '', state: '', country: '',
@@ -160,6 +163,38 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     }));
   };
 
+  // Track loading elapsed time
+  useEffect(() => {
+    if (!loading) {
+      setLoadingElapsed(0);
+      return;
+    }
+    loadingStartRef.current = Date.now();
+    const interval = setInterval(() => {
+      setLoadingElapsed(Date.now() - loadingStartRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
+      setError('Request cancelled');
+      addToast('Request cancelled', 'info');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -182,19 +217,27 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       return;
     }
 
+    // Create abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
+    setLoadingElapsed(0);
+
     try {
       const isEdit = !!client;
       const url = isEdit ? `${API_BASE}/clients/${client.id}` : `${API_BASE}/clients`;
       const method = isEdit ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify(form),
+        timeout: REQUEST_TIMEOUT,
+        signal: controller.signal
       });
 
       const data = await res.json();
@@ -207,11 +250,28 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       onSaved(data.client);
       onClose();
     } catch (err) {
-      setError(err.message);
+      // Don't show error if request was intentionally cancelled
+      if (err.name === 'AbortError' && !err.isTimeout) {
+        return;
+      }
+
+      if (isTimeoutError(err)) {
+        setError('The request took too long. Please check your connection and try again.');
+        addToast('Request timed out', 'error');
+      } else if (isNetworkError(err)) {
+        setError(getNetworkErrorMessage(err));
+        addToast('Connection problem', 'error');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
+
+  const showSlowWarning = loading && loadingElapsed >= 10000;
+  const showTimeoutWarning = loading && loadingElapsed >= 25000;
 
   if (!isOpen) return null;
 
