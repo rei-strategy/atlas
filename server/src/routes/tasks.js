@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
+const { checkAllDeadlines } = require('../services/deadlineTaskService');
 
 const router = express.Router();
 
@@ -106,6 +107,30 @@ router.get('/', (req, res) => {
   } catch (error) {
     console.error('[ERROR] List tasks failed:', error.message);
     res.status(500).json({ error: 'Failed to list tasks' });
+  }
+});
+
+/**
+ * POST /api/tasks/check-deadlines
+ * Trigger deadline check and create tasks for approaching deadlines
+ * (Admin only - can be called manually or by cron)
+ */
+router.post('/check-deadlines', (req, res) => {
+  try {
+    // Only admins can trigger deadline check
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can trigger deadline checks' });
+    }
+
+    const result = checkAllDeadlines();
+
+    res.json({
+      message: 'Deadline check completed',
+      result
+    });
+  } catch (error) {
+    console.error('[ERROR] Check deadlines failed:', error.message);
+    res.status(500).json({ error: 'Failed to check deadlines' });
   }
 });
 
