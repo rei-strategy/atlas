@@ -252,30 +252,61 @@ router.put('/:id/role', authorize('admin'), (req, res) => {
 /**
  * DELETE /api/users/:id
  * Deactivate a user (Admin only)
+ * Also unassigns their clients, tasks, and trips to prevent orphaned data
  */
 router.delete('/:id', authorize('admin'), (req, res) => {
   try {
     const { id } = req.params;
+    const userId = parseInt(id);
     const db = getDb();
 
     // Can't delete yourself
-    if (req.user.id === parseInt(id)) {
+    if (req.user.id === userId) {
       return res.status(400).json({ error: 'Cannot deactivate your own account' });
     }
 
     const user = db.prepare(
-      'SELECT id FROM users WHERE id = ? AND agency_id = ?'
-    ).get(id, req.agencyId);
+      'SELECT id, first_name, last_name FROM users WHERE id = ? AND agency_id = ?'
+    ).get(userId, req.agencyId);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Count items that will be reassigned/unassigned
+    const clientCount = db.prepare(
+      'SELECT COUNT(*) as count FROM clients WHERE assigned_user_id = ? AND agency_id = ?'
+    ).get(userId, req.agencyId).count;
+
+    const taskCount = db.prepare(
+      'SELECT COUNT(*) as count FROM tasks WHERE assigned_user_id = ? AND agency_id = ?'
+    ).get(userId, req.agencyId).count;
+
+    const tripCount = db.prepare(
+      'SELECT COUNT(*) as count FROM trips WHERE assigned_user_id = ? AND agency_id = ?'
+    ).get(userId, req.agencyId).count;
+
+    // Unassign clients from this user (set to NULL - they can be reassigned later)
+    db.prepare(
+      "UPDATE clients SET assigned_user_id = NULL, updated_at = datetime('now') WHERE assigned_user_id = ? AND agency_id = ?"
+    ).run(userId, req.agencyId);
+
+    // Unassign tasks from this user (set to NULL - they can be reassigned later)
+    db.prepare(
+      "UPDATE tasks SET assigned_user_id = NULL, updated_at = datetime('now') WHERE assigned_user_id = ? AND agency_id = ?"
+    ).run(userId, req.agencyId);
+
+    // Unassign trips from this user (set to NULL - they can be reassigned later)
+    db.prepare(
+      "UPDATE trips SET assigned_user_id = NULL, updated_at = datetime('now') WHERE assigned_user_id = ? AND agency_id = ?"
+    ).run(userId, req.agencyId);
+
+    // Deactivate the user
     db.prepare(
       "UPDATE users SET is_active = 0, updated_at = datetime('now') WHERE id = ? AND agency_id = ?"
-    ).run(id, req.agencyId);
+    ).run(userId, req.agencyId);
 
-    // Audit log
+    // Audit log with details about reassigned items
     db.prepare(
       `INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
        VALUES (?, ?, ?, ?, ?, ?)`
@@ -284,11 +315,24 @@ router.delete('/:id', authorize('admin'), (req, res) => {
       req.user.id,
       'deactivate_user',
       'user',
-      id,
-      JSON.stringify({ deactivatedBy: req.user.email })
+      userId,
+      JSON.stringify({
+        deactivatedBy: req.user.email,
+        userName: `${user.first_name} ${user.last_name}`,
+        unassignedClients: clientCount,
+        unassignedTasks: taskCount,
+        unassignedTrips: tripCount
+      })
     );
 
-    res.json({ message: 'User deactivated successfully' });
+    res.json({
+      message: 'User deactivated successfully',
+      reassignmentSummary: {
+        clientsUnassigned: clientCount,
+        tasksUnassigned: taskCount,
+        tripsUnassigned: tripCount
+      }
+    });
   } catch (error) {
     console.error('[ERROR] Deactivate user failed:', error.message);
     res.status(500).json({ error: 'Failed to deactivate user' });
