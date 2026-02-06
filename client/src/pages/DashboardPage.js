@@ -277,31 +277,66 @@ export default function DashboardPage() {
             {trips.length === 0 ? (
               <p className="dashboard-empty-state">No active trips yet. Create your first client and trip to get started.</p>
             ) : (
-              <div className="dashboard-trips-list">
-                {trips.slice(0, 5).map(trip => (
-                  <div
-                    key={trip.id}
-                    className="dashboard-trip-item"
-                    onClick={() => navigate(`/trips`)}
-                  >
-                    <div className="dashboard-trip-info">
-                      <div className="dashboard-trip-name">{trip.name}</div>
-                      <div className="dashboard-trip-meta">
-                        {trip.clientName && <span>{trip.clientName}</span>}
-                        {trip.destination && <span>{trip.destination}</span>}
+              <>
+                {/* Stage counts breakdown */}
+                <div className="dashboard-stage-counts" style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                  paddingBottom: '0.75rem',
+                  borderBottom: '1px solid var(--color-border)'
+                }}>
+                  {['inquiry', 'quoted', 'booked', 'final_payment_pending', 'traveling'].map(stage => {
+                    const count = trips.filter(t => t.stage === stage).length;
+                    if (count === 0) return null;
+                    return (
+                      <div
+                        key={stage}
+                        className="stage-count-item"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => navigate(`/trips?stage=${stage}`)}
+                      >
+                        <span className={`stage-badge ${getStageClass(stage)}`} style={{ padding: '0.125rem 0.5rem', fontSize: '0.7rem' }}>
+                          {getStageLabel(stage)}
+                        </span>
+                        <span style={{ fontWeight: 600 }}>{count}</span>
                       </div>
+                    );
+                  })}
+                </div>
+                <div className="dashboard-trips-list">
+                  {trips.slice(0, 5).map(trip => (
+                    <div
+                      key={trip.id}
+                      className="dashboard-trip-item"
+                      onClick={() => navigate(`/trips`)}
+                    >
+                      <div className="dashboard-trip-info">
+                        <div className="dashboard-trip-name">{trip.name}</div>
+                        <div className="dashboard-trip-meta">
+                          {trip.clientName && <span>{trip.clientName}</span>}
+                          {trip.destination && <span>{trip.destination}</span>}
+                        </div>
+                      </div>
+                      <span className={`stage-badge ${getStageClass(trip.stage)}`}>
+                        {getStageLabel(trip.stage)}
+                      </span>
                     </div>
-                    <span className={`stage-badge ${getStageClass(trip.stage)}`}>
-                      {getStageLabel(trip.stage)}
-                    </span>
-                  </div>
-                ))}
-                {trips.length > 5 && (
-                  <button className="btn btn-link" onClick={() => navigate('/trips')}>
-                    View all {trips.length} trips
-                  </button>
-                )}
-              </div>
+                  ))}
+                  {trips.length > 5 && (
+                    <button className="btn btn-link" onClick={() => navigate('/trips')}>
+                      View all {trips.length} trips
+                    </button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>

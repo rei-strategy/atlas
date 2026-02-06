@@ -539,10 +539,136 @@ router.put('/:id/stage', (req, res) => {
       { from: 'final_payment_pending', to: 'traveling' }  // Confirming trip is paid
     ];
 
+    // Reopening completed or canceled trips always requires admin approval
+    const closedStages = ['completed', 'canceled'];
+    const isReopeningClosedTrip = closedStages.includes(oldStage) && !closedStages.includes(stage) && stage !== 'archived';
+
     const isFinancialTransition = financialTransitions.some(
       t => t.from === oldStage && t.to === stage
     );
     const isAdmin = req.user.role === 'admin';
+
+    // Reopening closed trips ALWAYS requires admin approval (even for admins submitting)
+    // This ensures there's always an audit trail with reason
+    if (isReopeningClosedTrip && !isAdmin) {
+      // Non-admin requesting to reopen - create approval request
+      const existingPending = db.prepare(`
+        SELECT id FROM approval_requests
+        WHERE agency_id = ? AND entity_type = 'trip' AND entity_id = ?
+          AND action_type = 'reopen_trip' AND status = 'pending'
+      `).get(req.agencyId, tripId);
+
+      if (existingPending) {
+        return res.status(409).json({
+          error: 'An approval request to reopen this trip is already pending',
+          approvalRequired: true,
+          approvalRequestId: existingPending.id
+        });
+      }
+
+      if (!reason || reason.trim() === '') {
+        return res.status(400).json({
+          error: 'Reason required',
+          message: 'Reopening a completed or canceled trip requires a reason.',
+          requiresApproval: true,
+          currentStage: oldStage
+        });
+      }
+
+      // Create approval request
+      const result = db.prepare(`
+        INSERT INTO approval_requests (agency_id, requested_by, action_type, entity_type, entity_id, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'reopen_trip',
+        'trip',
+        tripId,
+        JSON.stringify({
+          fromStage: oldStage,
+          toStage: stage,
+          reason: reason,
+          tripName: existing.name
+        })
+      );
+
+      const requestId = result.lastInsertRowid;
+
+      // Notify admins
+      const admins = db.prepare(
+        "SELECT id FROM users WHERE agency_id = ? AND role = 'admin' AND is_active = 1"
+      ).all(req.agencyId);
+
+      for (const admin of admins) {
+        db.prepare(`
+          INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          admin.id,
+          'urgent',
+          'Trip Reopen Request',
+          `${req.user.firstName || req.user.email} requested to reopen ${oldStage} trip "${existing.name}": ${reason}`,
+          'approval_request',
+          requestId
+        );
+      }
+
+      // Log the request
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'create_approval_request',
+        'approval_request',
+        requestId,
+        JSON.stringify({ actionType: 'reopen_trip', fromStage: oldStage, toStage: stage, reason, tripId }),
+        tripId
+      );
+
+      return res.status(202).json({
+        message: `Reopening ${oldStage} trips requires admin approval. Your request has been submitted.`,
+        approvalRequired: true,
+        approvalRequestId: requestId,
+        currentStage: oldStage,
+        requestedStage: stage
+      });
+    }
+
+    // Admin reopening a closed trip - allowed but must provide reason
+    if (isReopeningClosedTrip && isAdmin) {
+      if (!reason || reason.trim() === '') {
+        return res.status(400).json({
+          error: 'Reason required',
+          message: 'Reopening a completed or canceled trip requires a reason for audit purposes.',
+          currentStage: oldStage
+        });
+      }
+
+      // Log the admin-approved reopen with reason
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'trip_reopened',
+        'trip',
+        tripId,
+        JSON.stringify({
+          fromStage: oldStage,
+          toStage: stage,
+          reason: reason,
+          approvedBy: req.user.id,
+          approverName: `${req.user.firstName} ${req.user.lastName}`
+        }),
+        tripId
+      );
+      // Continue to update the stage below
+    }
 
     // Non-admins require approval for financial stage transitions
     if (isFinancialTransition && !isAdmin) {

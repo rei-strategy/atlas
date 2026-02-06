@@ -428,6 +428,77 @@ function executeApprovedAction(db, request, req) {
         return { error: 'Failed to execute stage change: ' + e.message };
       }
 
+    case 'reopen_trip':
+      // Reopen a completed or canceled trip
+      try {
+        const params = JSON.parse(request.reason || '{}');
+        const { fromStage, toStage, reason: reopenReason, tripName } = params;
+
+        if (!fromStage || !toStage) {
+          return { error: 'Missing stage information in approval request' };
+        }
+
+        // Get current trip state
+        const trip = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(entity_id, agency_id);
+        if (!trip) {
+          return { error: 'Trip not found' };
+        }
+
+        // Verify the trip is still at the expected closed stage
+        if (trip.stage !== fromStage) {
+          return {
+            error: `Trip stage has changed since approval was requested. Expected ${fromStage}, found ${trip.stage}`,
+            currentStage: trip.stage,
+            expectedStage: fromStage
+          };
+        }
+
+        // Perform the stage change (reopen)
+        db.prepare(`
+          UPDATE trips SET stage = ?, updated_at = datetime('now')
+          WHERE id = ? AND agency_id = ?
+        `).run(toStage, entity_id, agency_id);
+
+        // Log the reopen action in audit_logs
+        db.prepare(`
+          INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          agency_id,
+          req.user.id,
+          'trip_reopened',
+          'trip',
+          entity_id,
+          JSON.stringify({
+            fromStage,
+            toStage,
+            reason: reopenReason,
+            approvalRequestId: request.id,
+            approvedBy: req.user.id,
+            approverName: `${req.user.firstName} ${req.user.lastName}`,
+            tripName
+          }),
+          entity_id
+        );
+
+        // Record the change in trip_change_records
+        db.prepare(`
+          INSERT INTO trip_change_records (trip_id, changed_by, field_changed, old_value, new_value)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(entity_id, req.user.id, 'stage', fromStage, toStage);
+
+        return {
+          tripId: entity_id,
+          fromStage,
+          toStage,
+          reason: reopenReason,
+          message: `Trip "${tripName}" reopened from ${fromStage} to ${toStage}`
+        };
+      } catch (e) {
+        console.error('Failed to reopen trip:', e);
+        return { error: 'Failed to reopen trip: ' + e.message };
+      }
+
     case 'modify_locked_trip':
       // Apply the proposed changes to the locked trip
       try {
