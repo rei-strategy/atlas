@@ -573,6 +573,43 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
             </div>
           </div>
         </form>
+
+        {/* Concurrent Edit Conflict Modal */}
+        {showConflictModal && (
+          <div className="modal-overlay" onClick={() => setShowConflictModal(false)} style={{ zIndex: 1001 }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="modal-title">
+                  <span style={{ marginRight: 'var(--spacing-sm)', color: 'var(--color-warning)' }}>⚠️</span>
+                  Edit Conflict Detected
+                </h2>
+                <button className="modal-close-btn" onClick={() => setShowConflictModal(false)} aria-label="Close">×</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-lg)' }}>
+                  <p style={{ margin: 0, color: 'var(--color-warning-text, #92400e)' }}>
+                    {conflictData?.message || 'This record has been modified by another user since you opened it.'}
+                  </p>
+                </div>
+                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-md)' }}>
+                  To avoid overwriting their changes, you can:
+                </p>
+                <ul style={{ color: 'var(--color-text-secondary)', marginLeft: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+                  <li><strong>Refresh</strong> - Load the latest version and keep your unsaved changes to review</li>
+                  <li><strong>Discard</strong> - Close without saving and start over</li>
+                </ul>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={handleDiscardChanges}>
+                  Discard Changes
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleRefreshAndRetry}>
+                  Refresh & Review
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

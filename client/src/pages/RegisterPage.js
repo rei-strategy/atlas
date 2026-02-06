@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -12,25 +15,113 @@ export default function RegisterPage() {
     agencyName: ''
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // Validate individual field
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'email':
+        if (!value || !value.trim()) {
+          return 'Email is required';
+        }
+        if (!EMAIL_REGEX.test(value.trim())) {
+          return 'Please enter a valid email address';
+        }
+        return '';
+      case 'firstName':
+        if (!value || !value.trim()) {
+          return 'First name is required';
+        }
+        return '';
+      case 'lastName':
+        if (!value || !value.trim()) {
+          return 'Last name is required';
+        }
+        return '';
+      case 'agencyName':
+        if (!value || !value.trim()) {
+          return 'Agency name is required';
+        }
+        return '';
+      case 'password':
+        if (!value) {
+          return 'Password is required';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return '';
+      case 'confirmPassword':
+        if (!value) {
+          return 'Please confirm your password';
+        }
+        if (value !== formData.password) {
+          return 'Passwords do not match';
+        }
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Validate all fields
+  const validateAllFields = () => {
+    const errors = {};
+    const fields = ['agencyName', 'firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+    fields.forEach(field => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    return errors;
+  };
+
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Real-time validation for touched fields
+    if (touched[name]) {
+      const fieldError = validateField(name, value);
+      setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
+    // Validate all fields on submit
+    const errors = validateAllFields();
+    setFieldErrors(errors);
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Mark all fields as touched
+    setTouched({
+      agencyName: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      password: true,
+      confirmPassword: true
+    });
+
+    // If there are any errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the errors below before submitting');
       return;
     }
 
@@ -77,19 +168,24 @@ export default function RegisterPage() {
           )}
 
           <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
-          <div className="form-group">
-            <label htmlFor="agencyName" className="form-label">Agency name</label>
+          <div className={`form-group ${fieldErrors.agencyName && touched.agencyName ? 'form-group-error' : ''}`}>
+            <label htmlFor="agencyName" className="form-label">Agency name *</label>
             <input
               id="agencyName"
               name="agencyName"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.agencyName && touched.agencyName ? 'form-input-error' : ''}`}
               value={formData.agencyName}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Your travel agency name"
-              required
               autoFocus
+              aria-invalid={!!(fieldErrors.agencyName && touched.agencyName)}
+              aria-describedby={fieldErrors.agencyName && touched.agencyName ? 'agencyName-error' : undefined}
             />
+            {fieldErrors.agencyName && touched.agencyName && (
+              <span id="agencyName-error" className="form-error-message">{fieldErrors.agencyName}</span>
+            )}
           </div>
 
           <div className="form-row">
