@@ -883,6 +883,21 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
           >
             Portal Access
           </button>
+          <button
+            className={`detail-tab ${activeTab === 'communications' ? 'detail-tab-active' : ''}`}
+            onClick={() => setActiveTab('communications')}
+            style={{
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              border: 'none',
+              background: 'transparent',
+              borderBottom: activeTab === 'communications' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'communications' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+              fontWeight: activeTab === 'communications' ? '600' : '400',
+              cursor: 'pointer'
+            }}
+          >
+            Communications
+          </button>
         </div>
 
         {activeTab === 'info' && (
@@ -1094,6 +1109,80 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                       </button>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'communications' && (
+          <div className="communications-section">
+            {emailsLoading ? (
+              <div className="loading-screen" style={{ minHeight: '100px' }}>
+                <div className="loading-spinner" />
+                <p>Loading email history...</p>
+              </div>
+            ) : emails.length === 0 ? (
+              <div className="page-empty-state" style={{ padding: '2rem' }}>
+                <div className="empty-state-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </div>
+                <h3 className="empty-state-title">No emails sent yet</h3>
+                <p className="empty-state-description">Email communications for this client will appear here.</p>
+              </div>
+            ) : (
+              <div className="detail-section">
+                <h3 className="detail-section-title">Email History ({emails.length})</h3>
+                <div className="data-table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Template</th>
+                        <th>Subject</th>
+                        <th>Trip</th>
+                        <th>Status</th>
+                        <th>Sent/Scheduled</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emails.map(email => (
+                        <tr key={email.id}>
+                          <td>
+                            <span className="table-user-name">{email.templateName || 'Custom Email'}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.875rem' }}>{email.templateSubject || '—'}</span>
+                          </td>
+                          <td>
+                            {email.tripName ? (
+                              <span style={{ fontSize: '0.875rem' }}>{email.tripName}</span>
+                            ) : '—'}
+                          </td>
+                          <td>
+                            <span className={`status-badge ${
+                              email.status === 'sent' ? 'status-success' :
+                              email.status === 'approved' ? 'status-info' :
+                              email.status === 'pending' ? 'status-warning' :
+                              email.status === 'failed' ? 'status-danger' : 'status-neutral'
+                            }`}>
+                              {email.status}
+                            </span>
+                          </td>
+                          <td>
+                            {email.sentAt
+                              ? new Date(email.sentAt).toLocaleString()
+                              : email.scheduledSendDate
+                                ? `Scheduled: ${new Date(email.scheduledSendDate).toLocaleString()}`
+                                : '—'
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

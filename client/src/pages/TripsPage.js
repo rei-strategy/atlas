@@ -2181,7 +2181,7 @@ const DOCUMENT_TYPES = [
 ];
 
 /* =================== DOCUMENT UPLOAD MODAL =================== */
-function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
+function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, bookings = [], preselectedBookingId = null }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -2189,17 +2189,23 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
   const [form, setForm] = useState({
     documentType: 'other',
     isSensitive: false,
-    isClientVisible: false
+    isClientVisible: false,
+    bookingId: ''
   });
   const fileInputRef = React.useRef();
 
   useEffect(() => {
     if (isOpen) {
       setSelectedFile(null);
-      setForm({ documentType: 'other', isSensitive: false, isClientVisible: false });
+      setForm({
+        documentType: 'other',
+        isSensitive: false,
+        isClientVisible: false,
+        bookingId: preselectedBookingId ? String(preselectedBookingId) : ''
+      });
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, preselectedBookingId]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -2235,6 +2241,9 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
       formData.append('documentType', form.documentType);
       formData.append('isSensitive', form.isSensitive.toString());
       formData.append('isClientVisible', form.isClientVisible.toString());
+      if (form.bookingId) {
+        formData.append('bookingId', form.bookingId);
+      }
 
       const res = await fetch(`${API_BASE}/trips/${tripId}/documents`, {
         method: 'POST',
@@ -2331,6 +2340,29 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
               </select>
             </div>
 
+            {bookings && bookings.length > 0 && (
+              <div className="form-group">
+                <label className="form-label" htmlFor="bookingId">Attach to Booking (Optional)</label>
+                <select
+                  id="bookingId"
+                  name="bookingId"
+                  className="form-input"
+                  value={form.bookingId}
+                  onChange={handleChange}
+                >
+                  <option value="">No specific booking</option>
+                  {bookings.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.supplierName || b.supplier_name} - {b.bookingReference || b.booking_reference || `Booking #${b.id}`}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Link this document to a specific booking for better organization
+                </p>
+              </div>
+            )}
+
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                 <input
@@ -2371,6 +2403,7 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token }) {
 function DocumentsTab({ tripId, token }) {
   const { addToast } = useToast();
   const [documents, setDocuments] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
@@ -2390,12 +2423,38 @@ function DocumentsTab({ tripId, token }) {
     }
   }, [tripId, token]);
 
+  const fetchBookings = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBookings(data.bookings || []);
+      }
+    } catch (err) {
+      console.error('Failed to load bookings:', err);
+    }
+  }, [tripId, token]);
+
   useEffect(() => {
     fetchDocuments();
-  }, [fetchDocuments]);
+    fetchBookings();
+  }, [fetchDocuments, fetchBookings]);
 
   const handleDocumentUploaded = (doc) => {
     setDocuments(prev => [doc, ...prev]);
+  };
+
+  // Helper to get booking info for a document
+  const getBookingInfo = (bookingId) => {
+    if (!bookingId) return null;
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return { id: bookingId, name: `Booking #${bookingId}` };
+    return {
+      id: booking.id,
+      name: `${booking.supplierName || 'Unknown'} - ${booking.bookingReference || `#${booking.id}`}`
+    };
   };
 
   const handleDownload = async (doc) => {
@@ -2520,6 +2579,7 @@ function DocumentsTab({ tripId, token }) {
               <tr>
                 <th>File Name</th>
                 <th>Type</th>
+                <th>Booking</th>
                 <th>Visibility</th>
                 <th>Uploaded By</th>
                 <th>Date</th>
@@ -2527,54 +2587,66 @@ function DocumentsTab({ tripId, token }) {
               </tr>
             </thead>
             <tbody>
-              {documents.map(doc => (
-                <tr key={doc.id}>
-                  <td>
-                    <span className="table-user-name">{doc.fileName}</span>
-                    {doc.isSensitive && (
-                      <span className="status-badge status-warning" style={{ marginLeft: '0.5rem', fontSize: '0.625rem' }}>
-                        SENSITIVE
+              {documents.map(doc => {
+                const bookingInfo = getBookingInfo(doc.bookingId);
+                return (
+                  <tr key={doc.id}>
+                    <td>
+                      <span className="table-user-name">{doc.fileName}</span>
+                      {doc.isSensitive && (
+                        <span className="status-badge status-warning" style={{ marginLeft: '0.5rem', fontSize: '0.625rem' }}>
+                          SENSITIVE
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="status-badge status-neutral">
+                        {DOCUMENT_TYPES.find(dt => dt.value === doc.documentType)?.label || doc.documentType}
                       </span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="status-badge status-neutral">
-                      {DOCUMENT_TYPES.find(dt => dt.value === doc.documentType)?.label || doc.documentType}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className={`status-badge ${doc.isClientVisible ? 'status-success' : 'status-neutral'}`}
-                      onClick={() => handleToggleVisibility(doc)}
-                      style={{ cursor: 'pointer', border: 'none' }}
-                      title={doc.isClientVisible ? 'Click to hide from client' : 'Click to make visible to client'}
-                    >
-                      {doc.isClientVisible ? 'Client Visible' : 'Internal Only'}
-                    </button>
-                  </td>
-                  <td>{doc.uploaderName || '—'}</td>
-                  <td>{formatDate(doc.createdAt)}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    </td>
+                    <td>
+                      {bookingInfo ? (
+                        <span className="status-badge status-info" style={{ fontSize: '0.75rem' }}>
+                          {bookingInfo.name}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
                       <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => handleDownload(doc)}
-                        title="Download"
+                        className={`status-badge ${doc.isClientVisible ? 'status-success' : 'status-neutral'}`}
+                        onClick={() => handleToggleVisibility(doc)}
+                        style={{ cursor: 'pointer', border: 'none' }}
+                        title={doc.isClientVisible ? 'Click to hide from client' : 'Click to make visible to client'}
                       >
-                        ⬇
+                        {doc.isClientVisible ? 'Client Visible' : 'Internal Only'}
                       </button>
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => handleDelete(doc)}
-                        style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
-                        title="Delete"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>{doc.uploaderName || '—'}</td>
+                    <td>{formatDate(doc.createdAt)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleDownload(doc)}
+                          title="Download"
+                        >
+                          ⬇
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => handleDelete(doc)}
+                          style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -2586,6 +2658,7 @@ function DocumentsTab({ tripId, token }) {
         onUploaded={handleDocumentUploaded}
         tripId={tripId}
         token={token}
+        bookings={bookings}
       />
     </div>
   );

@@ -507,7 +507,7 @@ router.put('/:id/toggle-active', (req, res) => {
 router.get('/queue/list', (req, res) => {
   try {
     const db = getDb();
-    const { status, tripId } = req.query;
+    const { status, tripId, clientId } = req.query;
 
     let query = `
       SELECT eq.*,
@@ -533,6 +533,11 @@ router.get('/queue/list', (req, res) => {
     if (tripId) {
       query += ` AND eq.trip_id = ?`;
       params.push(tripId);
+    }
+
+    if (clientId) {
+      query += ` AND eq.client_id = ?`;
+      params.push(clientId);
     }
 
     query += ` ORDER BY eq.created_at DESC`;
