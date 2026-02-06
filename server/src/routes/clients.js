@@ -395,11 +395,16 @@ router.delete('/:id', (req, res) => {
  * - marketing_opt_in / marketingOptIn (true/false, yes/no, 1/0)
  * - contact_consent / contactConsent (true/false, yes/no, 1/0)
  */
-router.post('/import', upload.single('file'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No CSV file provided' });
+router.post('/import', (req, res) => {
+  upload.single('file')(req, res, (uploadError) => {
+    if (uploadError) {
+      return res.status(400).json({ error: uploadError.message || 'File upload failed' });
     }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No CSV file provided' });
+      }
 
     const db = getDb();
     const csvContent = req.file.buffer.toString('utf-8');
@@ -585,10 +590,11 @@ router.post('/import', upload.single('file'), (req, res) => {
     }
 
     res.status(201).json(response);
-  } catch (error) {
-    console.error('[ERROR] CSV import failed:', error.message);
-    res.status(500).json({ error: 'Failed to import clients from CSV' });
-  }
+    } catch (error) {
+      console.error('[ERROR] CSV import failed:', error.message);
+      res.status(500).json({ error: 'Failed to import clients from CSV' });
+    }
+  });
 });
 
 /**
