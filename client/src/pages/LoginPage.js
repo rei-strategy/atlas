@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LoadingButton from '../components/LoadingButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -98,14 +99,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
+          <LoadingButton
             type="submit"
             className="btn btn-primary btn-full"
-            disabled={loading}
+            loading={loading}
+            loadingText="Signing in..."
             style={{ marginTop: 'var(--spacing-lg)' }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+            Sign in
+          </LoadingButton>
           </fieldset>
 
           <p className="auth-footer-text">

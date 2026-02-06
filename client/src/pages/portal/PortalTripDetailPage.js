@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePortalAuth } from '../../context/PortalAuthContext';
 import { useParams, Link } from 'react-router-dom';
+import LoadingButton from '../../components/LoadingButton';
 
 export default function PortalTripDetailPage() {
   const { id } = useParams();
@@ -518,9 +519,14 @@ export default function PortalTripDetailPage() {
                 </div>
               </div>
               <div className="portal-form-actions">
-                <button type="submit" className="portal-submit-btn" disabled={travelerSubmitting}>
-                  {travelerSubmitting ? 'Submitting...' : 'Submit Traveler Info'}
-                </button>
+                <LoadingButton
+                  type="submit"
+                  className="portal-submit-btn"
+                  loading={travelerSubmitting}
+                  loadingText="Submitting..."
+                >
+                  Submit Traveler Info
+                </LoadingButton>
               </div>
             </form>
           )}
@@ -712,9 +718,15 @@ export default function PortalTripDetailPage() {
                 </div>
               </div>
               <div className="portal-form-actions">
-                <button type="submit" className="portal-submit-btn" disabled={docSubmitting || !selectedFile}>
-                  {docSubmitting ? 'Uploading...' : 'Upload Document'}
-                </button>
+                <LoadingButton
+                  type="submit"
+                  className="portal-submit-btn"
+                  loading={docSubmitting}
+                  disabled={!selectedFile}
+                  loadingText="Uploading..."
+                >
+                  Upload Document
+                </LoadingButton>
               </div>
             </form>
           )}

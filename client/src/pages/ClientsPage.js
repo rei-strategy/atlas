@@ -1128,6 +1128,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
   const { addToast } = useToast();
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
 
   // Portal access state
   const [portalStatus, setPortalStatus] = useState(null);
@@ -1251,6 +1252,11 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
   };
 
   const handleDeleteConfirm = async () => {
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deleting) {
+      return;
+    }
+    deletingRef.current = true;
     setDeleting(true);
     try {
       const res = await fetch(`/api/clients/${client.id}`, {
@@ -1267,6 +1273,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
       addToast(err.message, 'error');
     } finally {
       setDeleting(false);
+      deletingRef.current = false;
       setShowDeleteConfirm(false);
     }
   };

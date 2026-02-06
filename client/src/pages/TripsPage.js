@@ -1452,6 +1452,7 @@ function BookingsTab({ tripId, token }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
   const [defaultCommissionRate, setDefaultCommissionRate] = useState(null);
 
   // Fetch agency's default commission rate
@@ -1507,6 +1508,11 @@ function BookingsTab({ tripId, token }) {
 
   const handleDeleteBookingConfirm = async () => {
     if (!bookingToDelete) return;
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deleteLoading) {
+      return;
+    }
+    deletingRef.current = true;
     setDeleteLoading(true);
     try {
       const res = await fetch(`${API_BASE}/trips/${tripId}/bookings/${bookingToDelete.id}`, {
@@ -1526,6 +1532,7 @@ function BookingsTab({ tripId, token }) {
       addToast(err.message, 'error');
     } finally {
       setDeleteLoading(false);
+      deletingRef.current = false;
     }
   };
 
@@ -2355,6 +2362,8 @@ function TravelersTab({ tripId, token }) {
   const [showTravelerModal, setShowTravelerModal] = useState(false);
   const [editTraveler, setEditTraveler] = useState(null);
   const [selectedTraveler, setSelectedTraveler] = useState(null);
+  const [deletingTravelerId, setDeletingTravelerId] = useState(null);
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
 
   const fetchTravelers = useCallback(async () => {
     try {
@@ -2382,7 +2391,13 @@ function TravelersTab({ tripId, token }) {
   };
 
   const handleDeleteTraveler = async (travelerId) => {
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deletingTravelerId) {
+      return;
+    }
     if (!window.confirm('Are you sure you want to remove this traveler? This action cannot be undone.')) return;
+    deletingRef.current = true;
+    setDeletingTravelerId(travelerId);
     try {
       const res = await fetch(`${API_BASE}/trips/${tripId}/travelers/${travelerId}`, {
         method: 'DELETE',
@@ -2397,6 +2412,9 @@ function TravelersTab({ tripId, token }) {
       setSelectedTraveler(null);
     } catch (err) {
       addToast(err.message, 'error');
+    } finally {
+      deletingRef.current = false;
+      setDeletingTravelerId(null);
     }
   };
 
@@ -2834,6 +2852,8 @@ function DocumentsTab({ tripId, token }) {
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [generatingItinerary, setGeneratingItinerary] = useState(false);
   const [generatingAuthForm, setGeneratingAuthForm] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState(null);
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -2920,9 +2940,15 @@ function DocumentsTab({ tripId, token }) {
   };
 
   const handleDelete = async (doc) => {
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deletingDocId) {
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`)) {
       return;
     }
+    deletingRef.current = true;
+    setDeletingDocId(doc.id);
 
     try {
       const res = await fetch(`${API_BASE}/trips/${tripId}/documents/${doc.id}`, {
@@ -2939,6 +2965,9 @@ function DocumentsTab({ tripId, token }) {
       setDocuments(prev => prev.filter(d => d.id !== doc.id));
     } catch (err) {
       addToast(err.message, 'error');
+    } finally {
+      deletingRef.current = false;
+      setDeletingDocId(null);
     }
   };
 
@@ -3592,6 +3621,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
   const [duplicateOptions, setDuplicateOptions] = useState({
     newName: '',
     includeTravelers: true,
@@ -3622,6 +3652,11 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
   };
 
   const handleConfirmDelete = async () => {
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deleteLoading) {
+      return;
+    }
+    deletingRef.current = true;
     setDeleteLoading(true);
     try {
       const res = await fetch(`${API_BASE}/trips/${trip.id}`, {
@@ -3638,6 +3673,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
       console.error('Error deleting trip:', err);
     } finally {
       setDeleteLoading(false);
+      deletingRef.current = false;
     }
   };
 

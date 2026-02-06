@@ -930,6 +930,8 @@ export default function EmailTemplatesPage() {
   const [editTemplate, setEditTemplate] = useState(null);
   const [previewTemplate, setPreviewTemplate] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
+  const deletingRef = useRef(false); // Prevent rapid delete clicks
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -1012,9 +1014,15 @@ export default function EmailTemplatesPage() {
   };
 
   const handleDeleteTemplate = async (template) => {
+    // Prevent rapid delete clicks
+    if (deletingRef.current || deletingTemplateId) {
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
       return;
     }
+    deletingRef.current = true;
+    setDeletingTemplateId(template.id);
 
     try {
       const res = await fetch(`${API_BASE}/email-templates/${template.id}`, {
@@ -1037,6 +1045,9 @@ export default function EmailTemplatesPage() {
       }
     } catch (err) {
       addToast(err.message, 'error');
+    } finally {
+      deletingRef.current = false;
+      setDeletingTemplateId(null);
     }
   };
 

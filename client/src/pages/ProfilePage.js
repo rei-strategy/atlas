@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
 
@@ -453,13 +454,14 @@ export default function ProfilePage() {
                   >
                     Cancel
                   </button>
-                  <button
+                  <LoadingButton
                     type="submit"
                     className="btn btn-primary"
-                    disabled={saving}
+                    loading={saving}
+                    loadingText="Saving..."
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
+                    Save Changes
+                  </LoadingButton>
                 </div>
                 </fieldset>
               </form>
