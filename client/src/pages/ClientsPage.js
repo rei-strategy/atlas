@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import Breadcrumb from '../components/Breadcrumb';
 
 const API_BASE = '/api';
 
@@ -638,8 +639,15 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
 
   if (!client) return null;
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Clients', path: '/clients' },
+    { label: `${client.firstName} ${client.lastName}` }
+  ];
+
   return (
     <div className="client-detail">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="detail-header">
         <button className="btn btn-outline btn-sm" onClick={onBack}>
           ← Back to Clients

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import Modal from '../components/Modal';
+import Breadcrumb from '../components/Breadcrumb';
 
 const API_BASE = '/api';
 
@@ -2647,8 +2648,15 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
     { id: 'commissions', label: 'Commissions' }
   ];
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Trips', path: '/trips' },
+    { label: trip.name || trip.destination || 'Trip Details' }
+  ];
+
   return (
     <div className="trip-detail">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="detail-header">
         <button className="btn btn-outline btn-sm" onClick={onBack}>
           ← Back to Trips

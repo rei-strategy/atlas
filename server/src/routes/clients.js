@@ -131,6 +131,111 @@ router.get('/', (req, res) => {
 });
 
 /**
+ * GET /api/clients/export
+ * Export all clients to CSV file
+ */
+router.get('/export', (req, res) => {
+  try {
+    const db = getDb();
+    const { search, assignedTo } = req.query;
+
+    // Build query with same filters as list endpoint
+    let query = `
+      SELECT c.*, u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      FROM clients c
+      LEFT JOIN users u ON c.assigned_user_id = u.id
+      WHERE c.agency_id = ?
+    `;
+    const params = [req.agencyId];
+
+    if (search) {
+      query += ` AND (c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)`;
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    if (assignedTo) {
+      query += ` AND c.assigned_user_id = ?`;
+      params.push(assignedTo);
+    }
+
+    query += ` ORDER BY c.last_name, c.first_name`;
+
+    const clients = db.prepare(query).all(...params);
+
+    // Build CSV content
+    const headers = [
+      'id',
+      'first_name',
+      'last_name',
+      'email',
+      'phone',
+      'city',
+      'state',
+      'country',
+      'preferred_communication',
+      'travel_preferences',
+      'notes',
+      'marketing_opt_in',
+      'contact_consent',
+      'assigned_planner',
+      'created_at',
+      'updated_at'
+    ];
+
+    // Escape CSV field values (handle commas, quotes, newlines)
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '';
+      const strValue = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
+      if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
+        return `"${strValue.replace(/"/g, '""')}"`;
+      }
+      return strValue;
+    };
+
+    let csvContent = headers.join(',') + '\n';
+
+    for (const client of clients) {
+      const travelPrefs = client.travel_preferences ? JSON.parse(client.travel_preferences).join('; ') : '';
+      const assignedPlanner = client.assigned_first_name
+        ? `${client.assigned_first_name} ${client.assigned_last_name}`
+        : '';
+
+      const row = [
+        client.id,
+        escapeCSV(client.first_name),
+        escapeCSV(client.last_name),
+        escapeCSV(client.email),
+        escapeCSV(client.phone),
+        escapeCSV(client.city),
+        escapeCSV(client.state),
+        escapeCSV(client.country),
+        escapeCSV(client.preferred_communication),
+        escapeCSV(travelPrefs),
+        escapeCSV(client.notes),
+        client.marketing_opt_in ? 'true' : 'false',
+        client.contact_consent ? 'true' : 'false',
+        escapeCSV(assignedPlanner),
+        client.created_at,
+        client.updated_at
+      ];
+      csvContent += row.join(',') + '\n';
+    }
+
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="clients-export.csv"');
+    res.send(csvContent);
+
+    console.log(`[INFO] CSV export: ${clients.length} clients exported for agency ${req.agencyId}`);
+  } catch (error) {
+    console.error('[ERROR] CSV export failed:', error.message);
+    res.status(500).json({ error: 'Failed to export clients to CSV' });
+  }
+});
+
+/**
  * GET /api/clients/:id
  * Get a single client by ID
  */
@@ -626,111 +731,6 @@ router.post('/import', (req, res) => {
       res.status(500).json({ error: 'Failed to import clients from CSV' });
     }
   });
-});
-
-/**
- * GET /api/clients/export
- * Export all clients to CSV file
- */
-router.get('/export', (req, res) => {
-  try {
-    const db = getDb();
-    const { search, assignedTo } = req.query;
-
-    // Build query with same filters as list endpoint
-    let query = `
-      SELECT c.*, u.first_name as assigned_first_name, u.last_name as assigned_last_name
-      FROM clients c
-      LEFT JOIN users u ON c.assigned_user_id = u.id
-      WHERE c.agency_id = ?
-    `;
-    const params = [req.agencyId];
-
-    if (search) {
-      query += ` AND (c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)`;
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
-    }
-
-    if (assignedTo) {
-      query += ` AND c.assigned_user_id = ?`;
-      params.push(assignedTo);
-    }
-
-    query += ` ORDER BY c.last_name, c.first_name`;
-
-    const clients = db.prepare(query).all(...params);
-
-    // Build CSV content
-    const headers = [
-      'id',
-      'first_name',
-      'last_name',
-      'email',
-      'phone',
-      'city',
-      'state',
-      'country',
-      'preferred_communication',
-      'travel_preferences',
-      'notes',
-      'marketing_opt_in',
-      'contact_consent',
-      'assigned_planner',
-      'created_at',
-      'updated_at'
-    ];
-
-    // Escape CSV field values (handle commas, quotes, newlines)
-    const escapeCSV = (value) => {
-      if (value === null || value === undefined) return '';
-      const strValue = String(value);
-      // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
-      if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
-        return `"${strValue.replace(/"/g, '""')}"`;
-      }
-      return strValue;
-    };
-
-    let csvContent = headers.join(',') + '\n';
-
-    for (const client of clients) {
-      const travelPrefs = client.travel_preferences ? JSON.parse(client.travel_preferences).join('; ') : '';
-      const assignedPlanner = client.assigned_first_name
-        ? `${client.assigned_first_name} ${client.assigned_last_name}`
-        : '';
-
-      const row = [
-        client.id,
-        escapeCSV(client.first_name),
-        escapeCSV(client.last_name),
-        escapeCSV(client.email),
-        escapeCSV(client.phone),
-        escapeCSV(client.city),
-        escapeCSV(client.state),
-        escapeCSV(client.country),
-        escapeCSV(client.preferred_communication),
-        escapeCSV(travelPrefs),
-        escapeCSV(client.notes),
-        client.marketing_opt_in ? 'true' : 'false',
-        client.contact_consent ? 'true' : 'false',
-        escapeCSV(assignedPlanner),
-        client.created_at,
-        client.updated_at
-      ];
-      csvContent += row.join(',') + '\n';
-    }
-
-    // Set headers for CSV download
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="clients-export.csv"');
-    res.send(csvContent);
-
-    console.log(`[INFO] CSV export: ${clients.length} clients exported for agency ${req.agencyId}`);
-  } catch (error) {
-    console.error('[ERROR] CSV export failed:', error.message);
-    res.status(500).json({ error: 'Failed to export clients to CSV' });
-  }
 });
 
 /**

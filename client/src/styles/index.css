@@ -4896,3 +4896,91 @@ html, body {
     text-align: center;
   }
 }
+
+/* =================== Breadcrumb Navigation =================== */
+.breadcrumb {
+  margin-bottom: var(--spacing-md);
+}
+
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: var(--spacing-xs);
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.breadcrumb-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.breadcrumb-link:hover {
+  background-color: var(--color-primary);
+  color: white;
+  text-decoration: none;
+}
+
+.breadcrumb-link:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.breadcrumb-separator {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
+.breadcrumb-separator svg {
+  width: 14px;
+  height: 14px;
+}
+
+.breadcrumb-current {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Dark mode support */
+[data-theme="dark"] .breadcrumb-link {
+  color: var(--color-primary-light);
+}
+
+[data-theme="dark"] .breadcrumb-link:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .breadcrumb-list {
+    gap: 2px;
+  }
+
+  .breadcrumb-link,
+  .breadcrumb-current {
+    padding: 2px 4px;
+    font-size: 0.75rem;
+  }
+
+  .breadcrumb-separator svg {
+    width: 12px;
+    height: 12px;
+  }
+}
