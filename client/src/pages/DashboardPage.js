@@ -751,7 +751,7 @@ export default function DashboardPage() {
 
         {/* Planner Performance Card (Admin Only) */}
         {isAdmin && (
-          <div className="dashboard-card dashboard-card-wide">
+          <div className="dashboard-card dashboard-card-full">
             <div className="dashboard-card-header">
               <div className="dashboard-card-title-row">
                 {plannerPerformance.planners.length > 0 && (

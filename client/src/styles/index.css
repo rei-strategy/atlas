@@ -1005,6 +1005,10 @@ fieldset:disabled .btn {
   grid-column: span 2;
 }
 
+.dashboard-card-full {
+  grid-column: 1 / -1;
+}
+
 .dashboard-card-header {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
