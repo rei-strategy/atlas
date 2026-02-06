@@ -2096,3 +2096,55 @@
 - Backend on port 3001, Frontend on port 3000
 - All three features verified working
 - Git commit: be7b52d
+
+
+### Session - 2026-02-06 (Agent batch: Features #90, #99, #100)
+
+**Features Completed: #90, #99, #100 (Real Data Verification - Email and Portal)**
+
+#### Feature #90: Email history per trip and client
+- Email queue tracks all emails with tripId and clientId
+- Trip Communications tab fetches via GET /api/email-templates/queue/list?tripId=X
+- Client detail Communications tab fetches via GET /api/email-templates/queue/list?clientId=X
+- Each email shows: templateName, templateSubject, status, sentAt/createdAt
+- Test data: 3 emails queued, 2 sent for trip 73 to client 154
+- All timestamps and subjects properly displayed
+
+#### Feature #99: Customer portal - view upcoming trips
+- Customer login via POST /api/portal/auth/login
+- GET /api/portal/trips returns only customers own trips (filtered by client_id)
+- Response includes: name, destination, travelStartDate, travelEndDate, stage
+- Security verified: trying to access other clients trip returns Trip not found
+- No internal data leaked (no commission rates, audit logs, assigned_user_id)
+
+#### Feature #100: Customer portal - view itinerary summary
+- GET /api/portal/trips/:id returns trip details with bookings
+- Bookings show: bookingType, supplierName, status, confirmationNumber, dates
+- Payment info shown: totalCost, depositAmount, finalPaymentAmount, paymentStatus
+- Internal fields hidden: commission fields, supplier_notes, inclusions_exclusions
+- Frontend displays bookings with dates in Bookings tab
+
+#### Test Data Created
+- Agency: Email History Test Agency (ID: 86)
+- User: email_history_test@atlas.com / TestPass123
+- Client: Email TestClient90 (ID: 154)
+- Trip: EMAIL_HISTORY_TEST_TRIP_90 (ID: 73, destination: Maldives)
+- Email Templates: Welcome, Bon Voyage, Payment Reminder (IDs: 10, 11, 12)
+- Email Queue: 3 emails (IDs: 14, 15, 16) - 2 sent, 1 pending
+- Bookings: Resort (ID: 59), Transfer (ID: 60)
+- Customer Portal Account: portal_test_99@example.com / TestPass123
+
+#### Verification Summary
+- Email history works per trip AND per client
+- Customer portal properly filters to own trips only
+- Bookings displayed with travel dates
+- No internal/sensitive data exposed in portal
+- All data persists in SQLite database
+- Frontend compiles successfully
+- No mock data patterns detected
+
+#### Current State
+- 145/240 features passing (~60.4%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commits: cb036c8, 6f44e63, 8b9cac7
