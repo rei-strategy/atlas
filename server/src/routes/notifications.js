@@ -2,6 +2,7 @@ const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
 const { checkUrgentPaymentDeadlines, getUrgentPaymentDeadlines } = require('../services/paymentDeadlineService');
+const { checkImminentTravelReadiness, getImminentTripsWithIssues } = require('../services/travelReadinessService');
 
 const router = express.Router();
 
@@ -25,6 +26,13 @@ router.get('/', (req, res) => {
       checkUrgentPaymentDeadlines(48);
     } catch (err) {
       console.error('[WARN] Payment deadline check failed during notification fetch:', err.message);
+    }
+
+    // Check for imminent travel with incomplete items
+    try {
+      checkImminentTravelReadiness(48);
+    } catch (err) {
+      console.error('[WARN] Travel readiness check failed during notification fetch:', err.message);
     }
 
     let query = `
@@ -223,6 +231,55 @@ router.post('/check-payment-deadlines', (req, res) => {
   } catch (error) {
     console.error('[ERROR] Check payment deadlines failed:', error.message);
     res.status(500).json({ error: 'Failed to check payment deadlines' });
+  }
+});
+
+/**
+ * GET /api/notifications/imminent-travel
+ * Get trips with travel within specified hours that have incomplete items
+ */
+router.get('/imminent-travel', (req, res) => {
+  try {
+    const { hours = 48 } = req.query;
+    const hoursThreshold = parseInt(hours, 10) || 48;
+
+    const tripsWithIssues = getImminentTripsWithIssues(req.agencyId, hoursThreshold);
+
+    res.json({
+      tripsWithIssues,
+      count: tripsWithIssues.length,
+      threshold: hoursThreshold
+    });
+  } catch (error) {
+    console.error('[ERROR] Get imminent travel issues failed:', error.message);
+    res.status(500).json({ error: 'Failed to get imminent travel issues' });
+  }
+});
+
+/**
+ * POST /api/notifications/check-travel-readiness
+ * Trigger a check for imminent travel with incomplete items and generate notifications
+ * (Admin only)
+ */
+router.post('/check-travel-readiness', (req, res) => {
+  try {
+    // Only admins can trigger the check
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { hours = 48 } = req.body;
+    const hoursThreshold = parseInt(hours, 10) || 48;
+
+    const result = checkImminentTravelReadiness(hoursThreshold);
+
+    res.json({
+      message: 'Travel readiness check completed',
+      ...result
+    });
+  } catch (error) {
+    console.error('[ERROR] Check travel readiness failed:', error.message);
+    res.status(500).json({ error: 'Failed to check travel readiness' });
   }
 });
 
