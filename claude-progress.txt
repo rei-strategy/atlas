@@ -1,5 +1,37 @@
 ## Atlas Progress Log
 
+### Session - 2026-02-06 (Agent: Feature #179)
+
+**Feature Completed: #179 - Confirmation number validation**
+
+#### Feature #179: Confirmation number validation
+- Backend validation in POST /api/trips/:tripId/bookings (line 134)
+- Backend validation in PUT /api/trips/:tripId/bookings/:id (line 245)
+- 'booked' status now requires confirmation number (returns 400 error if missing)
+- 'planned', 'quoted', 'canceled' statuses allow empty confirmation number
+- Frontend validation in BookingFormModal:
+  - Real-time validation when status changes to 'booked'
+  - Field-level error message display
+  - Label shows asterisk (*) when status is 'booked' to indicate required
+  - Error clears when user enters valid confirmation number
+- All feature steps verified via API testing:
+  1. Create booking with confirmation number → saved correctly
+  2. Create booking without confirmation number for 'planned' status → allowed
+  3. 'booked' status requires confirmation number → enforced on both create and update
+
+#### Test Data
+- Agency: Confirmation Test Agency (ID: 103)
+- User: conf_num_test@atlas.com / TestPass123
+- Trip: CONF_NUMBER_TEST_TRIP_F179 (ID: 93)
+- Bookings: ID 75 (Hilton Paris), ID 77 (Four Seasons Paris)
+
+#### Current State
+- 193/240 features passing (~80.4%)
+- Backend on port 3001, Frontend on port 3000
+- Feature verified working end-to-end
+
+---
+
 ### Session - 2026-02-06 (Agent batch: Features #154, #157)
 
 **Features Completed: #154, #157 (Feedback and Notification)**
