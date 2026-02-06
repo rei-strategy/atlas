@@ -1,6 +1,21 @@
 const express = require('express');
+const multer = require('multer');
+const { parse } = require('csv-parse/sync');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
+
+// Configure multer for CSV file uploads (in memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -361,6 +376,219 @@ router.delete('/:id', (req, res) => {
     console.error('[ERROR] Delete client failed:', error.message);
     res.status(500).json({ error: 'Failed to delete client' });
   }
+});
+
+/**
+ * POST /api/clients/import
+ * Import clients from CSV file
+ *
+ * Expected CSV columns (case-insensitive, with common variations):
+ * - first_name / firstName / first name
+ * - last_name / lastName / last name
+ * - email
+ * - phone
+ * - city
+ * - state
+ * - country
+ * - preferred_communication / preferredCommunication
+ * - notes
+ * - marketing_opt_in / marketingOptIn (true/false, yes/no, 1/0)
+ * - contact_consent / contactConsent (true/false, yes/no, 1/0)
+ */
+router.post('/import', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No CSV file provided' });
+    }
+
+    const db = getDb();
+    const csvContent = req.file.buffer.toString('utf-8');
+
+    // Parse CSV
+    let records;
+    try {
+      records = parse(csvContent, {
+        columns: true, // Use first row as headers
+        skip_empty_lines: true,
+        trim: true,
+        relax_column_count: true
+      });
+    } catch (parseError) {
+      return res.status(400).json({
+        error: 'Invalid CSV format',
+        details: parseError.message
+      });
+    }
+
+    if (records.length === 0) {
+      return res.status(400).json({ error: 'CSV file is empty or has no data rows' });
+    }
+
+    // Normalize column names to handle common variations
+    const normalizeColumn = (col) => {
+      return col.toLowerCase().replace(/[_\s]/g, '');
+    };
+
+    const columnMap = {
+      'firstname': 'firstName',
+      'lastname': 'lastName',
+      'email': 'email',
+      'phone': 'phone',
+      'city': 'city',
+      'state': 'state',
+      'country': 'country',
+      'preferredcommunication': 'preferredCommunication',
+      'notes': 'notes',
+      'marketingoptin': 'marketingOptIn',
+      'contactconsent': 'contactConsent'
+    };
+
+    // Parse boolean values
+    const parseBoolean = (value) => {
+      if (!value) return false;
+      const v = value.toString().toLowerCase().trim();
+      return ['true', 'yes', '1', 'y'].includes(v);
+    };
+
+    // Process records and validate
+    const validationErrors = [];
+    const clientsToInsert = [];
+    const existingEmails = new Set();
+
+    // Get existing emails in agency
+    const existingClients = db.prepare(
+      'SELECT email FROM clients WHERE agency_id = ? AND email IS NOT NULL'
+    ).all(req.agencyId);
+    existingClients.forEach(c => existingEmails.add(c.email.toLowerCase()));
+
+    records.forEach((record, index) => {
+      const rowNum = index + 2; // +2 because row 1 is header, and 0-indexed
+      const rowErrors = [];
+
+      // Map CSV columns to client fields
+      const clientData = {};
+      Object.keys(record).forEach(col => {
+        const normalizedCol = normalizeColumn(col);
+        if (columnMap[normalizedCol]) {
+          clientData[columnMap[normalizedCol]] = record[col];
+        }
+      });
+
+      // Validate required fields
+      if (!clientData.firstName || !clientData.firstName.trim()) {
+        rowErrors.push('First name is required');
+      }
+      if (!clientData.lastName || !clientData.lastName.trim()) {
+        rowErrors.push('Last name is required');
+      }
+
+      // Check email uniqueness
+      if (clientData.email && clientData.email.trim()) {
+        const email = clientData.email.trim().toLowerCase();
+        if (existingEmails.has(email)) {
+          rowErrors.push(`Email "${clientData.email}" already exists`);
+        } else {
+          // Add to set to prevent duplicates within the CSV
+          existingEmails.add(email);
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        validationErrors.push({
+          row: rowNum,
+          errors: rowErrors,
+          data: { firstName: clientData.firstName, lastName: clientData.lastName, email: clientData.email }
+        });
+      } else {
+        clientsToInsert.push({
+          firstName: clientData.firstName.trim(),
+          lastName: clientData.lastName.trim(),
+          email: clientData.email ? clientData.email.trim() : null,
+          phone: clientData.phone ? clientData.phone.trim() : null,
+          city: clientData.city ? clientData.city.trim() : null,
+          state: clientData.state ? clientData.state.trim() : null,
+          country: clientData.country ? clientData.country.trim() : null,
+          preferredCommunication: clientData.preferredCommunication ? clientData.preferredCommunication.trim() : null,
+          notes: clientData.notes ? clientData.notes.trim() : null,
+          marketingOptIn: parseBoolean(clientData.marketingOptIn),
+          contactConsent: parseBoolean(clientData.contactConsent)
+        });
+      }
+    });
+
+    // If there are validation errors, return them without importing
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        error: 'CSV validation failed',
+        validationErrors,
+        totalRows: records.length,
+        validRows: clientsToInsert.length,
+        errorRows: validationErrors.length
+      });
+    }
+
+    // Insert all valid clients
+    const insertStmt = db.prepare(`
+      INSERT INTO clients (
+        agency_id, assigned_user_id, first_name, last_name, email, phone,
+        city, state, country, preferred_communication, travel_preferences,
+        notes, marketing_opt_in, contact_consent
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertedClients = [];
+    const insertTransaction = db.transaction((clients) => {
+      for (const client of clients) {
+        const result = insertStmt.run(
+          req.agencyId,
+          req.user.id, // Assign to importing user
+          client.firstName,
+          client.lastName,
+          client.email,
+          client.phone,
+          client.city,
+          client.state,
+          client.country,
+          client.preferredCommunication,
+          null, // travel_preferences (not in CSV)
+          client.notes,
+          client.marketingOptIn ? 1 : 0,
+          client.contactConsent ? 1 : 0
+        );
+        insertedClients.push({
+          id: result.lastInsertRowid,
+          firstName: client.firstName,
+          lastName: client.lastName,
+          email: client.email
+        });
+      }
+    });
+
+    insertTransaction(clientsToInsert);
+
+    console.log(`[INFO] CSV import: ${insertedClients.length} clients imported for agency ${req.agencyId}`);
+
+    res.status(201).json({
+      message: 'CSV import completed successfully',
+      imported: insertedClients.length,
+      clients: insertedClients
+    });
+  } catch (error) {
+    console.error('[ERROR] CSV import failed:', error.message);
+    res.status(500).json({ error: 'Failed to import clients from CSV' });
+  }
+});
+
+/**
+ * GET /api/clients/import/template
+ * Download a CSV template for client import
+ */
+router.get('/import/template', (req, res) => {
+  const csvTemplate = 'first_name,last_name,email,phone,city,state,country,preferred_communication,notes,marketing_opt_in,contact_consent\nJohn,Doe,john.doe@example.com,555-123-4567,New York,NY,USA,Email,Sample notes,true,true\nJane,Smith,jane.smith@example.com,555-987-6543,Los Angeles,CA,USA,Phone,Another note,false,true\n';
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="client-import-template.csv"');
+  res.send(csvTemplate);
 });
 
 module.exports = router;
