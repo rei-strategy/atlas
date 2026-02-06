@@ -56,7 +56,7 @@ function TaskItem({ task, onComplete, onClick, formatShortDate }) {
 }
 
 export default function DashboardPage() {
-  const { token, handleSessionExpired } = useAuth();
+  const { token, handleSessionExpired, user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,7 +69,10 @@ export default function DashboardPage() {
     pipeline: { expected: { count: 0, amount: 0 }, submitted: { count: 0, amount: 0 }, paid: { count: 0, amount: 0 } },
     summary: { totalBookings: 0, totalExpected: 0, totalReceived: 0, outstanding: 0 }
   });
+  const [plannerPerformance, setPlannerPerformance] = useState({ planners: [], totals: {} });
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = user?.role === 'admin';
 
   // Handle access denied redirect from admin routes
   useEffect(() => {
@@ -200,14 +203,39 @@ export default function DashboardPage() {
     }
   }, [token, checkTokenExpiration]);
 
+  const fetchPlannerPerformance = useCallback(async () => {
+    // Only fetch for admin users
+    if (!isAdmin) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/planner-performance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        setPlannerPerformance(data);
+      }
+    } catch (err) {
+      console.error('Failed to load planner performance:', err);
+    }
+  }, [token, checkTokenExpiration, isAdmin]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline()]);
+      const promises = [fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline()];
+      if (isAdmin) {
+        promises.push(fetchPlannerPerformance());
+      }
+      await Promise.all(promises);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems, fetchCommissionPipeline]);
+  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems, fetchCommissionPipeline, fetchPlannerPerformance, isAdmin]);
 
   const handleCompleteTask = async (taskId) => {
     try {

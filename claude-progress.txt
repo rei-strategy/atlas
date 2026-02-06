@@ -2341,3 +2341,63 @@
 - Git commit: 2ed35ff
 
 ---
+
+### Session - 2026-02-06 (Agent batch: Features #105, #107, #135)
+
+**Features Completed: #105, #107, #135 (Workflow Completeness)**
+
+#### Feature #105: Customer portal - submit feedback form
+- Created trip_feedback table with comprehensive rating fields:
+  - overall_rating, service_rating, destination_rating, accommodations_rating (1-5 scale)
+  - would_recommend (boolean), highlights, improvements, comments (text)
+- Added GET /api/portal/trips/:id/feedback endpoint to fetch feedback status
+- Added POST /api/portal/trips/:id/feedback endpoint to submit feedback
+- Only allows feedback for completed trips
+- Prevents duplicate submissions
+- Added Feedback tab to PortalTripDetailPage with:
+  - Star rating component for each rating field
+  - Checkbox for would_recommend
+  - Text areas for highlights, improvements, comments
+  - Success state showing submitted feedback summary
+- Added CSS styles for feedback form and submitted feedback display
+
+#### Feature #107: Customer portal - acknowledge receipt of info
+- Created acknowledgments table with:
+  - title, description, acknowledgment_type (info, document, itinerary, booking, payment, terms)
+  - is_acknowledged, acknowledged_at, acknowledged_by_customer_id
+  - Support for linking to documents via document_id
+- Added planner endpoints in trips.js:
+  - GET /api/trips/:id/acknowledgments - list acknowledgments for trip
+  - POST /api/trips/:id/acknowledgments - create acknowledgment request
+  - DELETE /api/trips/:tripId/acknowledgments/:id - delete unacknowledged items
+- Added customer portal endpoints in portal.js:
+  - GET /api/portal/acknowledgments - list all pending acknowledgments
+  - GET /api/portal/trips/:id/acknowledgments - trip-specific acknowledgments
+  - POST /api/portal/acknowledgments/:id/acknowledge - confirm receipt
+- Added "To Review" tab to PortalTripDetailPage with:
+  - Pending section showing items needing acknowledgment
+  - Confirmed section showing already acknowledged items
+  - Type badges with color coding for different acknowledgment types
+  - Acknowledge button for each pending item
+- Audit logging for acknowledgment actions
+
+#### Feature #135: Agency default commission rates
+- Backend already had defaultCommissionRate field in agencies table and settings API
+- Settings page already had Default Commission Rate (%) field in Agency Settings tab
+- Modified BookingFormModal to accept defaultCommissionRate prop
+- Modified BookingsTab to fetch agency settings and get default rate
+- New bookings now pre-populate commission rate from agency defaults
+- Users can override the rate per booking (tested with 15% override vs 10% default)
+- Commission amount auto-calculates when rate and total cost are entered
+
+#### Database Changes
+- Created trip_feedback table
+- Created acknowledgments table
+
+#### Current State
+- 157/240 features passing (65.4%)
+- Backend on port 3001, Frontend on port 3000
+- All features tested end-to-end via API
+- Git commits: d9c3139, 8d1d7f1, 6a6d8c1
+
+---
