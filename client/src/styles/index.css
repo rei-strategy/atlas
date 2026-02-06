@@ -2462,6 +2462,7 @@ html, body {
   border-color: var(--color-primary);
   box-shadow: 0 4px 12px rgba(26, 86, 219, 0.08);
   transform: translateY(-2px);
+  text-decoration: none;
 }
 
 .portal-trip-card-header {
@@ -6141,4 +6142,209 @@ html, body {
 
 .toggle-switch input:checked + .toggle-slider::before {
   transform: translateX(22px);
+}
+
+/* Network Error Banner Styles */
+.network-error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background-color: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  padding: var(--spacing-md);
+  animation: slideDown 0.3s ease-out;
+}
+
+[data-theme="dark"] .network-error-banner {
+  background-color: #450a0a;
+  border-bottom-color: #7f1d1d;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.network-error-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.network-error-icon {
+  flex-shrink: 0;
+  color: var(--color-error);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-error-text {
+  flex: 1;
+}
+
+.network-error-title {
+  font-weight: 600;
+  color: #991b1b;
+  font-size: var(--font-size-base);
+}
+
+[data-theme="dark"] .network-error-title {
+  color: #fca5a5;
+}
+
+.network-error-message {
+  color: #7f1d1d;
+  font-size: var(--font-size-sm);
+  margin-top: 2px;
+}
+
+[data-theme="dark"] .network-error-message {
+  color: #fecaca;
+}
+
+.network-error-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.network-error-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.network-error-retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.network-error-dismiss {
+  background: transparent;
+  border: none;
+  color: #991b1b;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+}
+
+[data-theme="dark"] .network-error-dismiss {
+  color: #fca5a5;
+}
+
+.network-error-dismiss:hover {
+  background-color: rgba(153, 27, 27, 0.1);
+}
+
+[data-theme="dark"] .network-error-dismiss:hover {
+  background-color: rgba(252, 165, 165, 0.1);
+}
+
+/* Network Error Fallback (Full Page) */
+.network-error-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--spacing-xl);
+  background-color: var(--color-bg);
+}
+
+.network-error-fallback-content {
+  text-align: center;
+  max-width: 480px;
+}
+
+.network-error-fallback-icon {
+  color: var(--color-error);
+  margin-bottom: var(--spacing-lg);
+  display: inline-flex;
+  padding: var(--spacing-lg);
+  background-color: #fef2f2;
+  border-radius: 50%;
+}
+
+[data-theme="dark"] .network-error-fallback-icon {
+  background-color: #450a0a;
+}
+
+.network-error-fallback-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--spacing-md);
+}
+
+.network-error-fallback-message {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-xl);
+}
+
+.network-error-fallback-actions {
+  margin-bottom: var(--spacing-lg);
+}
+
+.network-error-fallback-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-base);
+}
+
+.network-error-fallback-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.network-error-fallback-hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* Responsive adjustments for network error */
+@media (max-width: 640px) {
+  .network-error-content {
+    flex-wrap: wrap;
+  }
+
+  .network-error-text {
+    order: 2;
+    flex-basis: 100%;
+    text-align: center;
+    margin-top: var(--spacing-sm);
+  }
+
+  .network-error-icon {
+    order: 1;
+  }
+
+  .network-error-actions {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: center;
+    margin-top: var(--spacing-md);
+  }
 }

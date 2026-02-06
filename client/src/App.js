@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortalAuthProvider, usePortalAuth } from './context/PortalAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './components/Toast';
+import { NetworkErrorProvider } from './context/NetworkErrorContext';
+import { NetworkErrorBanner } from './components/NetworkError';
 import AppLayout from './components/AppLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -266,15 +268,18 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        <AuthProvider>
-          <PortalAuthProvider>
-            <ToastProvider>
-              <div className="App">
-                <AppRoutes />
-              </div>
-            </ToastProvider>
-          </PortalAuthProvider>
-        </AuthProvider>
+        <NetworkErrorProvider>
+          <AuthProvider>
+            <PortalAuthProvider>
+              <ToastProvider>
+                <div className="App">
+                  <NetworkErrorBanner />
+                  <AppRoutes />
+                </div>
+              </ToastProvider>
+            </PortalAuthProvider>
+          </AuthProvider>
+        </NetworkErrorProvider>
       </ThemeProvider>
     </Router>
   );

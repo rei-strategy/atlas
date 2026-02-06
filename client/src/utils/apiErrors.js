@@ -4,6 +4,61 @@
  */
 
 /**
+ * Check if an error is a network error
+ * @param {Error} error - The error to check
+ * @returns {boolean}
+ */
+export function isNetworkError(error) {
+  // TypeError: Failed to fetch - network connection failed
+  if (error instanceof TypeError && error.message === 'Failed to fetch') {
+    return true;
+  }
+
+  // NetworkError name (some browsers)
+  if (error.name === 'NetworkError') {
+    return true;
+  }
+
+  // AbortError from timeout
+  if (error.name === 'AbortError') {
+    return true;
+  }
+
+  // Check for common network error messages
+  const networkMessages = [
+    'network error',
+    'network request failed',
+    'net::err_',
+    'load failed',
+    'cors error',
+    'failed to fetch',
+    'unable to connect',
+    'connection refused',
+    'network unavailable'
+  ];
+
+  const errorMessage = (error.message || '').toLowerCase();
+  return networkMessages.some(msg => errorMessage.includes(msg));
+}
+
+/**
+ * Get a user-friendly message for network errors
+ * @param {Error} error - The error
+ * @returns {string}
+ */
+export function getNetworkErrorMessage(error) {
+  if (error.name === 'AbortError') {
+    return 'The request took too long. Please check your connection and try again.';
+  }
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return "You're currently offline. Please check your internet connection.";
+  }
+
+  return "We couldn't connect to the server. Please check your internet connection and try again.";
+}
+
+/**
  * Extract a user-friendly error message from an API response
  * @param {Response} res - Fetch API Response object
  * @param {Object} data - Parsed JSON response body

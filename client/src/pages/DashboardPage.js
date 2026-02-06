@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import { useNetworkError, isNetworkError } from '../context/NetworkErrorContext';
+import { NetworkErrorFallback } from '../components/NetworkError';
 
 const API_BASE = '/api';
 

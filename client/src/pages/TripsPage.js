@@ -3856,6 +3856,50 @@ export default function TripsPage() {
     setShowModal(true);
   };
 
+  const handleImportCSV = async () => {
+    if (!importFile) {
+      addToast('Please select a CSV file', 'error');
+      return;
+    }
+
+    setImportLoading(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const res = await fetch(`${API_BASE}/trips/import`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Import failed');
+      }
+
+      setImportResult(data);
+      if (data.imported > 0) {
+        addToast(`Successfully imported ${data.imported} trips`, 'success');
+        fetchTrips(); // Refresh the trips list
+      }
+    } catch (err) {
+      addToast(err.message, 'error');
+      setImportResult({ imported: 0, errors: [{ error: err.message }] });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportResult(null);
+  };
+
   const handleEditTrip = (trip) => {
     setEditTrip(trip);
     setShowModal(true);
@@ -3939,9 +3983,14 @@ export default function TripsPage() {
           <h1 className="page-title">Trips</h1>
           <p className="page-subtitle">Manage trips and their lifecycle.</p>
         </div>
-        <button className="btn btn-primary" onClick={handleCreateTrip}>
-          + Create Trip
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+          <button className="btn btn-secondary" onClick={() => setShowImportModal(true)}>
+            📥 Import CSV
+          </button>
+          <button className="btn btn-primary" onClick={handleCreateTrip}>
+            + Create Trip
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
@@ -4150,6 +4199,110 @@ export default function TripsPage() {
         trip={editTrip}
         token={token}
       />
+
+      {/* CSV Import Modal */}
+      <Modal isOpen={showImportModal} onClose={handleCloseImportModal}>
+        <div className="modal-header">
+          <h2 className="modal-title">Import Trips from CSV</h2>
+        </div>
+        <div className="modal-body">
+          {!importResult ? (
+            <>
+              <p style={{ marginBottom: '16px', color: 'var(--color-text-secondary)' }}>
+                Upload a CSV file to import multiple trips at once. The CSV should have a header row with the following columns:
+              </p>
+              <div className="csv-columns-info" style={{ marginBottom: '16px', padding: '12px', background: 'var(--color-bg-secondary)', borderRadius: '8px' }}>
+                <p style={{ marginBottom: '8px', fontWeight: 500 }}>Required:</p>
+                <ul style={{ marginLeft: '20px', marginBottom: '12px' }}>
+                  <li><code>name</code> - Trip name</li>
+                </ul>
+                <p style={{ marginBottom: '8px', fontWeight: 500 }}>Optional:</p>
+                <ul style={{ marginLeft: '20px' }}>
+                  <li><code>destination</code> - Trip destination</li>
+                  <li><code>clientEmail</code> - Client's email (to link to existing client)</li>
+                  <li><code>travelStartDate</code> - Start date (YYYY-MM-DD or MM/DD/YYYY)</li>
+                  <li><code>travelEndDate</code> - End date (YYYY-MM-DD or MM/DD/YYYY)</li>
+                  <li><code>description</code> - Trip description/notes</li>
+                </ul>
+              </div>
+
+              <div className="form-group">
+                <label>Select CSV File</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files[0])}
+                  style={{ marginTop: '8px' }}
+                />
+                {importFile && (
+                  <p style={{ marginTop: '8px', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                    Selected: {importFile.name}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="import-results">
+              <div style={{ marginBottom: '16px', padding: '16px', background: importResult.imported > 0 ? '#ecfdf5' : '#fef2f2', borderRadius: '8px' }}>
+                <p style={{ fontWeight: 600, color: importResult.imported > 0 ? '#047857' : '#b91c1c' }}>
+                  {importResult.imported > 0
+                    ? `✓ Successfully imported ${importResult.imported} trips`
+                    : '✗ No trips were imported'}
+                </p>
+              </div>
+
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ fontWeight: 500, marginBottom: '8px' }}>Issues ({importResult.errors.length}):</p>
+                  <ul style={{ maxHeight: '200px', overflow: 'auto', marginLeft: '20px', fontSize: '0.875rem' }}>
+                    {importResult.errors.map((err, idx) => (
+                      <li key={idx} style={{ color: err.warning ? 'var(--color-warning)' : 'var(--color-error)', marginBottom: '4px' }}>
+                        {err.row && `Row ${err.row}: `}
+                        {err.error || err.warning}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {importResult.trips && importResult.trips.length > 0 && (
+                <div>
+                  <p style={{ fontWeight: 500, marginBottom: '8px' }}>Created Trips:</p>
+                  <ul style={{ maxHeight: '150px', overflow: 'auto', marginLeft: '20px', fontSize: '0.875rem' }}>
+                    {importResult.trips.map((trip, idx) => (
+                      <li key={idx} style={{ marginBottom: '4px' }}>
+                        <a href={`/trips/${trip.id}`} style={{ color: 'var(--color-primary)' }}>
+                          {trip.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          {!importResult ? (
+            <>
+              <button className="btn btn-secondary" onClick={handleCloseImportModal}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleImportCSV}
+                disabled={!importFile || importLoading}
+              >
+                {importLoading ? 'Importing...' : 'Import'}
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-primary" onClick={handleCloseImportModal}>
+              Done
+            </button>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
