@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -13,15 +14,9 @@ const CATEGORY_LABELS = {
   internal: 'Internal'
 };
 
-function TaskItem({ task, onComplete, onClick }) {
+function TaskItem({ task, onComplete, onClick, formatShortDate }) {
   const isOverdue = task.status === 'overdue';
   const isUrgent = task.priority === 'urgent';
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   return (
     <div
@@ -48,7 +43,7 @@ function TaskItem({ task, onComplete, onClick }) {
             <span className="task-meta-trip">{task.tripName}</span>
           )}
           <span className={`task-meta-due ${isOverdue ? 'text-danger' : ''}`}>
-            Due: {formatDate(task.dueDate)}
+            Due: {formatShortDate(task.dueDate)}
           </span>
         </div>
       </div>
@@ -64,6 +59,7 @@ export default function DashboardPage() {
   const { token } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const { formatShortDate, isOverdue: checkOverdue, timezone } = useTimezone();
   const [tasks, setTasks] = useState([]);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,9 +73,10 @@ export default function DashboardPage() {
       const data = await res.json();
       if (res.ok) {
         // Filter to today's tasks and overdue tasks, sort by urgency
-        const today = new Date().toISOString().split('T')[0];
+        // Use timezone-aware date comparison
+        const todayInTz = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD format
         const relevantTasks = data.tasks
-          .filter(t => t.status !== 'completed' && (t.dueDate <= today || t.priority === 'urgent'))
+          .filter(t => t.status !== 'completed' && (t.dueDate <= todayInTz || t.priority === 'urgent'))
           .sort((a, b) => {
             // Sort: overdue first, then urgent, then by due date
             if (a.status === 'overdue' && b.status !== 'overdue') return -1;
@@ -173,10 +170,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Calculate upcoming deadlines from trips
+  // Calculate upcoming deadlines from trips using timezone
   const getUpcomingDeadlines = () => {
-    const today = new Date();
-    const weekFromNow = new Date();
+    // Get today's date in the agency's timezone
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+    const today = new Date(todayStr);
+    const weekFromNow = new Date(today);
     weekFromNow.setDate(weekFromNow.getDate() + 7);
 
     const deadlines = [];
@@ -290,6 +289,7 @@ export default function DashboardPage() {
                     task={task}
                     onComplete={handleCompleteTask}
                     onClick={handleTaskClick}
+                    formatShortDate={formatShortDate}
                   />
                 ))}
                 {tasks.length > 5 && (
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                       <div className="deadline-trip">{deadline.tripName}</div>
                     </div>
                     <div className="deadline-date">
-                      {new Date(deadline.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {formatShortDate(deadline.date)}
                     </div>
                   </div>
                 ))}

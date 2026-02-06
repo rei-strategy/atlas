@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -370,7 +371,7 @@ function TemplatePreviewModal({ isOpen, onClose, template, token }) {
   );
 }
 
-function TemplateDetail({ template, onBack, onEdit, onPreview, onToggleActive, token }) {
+function TemplateDetail({ template, onBack, onEdit, onPreview, onToggleActive, token, formatDateTime }) {
   if (!template) return null;
 
   return (
@@ -473,6 +474,7 @@ function TemplateDetail({ template, onBack, onEdit, onPreview, onToggleActive, t
 export default function EmailTemplatesPage() {
   const { token } = useAuth();
   const { addToast } = useToast();
+  const { formatDateTime } = useTimezone();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

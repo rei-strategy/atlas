@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -623,6 +624,7 @@ function RoleBadge({ role }) {
 
 export default function SettingsPage() {
   const { user, token } = useAuth();
+  const { formatDate } = useTimezone();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -721,7 +723,7 @@ export default function SettingsPage() {
                             {u.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                        <td>{formatDate(u.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

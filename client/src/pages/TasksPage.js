@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -280,11 +281,7 @@ function TaskCard({ task, onComplete, onEdit }) {
     return cat ? cat.label : category;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  // formatDate is provided by useTimezone hook
 
   const isOverdue = task.status === 'overdue';
   const isCompleted = task.status === 'completed';
@@ -367,6 +364,7 @@ function TaskCard({ task, onComplete, onEdit }) {
 export default function TasksPage() {
   const { token } = useAuth();
   const { addToast } = useToast();
+  const { formatDate } = useTimezone();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [trips, setTrips] = useState([]);

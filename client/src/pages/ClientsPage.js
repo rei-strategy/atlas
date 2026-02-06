@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -407,11 +408,14 @@ export default function ClientsPage() {
   const { token } = useAuth();
   const { id: urlClientId } = useParams();
   const navigate = useNavigate();
+  const { formatDate } = useTimezone();
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [plannerFilter, setPlannerFilter] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [showModal, setShowModal] = useState(false);
   const [editClient, setEditClient] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -440,6 +444,8 @@ export default function ClientsPage() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (plannerFilter) params.set('assignedTo', plannerFilter);
+      params.set('sortBy', sortBy);
+      params.set('sortOrder', sortOrder);
       const res = await fetch(`${API_BASE}/clients?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -452,7 +458,7 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, search, plannerFilter]);
+  }, [token, search, plannerFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     fetchClients();
@@ -510,6 +516,30 @@ export default function ClientsPage() {
   };
 
   const hasActiveFilters = search !== '' || plannerFilter !== '';
+
+  // Handle column header click for sorting
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      // Toggle order if clicking same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  // Render sort indicator for a column
+  const renderSortIndicator = (column) => {
+    if (sortBy !== column) {
+      return <span className="sort-indicator sort-inactive">⇅</span>;
+    }
+    return (
+      <span className="sort-indicator sort-active">
+        {sortOrder === 'asc' ? '↑' : '↓'}
+      </span>
+    );
+  };
 
   // Detail view
   if (selectedClient) {
@@ -606,12 +636,18 @@ export default function ClientsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
+                <th className="sortable-header" onClick={() => handleSort('name')}>
+                  Name {renderSortIndicator('name')}
+                </th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th className="sortable-header" onClick={() => handleSort('planner')}>
+                  Planner {renderSortIndicator('planner')}
+                </th>
                 <th>Location</th>
-                <th>Preferred Contact</th>
-                <th>Created</th>
+                <th className="sortable-header" onClick={() => handleSort('activity')}>
+                  Last Activity {renderSortIndicator('activity')}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -631,9 +667,9 @@ export default function ClientsPage() {
                   </td>
                   <td>{client.email || '—'}</td>
                   <td>{client.phone || '—'}</td>
+                  <td>{client.assignedUserName || '—'}</td>
                   <td>{[client.city, client.state, client.country].filter(Boolean).join(', ') || '—'}</td>
-                  <td>{client.preferredCommunication || '—'}</td>
-                  <td>{new Date(client.createdAt).toLocaleDateString()}</td>
+                  <td>{formatDate(client.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>

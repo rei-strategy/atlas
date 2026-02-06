@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
@@ -1128,15 +1129,15 @@ function BookingsTab({ tripId, token }) {
             </div>
             <div className="detail-field">
               <span className="detail-field-label">Booking Date</span>
-              <span className="detail-field-value">{b.bookingDate ? new Date(b.bookingDate).toLocaleDateString() : '—'}</span>
+              <span className="detail-field-value">{formatDate(b.bookingDate)}</span>
             </div>
             <div className="detail-field">
               <span className="detail-field-label">Travel Start</span>
-              <span className="detail-field-value">{b.travelStartDate ? new Date(b.travelStartDate).toLocaleDateString() : '—'}</span>
+              <span className="detail-field-value">{formatDate(b.travelStartDate)}</span>
             </div>
             <div className="detail-field">
               <span className="detail-field-label">Travel End</span>
-              <span className="detail-field-value">{b.travelEndDate ? new Date(b.travelEndDate).toLocaleDateString() : '—'}</span>
+              <span className="detail-field-value">{formatDate(b.travelEndDate)}</span>
             </div>
           </div>
 
@@ -1165,7 +1166,7 @@ function BookingsTab({ tripId, token }) {
               <div className="detail-field">
                 <span className="detail-field-label">Final Payment Due</span>
                 <span className={`detail-field-value ${isPaymentOverdue(b) ? 'payment-overdue' : ''}`}>
-                  {b.finalPaymentDueDate ? new Date(b.finalPaymentDueDate).toLocaleDateString() : '—'}
+                  {formatDate(b.finalPaymentDueDate)}
                   {isPaymentOverdue(b) && <span className="overdue-badge">OVERDUE</span>}
                 </span>
               </div>
@@ -1217,7 +1218,7 @@ function BookingsTab({ tripId, token }) {
               {b.commissionReceivedDate && (
                 <div className="detail-field">
                   <span className="detail-field-label">Date Received</span>
-                  <span className="detail-field-value">{new Date(b.commissionReceivedDate).toLocaleDateString()}</span>
+                  <span className="detail-field-value">{formatDate(b.commissionReceivedDate)}</span>
                 </div>
               )}
               {b.commissionPaymentReference && (
@@ -1378,7 +1379,7 @@ function BookingsTab({ tripId, token }) {
                     )}
                   </td>
                   <td style={{ fontSize: '0.8125rem' }}>
-                    {b.travelStartDate ? new Date(b.travelStartDate).toLocaleDateString() : '—'}
+                    {formatDate(b.travelStartDate)}
                   </td>
                 </tr>
               ))}
@@ -1823,7 +1824,7 @@ function TravelersTab({ tripId, token }) {
           <div className="detail-grid">
             <div className="detail-field">
               <span className="detail-field-label">Date of Birth</span>
-              <span className="detail-field-value">{t.dateOfBirth ? new Date(t.dateOfBirth).toLocaleDateString() : '—'}</span>
+              <span className="detail-field-value">{formatDate(t.dateOfBirth)}</span>
             </div>
             <div className="detail-field">
               <span className="detail-field-label">Age</span>
@@ -1841,7 +1842,7 @@ function TravelersTab({ tripId, token }) {
             </div>
             <div className="detail-field">
               <span className="detail-field-label">Passport Expiration</span>
-              <span className="detail-field-value">{t.passportExpiration ? new Date(t.passportExpiration).toLocaleDateString() : '—'}</span>
+              <span className="detail-field-value">{formatDate(t.passportExpiration)}</span>
             </div>
           </div>
 
@@ -2321,7 +2322,7 @@ function DocumentsTab({ tripId, token }) {
                     </button>
                   </td>
                   <td>{doc.uploaderName || '—'}</td>
-                  <td>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}</td>
+                  <td>{formatDate(doc.createdAt)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -2444,11 +2445,11 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Travel Start</span>
-                  <span className="detail-field-value">{trip.travelStartDate ? new Date(trip.travelStartDate).toLocaleDateString() : '—'}</span>
+                  <span className="detail-field-value">{formatDate(trip.travelStartDate)}</span>
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Travel End</span>
-                  <span className="detail-field-value">{trip.travelEndDate ? new Date(trip.travelEndDate).toLocaleDateString() : '—'}</span>
+                  <span className="detail-field-value">{formatDate(trip.travelEndDate)}</span>
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Stage</span>
@@ -2487,15 +2488,15 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
               <div className="detail-grid">
                 <div className="detail-field">
                   <span className="detail-field-label">Final Payment Deadline</span>
-                  <span className="detail-field-value">{trip.finalPaymentDeadline ? new Date(trip.finalPaymentDeadline).toLocaleDateString() : '—'}</span>
+                  <span className="detail-field-value">{formatDate(trip.finalPaymentDeadline)}</span>
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Insurance Cutoff</span>
-                  <span className="detail-field-value">{trip.insuranceCutoffDate ? new Date(trip.insuranceCutoffDate).toLocaleDateString() : '—'}</span>
+                  <span className="detail-field-value">{formatDate(trip.insuranceCutoffDate)}</span>
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Check-in Date</span>
-                  <span className="detail-field-value">{trip.checkinDate ? new Date(trip.checkinDate).toLocaleDateString() : '—'}</span>
+                  <span className="detail-field-value">{formatDate(trip.checkinDate)}</span>
                 </div>
                 <div className="detail-field">
                   <span className="detail-field-label">Locked</span>
@@ -2535,6 +2536,7 @@ export default function TripsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
+  const { formatDate } = useTimezone();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   // Initialize filter states from URL search params for persistence
@@ -2847,12 +2849,10 @@ export default function TripsPage() {
                   </td>
                   <td>
                     {trip.travelStartDate && trip.travelEndDate
-                      ? `${new Date(trip.travelStartDate).toLocaleDateString()} - ${new Date(trip.travelEndDate).toLocaleDateString()}`
-                      : trip.travelStartDate
-                      ? new Date(trip.travelStartDate).toLocaleDateString()
-                      : '—'}
+                      ? `${formatDate(trip.travelStartDate)} - ${formatDate(trip.travelEndDate)}`
+                      : formatDate(trip.travelStartDate)}
                   </td>
-                  <td>{new Date(trip.createdAt).toLocaleDateString()}</td>
+                  <td>{formatDate(trip.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

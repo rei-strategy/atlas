@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTimezone } from '../hooks/useTimezone';
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -8,9 +9,11 @@ export default function NotificationBell() {
   const [urgentCount, setUrgentCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [snoozeMenuId, setSnoozeMenuId] = useState(null); // ID of notification showing snooze options
   const dropdownRef = useRef(null);
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { formatDate } = useTimezone();
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -127,6 +130,66 @@ export default function NotificationBell() {
     }
   };
 
+  const handleSnoozeClick = (id, e) => {
+    e.stopPropagation();
+    // Toggle snooze menu for this notification
+    setSnoozeMenuId(snoozeMenuId === id ? null : id);
+  };
+
+  const handleSnooze = async (id, duration, e) => {
+    e.stopPropagation();
+
+    // Calculate snooze until time
+    const now = new Date();
+    let snoozeUntil;
+
+    switch(duration) {
+      case '1h':
+        snoozeUntil = new Date(now.getTime() + 60 * 60 * 1000);
+        break;
+      case '3h':
+        snoozeUntil = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+        break;
+      case '1d':
+        snoozeUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        break;
+      case 'tomorrow':
+        // Tomorrow at 9 AM
+        snoozeUntil = new Date(now);
+        snoozeUntil.setDate(snoozeUntil.getDate() + 1);
+        snoozeUntil.setHours(9, 0, 0, 0);
+        break;
+      default:
+        snoozeUntil = new Date(now.getTime() + 60 * 60 * 1000); // Default 1 hour
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/notifications/${id}/snooze`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ snoozeUntil: snoozeUntil.toISOString() })
+      });
+
+      if (response.ok) {
+        // Remove from visible notifications (it will reappear when snooze expires)
+        const notif = notifications.find(n => n.id === id);
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        if (notif && !notif.isRead) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+          if (notif.type === 'urgent') {
+            setUrgentCount(prev => Math.max(0, prev - 1));
+          }
+        }
+        setSnoozeMenuId(null);
+      }
+    } catch (err) {
+      console.error('Failed to snooze notification:', err);
+    }
+  };
+
   const handleNotificationClick = (notification) => {
     // Mark as read
     if (!notification.isRead) {
@@ -159,7 +222,7 @@ export default function NotificationBell() {
     }
   };
 
-  const formatTimeAgo = (dateString) => {
+  const formatTimeAgo = useCallback((dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
@@ -171,8 +234,8 @@ export default function NotificationBell() {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+    return formatDate(dateString);
+  }, [formatDate]);
 
   return (
     <div className="notification-bell" ref={dropdownRef}>
@@ -243,15 +306,46 @@ export default function NotificationBell() {
                     )}
                     <div className="notification-time">{formatTimeAgo(notification.createdAt)}</div>
                   </div>
-                  <button
-                    className="notification-dismiss"
-                    onClick={(e) => handleDismiss(notification.id, e)}
-                    aria-label="Dismiss notification"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
+                  <div className="notification-actions">
+                    <button
+                      className="notification-snooze"
+                      onClick={(e) => handleSnoozeClick(notification.id, e)}
+                      aria-label="Snooze notification"
+                      title="Snooze"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    <button
+                      className="notification-dismiss"
+                      onClick={(e) => handleDismiss(notification.id, e)}
+                      aria-label="Dismiss notification"
+                      title="Dismiss"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                  {snoozeMenuId === notification.id && (
+                    <div className="snooze-menu" onClick={(e) => e.stopPropagation()}>
+                      <div className="snooze-menu-title">Snooze for:</div>
+                      <button className="snooze-option" onClick={(e) => handleSnooze(notification.id, '1h', e)}>
+                        1 hour
+                      </button>
+                      <button className="snooze-option" onClick={(e) => handleSnooze(notification.id, '3h', e)}>
+                        3 hours
+                      </button>
+                      <button className="snooze-option" onClick={(e) => handleSnooze(notification.id, '1d', e)}>
+                        1 day
+                      </button>
+                      <button className="snooze-option" onClick={(e) => handleSnooze(notification.id, 'tomorrow', e)}>
+                        Tomorrow morning
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

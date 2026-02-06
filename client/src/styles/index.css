@@ -1391,6 +1391,34 @@ button {
   font-weight: 500;
 }
 
+/* Sortable table headers */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s ease;
+}
+
+.sortable-header:hover {
+  background: rgba(26, 86, 219, 0.08);
+  color: var(--color-primary);
+}
+
+.sort-indicator {
+  margin-left: 4px;
+  display: inline-block;
+  font-size: 0.75rem;
+  min-width: 12px;
+}
+
+.sort-inactive {
+  opacity: 0.3;
+}
+
+.sort-active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 /* ============================================
    Detail View
    ============================================ */
@@ -3971,6 +3999,7 @@ html, body {
 }
 
 .notification-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm);
@@ -4072,6 +4101,83 @@ html, body {
 .notification-dismiss:hover {
   background-color: var(--color-border);
   color: var(--color-text);
+}
+
+/* Notification Actions (snooze + dismiss) */
+.notification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.notification-item:hover .notification-actions {
+  opacity: 1;
+}
+
+.notification-snooze {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius);
+  transition: background-color 0.15s;
+  cursor: pointer;
+}
+
+.notification-snooze:hover {
+  background-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+/* Snooze Menu */
+.snooze-menu {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-sm);
+  min-width: 150px;
+  z-index: 1200;
+}
+
+.snooze-menu-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.snooze-option {
+  display: block;
+  width: 100%;
+  padding: 8px 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.snooze-option:hover {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-primary);
 }
 
 /* Responsive notification dropdown */

@@ -37,10 +37,22 @@ router.get('/', (req, res) => {
     }
 
     // Validate sort columns to prevent injection
-    const allowedSortCols = ['first_name', 'last_name', 'email', 'created_at', 'updated_at'];
+    const allowedSortCols = ['first_name', 'last_name', 'email', 'created_at', 'updated_at', 'name', 'planner', 'activity'];
     const safeSortBy = allowedSortCols.includes(sortBy) ? sortBy : 'created_at';
     const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
-    query += ` ORDER BY c.${safeSortBy} ${safeSortOrder}`;
+
+    // Handle composite and custom sort columns
+    let orderClause;
+    if (safeSortBy === 'name') {
+      orderClause = `c.last_name ${safeSortOrder}, c.first_name ${safeSortOrder}`;
+    } else if (safeSortBy === 'planner') {
+      orderClause = `u.last_name ${safeSortOrder}, u.first_name ${safeSortOrder}`;
+    } else if (safeSortBy === 'activity') {
+      orderClause = `c.updated_at ${safeSortOrder}`;
+    } else {
+      orderClause = `c.${safeSortBy} ${safeSortOrder}`;
+    }
+    query += ` ORDER BY ${orderClause}`;
 
     const clients = db.prepare(query).all(...params);
 
