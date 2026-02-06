@@ -173,4 +173,129 @@ router.get('/recent-items', authorize('admin', 'planner', 'planner_advisor'), (r
   }
 });
 
+/**
+ * GET /api/dashboard/planner-performance
+ * Get performance metrics per planner (ADMIN ONLY)
+ * Returns trip counts, conversion rates, and revenue per planner
+ */
+router.get('/planner-performance', authorize('admin'), (req, res) => {
+  try {
+    const db = getDb();
+
+    // Get all planners in this agency
+    const planners = db.prepare(`
+      SELECT id, first_name, last_name, email, role
+      FROM users
+      WHERE agency_id = ?
+        AND role IN ('admin', 'planner', 'planner_advisor')
+      ORDER BY last_name, first_name
+    `).all(req.agencyId);
+
+    // Get trip counts by stage per planner
+    const tripStats = db.prepare(`
+      SELECT
+        assigned_user_id,
+        stage,
+        COUNT(*) as count
+      FROM trips
+      WHERE agency_id = ?
+        AND assigned_user_id IS NOT NULL
+      GROUP BY assigned_user_id, stage
+    `).all(req.agencyId);
+
+    // Get booking revenue per planner
+    const revenueStats = db.prepare(`
+      SELECT
+        t.assigned_user_id,
+        SUM(b.total_cost) as total_revenue,
+        SUM(b.commission_amount_expected) as total_commission
+      FROM bookings b
+      JOIN trips t ON b.trip_id = t.id
+      WHERE t.agency_id = ?
+        AND t.assigned_user_id IS NOT NULL
+        AND b.status != 'canceled'
+      GROUP BY t.assigned_user_id
+    `).all(req.agencyId);
+
+    // Build performance data per planner
+    const performance = planners.map(planner => {
+      // Get trips for this planner
+      const plannerTrips = tripStats.filter(s => s.assigned_user_id === planner.id);
+
+      // Calculate stage counts
+      const stageCounts = {
+        inquiry: 0,
+        quoted: 0,
+        booked: 0,
+        final_payment_pending: 0,
+        traveling: 0,
+        completed: 0,
+        canceled: 0,
+        archived: 0
+      };
+
+      plannerTrips.forEach(s => {
+        if (stageCounts.hasOwnProperty(s.stage)) {
+          stageCounts[s.stage] = s.count;
+        }
+      });
+
+      // Calculate totals
+      const totalTrips = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+      const activeTrips = stageCounts.inquiry + stageCounts.quoted + stageCounts.booked +
+                          stageCounts.final_payment_pending + stageCounts.traveling;
+      const completedTrips = stageCounts.completed;
+
+      // Conversion rate: completed trips / (completed + canceled)
+      const totalClosed = completedTrips + stageCounts.canceled;
+      const conversionRate = totalClosed > 0 ? (completedTrips / totalClosed) * 100 : null;
+
+      // Revenue for this planner
+      const plannerRevenue = revenueStats.find(r => r.assigned_user_id === planner.id);
+
+      return {
+        id: planner.id,
+        name: `${planner.first_name} ${planner.last_name}`,
+        email: planner.email,
+        role: planner.role,
+        trips: {
+          total: totalTrips,
+          active: activeTrips,
+          completed: completedTrips,
+          canceled: stageCounts.canceled,
+          byStage: stageCounts
+        },
+        conversionRate: conversionRate !== null ? Math.round(conversionRate * 10) / 10 : null,
+        revenue: {
+          total: plannerRevenue?.total_revenue || 0,
+          commission: plannerRevenue?.total_commission || 0
+        }
+      };
+    });
+
+    // Calculate agency-wide totals
+    const agencyTotals = {
+      totalTrips: performance.reduce((sum, p) => sum + p.trips.total, 0),
+      activeTrips: performance.reduce((sum, p) => sum + p.trips.active, 0),
+      completedTrips: performance.reduce((sum, p) => sum + p.trips.completed, 0),
+      canceledTrips: performance.reduce((sum, p) => sum + p.trips.canceled, 0),
+      totalRevenue: performance.reduce((sum, p) => sum + p.revenue.total, 0),
+      totalCommission: performance.reduce((sum, p) => sum + p.revenue.commission, 0)
+    };
+
+    const agencyConversion = (agencyTotals.completedTrips + agencyTotals.canceledTrips) > 0
+      ? (agencyTotals.completedTrips / (agencyTotals.completedTrips + agencyTotals.canceledTrips)) * 100
+      : null;
+    agencyTotals.conversionRate = agencyConversion !== null ? Math.round(agencyConversion * 10) / 10 : null;
+
+    res.json({
+      planners: performance,
+      totals: agencyTotals
+    });
+  } catch (error) {
+    console.error('[ERROR] Get planner performance failed:', error.message);
+    res.status(500).json({ error: 'Failed to get planner performance' });
+  }
+});
+
 module.exports = router;

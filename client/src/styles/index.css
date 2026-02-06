@@ -1522,7 +1522,7 @@ fieldset:disabled .btn {
 .data-table-container {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
 
