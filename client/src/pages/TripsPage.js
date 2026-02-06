@@ -739,19 +739,24 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.finalPaymentAmount ? 'form-group-error' : ''}`}>
                   <label className="form-label" htmlFor="finalPaymentAmount">Final Payment Amount ($)</label>
                   <input
                     id="finalPaymentAmount"
                     name="finalPaymentAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
+                    type="text"
+                    inputMode="decimal"
+                    className={`form-input ${fieldErrors.finalPaymentAmount ? 'form-input-error' : ''}`}
                     value={form.finalPaymentAmount}
-                    onChange={handleChange}
+                    onChange={handleFinancialChange}
+                    onBlur={handleFinancialBlur}
                     placeholder="0.00"
+                    aria-invalid={!!fieldErrors.finalPaymentAmount}
+                    aria-describedby={fieldErrors.finalPaymentAmount ? 'finalPaymentAmount-error' : undefined}
                   />
+                  {fieldErrors.finalPaymentAmount && (
+                    <span id="finalPaymentAmount-error" className="form-error-message" role="alert">{fieldErrors.finalPaymentAmount}</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finalPaymentDueDate">Final Payment Due Date</label>
@@ -800,22 +805,26 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
             <div className="detail-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
               <h3 className="detail-section-title" style={{ fontSize: '0.9375rem', marginBottom: '1rem' }}>Commission</h3>
               <div className="form-row">
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.commissionRate ? 'form-group-error' : ''}`}>
                   <label className="form-label" htmlFor="commissionRate">Commission Rate (%)</label>
                   <input
                     id="commissionRate"
                     name="commissionRate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    className="form-input"
+                    type="text"
+                    inputMode="decimal"
+                    className={`form-input ${fieldErrors.commissionRate ? 'form-input-error' : ''}`}
                     value={form.commissionRate}
                     onChange={handleFinancialChange}
+                    onBlur={handleFinancialBlur}
                     placeholder="e.g., 10"
+                    aria-invalid={!!fieldErrors.commissionRate}
+                    aria-describedby={fieldErrors.commissionRate ? 'commissionRate-error' : undefined}
                   />
+                  {fieldErrors.commissionRate && (
+                    <span id="commissionRate-error" className="form-error-message" role="alert">{fieldErrors.commissionRate}</span>
+                  )}
                 </div>
-                <div className="form-group">
+                <div className={`form-group ${fieldErrors.commissionAmountExpected ? 'form-group-error' : ''}`}>
                   <label className="form-label" htmlFor="commissionAmountExpected">Expected Commission ($)</label>
                   <input
                     id="commissionAmountExpected"
