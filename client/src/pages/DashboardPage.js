@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [trips, setTrips] = useState([]);
   const [atRiskPayments, setAtRiskPayments] = useState({ overdue: [], nearDue: [], totalAtRisk: 0 });
+  const [recentItems, setRecentItems] = useState({ clients: [], trips: [] });
   const [loading, setLoading] = useState(true);
 
   // Handle access denied redirect from admin routes
@@ -159,14 +160,32 @@ export default function DashboardPage() {
     }
   }, [token, checkTokenExpiration]);
 
+  const fetchRecentItems = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/recent-items?limit=5`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        setRecentItems(data);
+      }
+    } catch (err) {
+      console.error('Failed to load recent items:', err);
+    }
+  }, [token, checkTokenExpiration]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments()]);
+      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchTrips, fetchAtRiskPayments]);
+  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems]);
 
   const handleCompleteTask = async (taskId) => {
     try {
@@ -356,6 +375,76 @@ export default function DashboardPage() {
                   )}
                 </div>
               </>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Access Card */}
+        <div className="dashboard-card">
+          <div className="dashboard-card-header">
+            <div className="dashboard-card-title-row">
+              <h3>Quick Access</h3>
+            </div>
+          </div>
+          <div className="dashboard-card-body">
+            {recentItems.clients.length === 0 && recentItems.trips.length === 0 ? (
+              <p className="dashboard-empty-state">No recent activity. Your recently accessed clients and trips will appear here.</p>
+            ) : (
+              <div className="dashboard-quick-access">
+                {/* Recent Clients */}
+                {recentItems.clients.length > 0 && (
+                  <div className="quick-access-section">
+                    <div className="quick-access-label">Recent Clients</div>
+                    <div className="quick-access-list">
+                      {recentItems.clients.slice(0, 3).map(client => (
+                        <div
+                          key={`client-${client.id}`}
+                          className="quick-access-item"
+                          onClick={() => navigate(`/clients/${client.id}`)}
+                        >
+                          <div className="quick-access-icon quick-access-icon-client">
+                            <span>👤</span>
+                          </div>
+                          <div className="quick-access-info">
+                            <div className="quick-access-name">{client.name}</div>
+                            {client.city && <div className="quick-access-meta">{client.city}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Trips */}
+                {recentItems.trips.length > 0 && (
+                  <div className="quick-access-section">
+                    <div className="quick-access-label">Recent Trips</div>
+                    <div className="quick-access-list">
+                      {recentItems.trips.slice(0, 3).map(trip => (
+                        <div
+                          key={`trip-${trip.id}`}
+                          className="quick-access-item"
+                          onClick={() => navigate(`/trips/${trip.id}`)}
+                        >
+                          <div className="quick-access-icon quick-access-icon-trip">
+                            <span>✈</span>
+                          </div>
+                          <div className="quick-access-info">
+                            <div className="quick-access-name">{trip.name}</div>
+                            <div className="quick-access-meta">
+                              {trip.clientName && <span>{trip.clientName}</span>}
+                              {trip.destination && <span className="quick-access-destination">{trip.destination}</span>}
+                            </div>
+                          </div>
+                          <span className={`stage-badge ${getStageClass(trip.stage)}`} style={{ fontSize: '0.65rem', padding: '0.125rem 0.375rem' }}>
+                            {getStageLabel(trip.stage)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

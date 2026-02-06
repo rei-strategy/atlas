@@ -1630,6 +1630,15 @@ fieldset:disabled .btn {
   margin-bottom: var(--spacing-lg);
 }
 
+.client-tab-content {
+  padding: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+}
+
+.client-tab-content .detail-sections {
+  padding: 0;
+}
+
 .trip-detail-header {
   padding: 0 var(--spacing-lg);
 }

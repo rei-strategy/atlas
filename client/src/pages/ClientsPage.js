@@ -900,43 +900,44 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
           </button>
         </div>
 
-        {activeTab === 'info' && (
-          <div className="detail-sections">
-            <div className="detail-section">
-              <h3 className="detail-section-title">Contact Information</h3>
-              <div className="detail-grid">
-                <div className="detail-field">
-                  <span className="detail-field-label">Email</span>
-                  <span className="detail-field-value">{client.email || '—'}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Phone</span>
-                  <span className="detail-field-value">{client.phone || '—'}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Preferred Communication</span>
-                  <span className="detail-field-value">{client.preferredCommunication || '—'}</span>
+        <div className="client-tab-content">
+          {activeTab === 'info' && (
+            <div className="detail-sections">
+              <div className="detail-section">
+                <h3 className="detail-section-title">Contact Information</h3>
+                <div className="detail-grid">
+                  <div className="detail-field">
+                    <span className="detail-field-label">Email</span>
+                    <span className="detail-field-value">{client.email || '—'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Phone</span>
+                    <span className="detail-field-value">{client.phone || '—'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Preferred Communication</span>
+                    <span className="detail-field-value">{client.preferredCommunication || '—'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="detail-section">
-              <h3 className="detail-section-title">Location</h3>
-              <div className="detail-grid">
-                <div className="detail-field">
-                  <span className="detail-field-label">City</span>
-                  <span className="detail-field-value">{client.city || '—'}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">State</span>
-                  <span className="detail-field-value">{client.state || '—'}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Country</span>
-                  <span className="detail-field-value">{client.country || '—'}</span>
+              <div className="detail-section">
+                <h3 className="detail-section-title">Location</h3>
+                <div className="detail-grid">
+                  <div className="detail-field">
+                    <span className="detail-field-label">City</span>
+                    <span className="detail-field-value">{client.city || '—'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">State</span>
+                    <span className="detail-field-value">{client.state || '—'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Country</span>
+                    <span className="detail-field-value">{client.country || '—'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
             <div className="detail-section">
               <h3 className="detail-section-title">Travel Preferences</h3>
@@ -1188,6 +1189,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
             )}
           </div>
         )}
+        </div>
 
         {/* Portal Access Creation Modal */}
         {showPortalModal && (

@@ -360,7 +360,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
 }
 
 /* =================== BOOKING FORM MODAL =================== */
-function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) {
+function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, defaultCommissionRate }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -408,6 +408,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) 
         cancellationRules: booking.cancellationRules || ''
       });
     } else {
+      // For new bookings, pre-populate with agency's default commission rate
       setForm({
         bookingType: 'hotel',
         supplierName: '',
@@ -422,7 +423,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) 
         finalPaymentAmount: '',
         finalPaymentDueDate: '',
         paymentStatus: 'deposit_paid',
-        commissionRate: '',
+        commissionRate: defaultCommissionRate !== null && defaultCommissionRate !== undefined ? String(defaultCommissionRate) : '',
         commissionAmountExpected: '',
         supplierNotes: '',
         inclusionsExclusions: '',
@@ -430,7 +431,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token }) 
       });
     }
     setError('');
-  }, [booking, isOpen]);
+  }, [booking, isOpen, defaultCommissionRate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -1099,6 +1100,27 @@ function BookingsTab({ tripId, token }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [defaultCommissionRate, setDefaultCommissionRate] = useState(null);
+
+  // Fetch agency's default commission rate
+  useEffect(() => {
+    const fetchAgencySettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/settings/agency`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.agency && data.agency.defaultCommissionRate !== null) {
+            setDefaultCommissionRate(data.agency.defaultCommissionRate);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch agency settings:', err);
+      }
+    };
+    fetchAgencySettings();
+  }, [token]);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -1369,6 +1391,7 @@ function BookingsTab({ tripId, token }) {
           booking={editBooking}
           tripId={tripId}
           token={token}
+          defaultCommissionRate={defaultCommissionRate}
         />
 
         <CommissionStatusModal
@@ -1549,6 +1572,7 @@ function BookingsTab({ tripId, token }) {
         booking={editBooking}
         tripId={tripId}
         token={token}
+        defaultCommissionRate={defaultCommissionRate}
       />
 
       {/* Delete Booking Confirmation Modal - Keyboard Accessible */}
