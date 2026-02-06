@@ -3692,6 +3692,11 @@ export default function TripsPage() {
   const [tripNotFound, setTripNotFound] = useState(false);
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
+  // CSV Import state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTrips, setTotalTrips] = useState(0);

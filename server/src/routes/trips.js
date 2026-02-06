@@ -1,9 +1,23 @@
 const express = require('express');
+const multer = require('multer');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
 const { createNotificationsForUsers, generateEventKey } = require('../services/notificationService');
 
 const router = express.Router();
+
+// Configure multer for CSV upload (memory storage for parsing)
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
 
 // All trip routes require authentication and tenant scope
 router.use(authenticate);
@@ -1569,5 +1583,191 @@ router.delete('/:tripId/acknowledgments/:id', (req, res) => {
     res.status(500).json({ error: 'Failed to delete acknowledgment' });
   }
 });
+
+/**
+ * POST /api/trips/import
+ * Import trips from CSV file
+ * Expected CSV columns: name, destination, clientEmail, travelStartDate, travelEndDate, description
+ */
+router.post('/import', csvUpload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const db = getDb();
+    const csvContent = req.file.buffer.toString('utf-8');
+
+    // Parse CSV
+    const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
+    if (lines.length < 2) {
+      return res.status(400).json({ error: 'CSV file must have a header row and at least one data row' });
+    }
+
+    // Parse header
+    const header = parseCSVLine(lines[0]);
+    const headerLower = header.map(h => h.toLowerCase().trim());
+
+    // Validate required columns
+    const nameIndex = headerLower.findIndex(h => h === 'name' || h === 'trip name' || h === 'tripname');
+    if (nameIndex === -1) {
+      return res.status(400).json({
+        error: 'CSV must have a "name" column',
+        validColumns: ['name', 'destination', 'clientEmail', 'travelStartDate', 'travelEndDate', 'description']
+      });
+    }
+
+    // Find other column indices
+    const destIndex = headerLower.findIndex(h => h === 'destination' || h === 'dest');
+    const clientEmailIndex = headerLower.findIndex(h => h === 'clientemail' || h === 'client_email' || h === 'client email' || h === 'email');
+    const startDateIndex = headerLower.findIndex(h => h === 'travelstartdate' || h === 'travel_start_date' || h === 'start date' || h === 'startdate');
+    const endDateIndex = headerLower.findIndex(h => h === 'travelenddate' || h === 'travel_end_date' || h === 'end date' || h === 'enddate');
+    const descIndex = headerLower.findIndex(h => h === 'description' || h === 'desc' || h === 'notes');
+
+    const results = {
+      imported: 0,
+      errors: [],
+      trips: []
+    };
+
+    // Process data rows
+    for (let i = 1; i < lines.length; i++) {
+      const rowNum = i + 1;
+      const values = parseCSVLine(lines[i]);
+
+      // Skip empty rows
+      if (values.length === 0 || values.every(v => !v.trim())) {
+        continue;
+      }
+
+      const name = values[nameIndex]?.trim();
+      if (!name) {
+        results.errors.push({ row: rowNum, error: 'Missing trip name' });
+        continue;
+      }
+
+      // Get other fields
+      const destination = destIndex >= 0 ? values[destIndex]?.trim() || null : null;
+      const clientEmail = clientEmailIndex >= 0 ? values[clientEmailIndex]?.trim() || null : null;
+      const travelStartDate = startDateIndex >= 0 ? parseDate(values[startDateIndex]?.trim()) : null;
+      const travelEndDate = endDateIndex >= 0 ? parseDate(values[endDateIndex]?.trim()) : null;
+      const description = descIndex >= 0 ? values[descIndex]?.trim() || null : null;
+
+      // Look up client by email if provided
+      let clientId = null;
+      if (clientEmail) {
+        const client = db.prepare('SELECT id FROM clients WHERE email = ? AND agency_id = ?').get(clientEmail, req.agencyId);
+        if (client) {
+          clientId = client.id;
+        } else {
+          results.errors.push({ row: rowNum, warning: `Client with email "${clientEmail}" not found, trip created without client` });
+        }
+      }
+
+      try {
+        // Insert trip
+        const result = db.prepare(`
+          INSERT INTO trips (
+            agency_id, client_id, assigned_user_id, name, destination, description,
+            stage, is_locked, travel_start_date, travel_end_date
+          ) VALUES (?, ?, ?, ?, ?, ?, 'inquiry', 0, ?, ?)
+        `).run(
+          req.agencyId,
+          clientId,
+          req.user.id,
+          name,
+          destination,
+          description,
+          travelStartDate,
+          travelEndDate
+        );
+
+        const tripId = result.lastInsertRowid;
+        results.imported++;
+        results.trips.push({ id: tripId, name, row: rowNum });
+      } catch (err) {
+        results.errors.push({ row: rowNum, error: err.message });
+      }
+    }
+
+    // Create audit log
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'csv_import',
+      'trip',
+      null,
+      JSON.stringify({
+        fileName: req.file.originalname,
+        imported: results.imported,
+        errors: results.errors.length
+      })
+    );
+
+    res.json({
+      message: `Imported ${results.imported} trips`,
+      imported: results.imported,
+      errors: results.errors,
+      trips: results.trips
+    });
+  } catch (error) {
+    console.error('[ERROR] CSV import failed:', error.message);
+    res.status(500).json({ error: 'Failed to import CSV', message: error.message });
+  }
+});
+
+// Helper function to parse CSV line (handles quoted fields)
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result;
+}
+
+// Helper function to parse date strings
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+
+  // Try ISO format first (YYYY-MM-DD)
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) return dateStr;
+
+  // Try MM/DD/YYYY format
+  const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (usMatch) {
+    return `${usMatch[3]}-${usMatch[1].padStart(2, '0')}-${usMatch[2].padStart(2, '0')}`;
+  }
+
+  // Try DD/MM/YYYY format (assume if day > 12)
+  const euMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (euMatch && parseInt(euMatch[1]) > 12) {
+    return `${euMatch[3]}-${euMatch[2].padStart(2, '0')}-${euMatch[1].padStart(2, '0')}`;
+  }
+
+  return null;
+}
 
 module.exports = router;
