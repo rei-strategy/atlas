@@ -2232,3 +2232,69 @@
 - Backend on port 3001, Frontend on port 3000
 - All three features verified working
 - Git commits: 98749ac, 7b08f89, ddaea4e
+
+
+### Session - 2026-02-06 (Agent batch: Features #95, #96, #104)
+
+**Features Completed: #95, #96, #104 (Workflow Completeness)**
+
+#### Feature #95: Generate simple invoice
+- Extended /api/trips/:tripId/documents/generate endpoint to handle type='invoice'
+- Created generateInvoiceHtml() function with professional invoice HTML template
+- Invoice includes:
+  - Agency header with name
+  - Client billing info (name, email)
+  - Invoice metadata (number, date, due date)
+  - Trip details (name, destination, travel dates)
+  - Booking breakdown table (supplier, type, confirmation, amount, status)
+  - Payment summary (subtotal, amount paid, balance due)
+  - Payment status badge (PAID IN FULL / PARTIAL / DUE)
+- Generated HTML saved to /generated/invoices/ directory
+- Added "Generate Invoice" button to Documents tab in frontend
+- Document record saved with type 'invoice'
+
+#### Feature #96: Generate authorization form
+- Extended /generate endpoint to handle type='authorization'
+- Created generateAuthorizationFormHtml() function
+- Card authorization form includes:
+  - Agency header
+  - Trip information section
+  - Pre-populated cardholder info (name, email, phone, address from client)
+  - Credit card input fields (blank for customer to fill)
+  - Amount to be charged (calculated from outstanding balance)
+  - Authorization agreement text
+  - Signature and date lines
+- Form marked as sensitive document (is_sensitive=1)
+- Added "Auth Form" button to Documents tab
+
+#### Feature #104: Customer portal - upload documents
+- Added multer file upload configuration to portal.js
+- Updated POST /api/portal/trips/:id/documents to accept actual file uploads
+- Customer uploads saved to /uploads/ with 'customer_' prefix
+- Audit log records customer document uploads
+- Updated PortalTripDetailPage frontend:
+  - Real file input with file selection
+  - File size display
+  - Proper FormData submission
+  - Success/error feedback
+- Verified planners can see customer-uploaded documents
+
+#### Test Data Created
+- Trip: INVOICE_TEST_TRIP_F95 (ID: 75)
+  - Destination: Maldives
+  - Travel dates: 2026-03-15 to 2026-03-22
+- Bookings for trip 75:
+  - Maldives Paradise Resort ($4500, deposit paid)
+  - Maldives Seaplane Transfers ($850, paid in full)
+  - Travel Guard Insurance ($320, due)
+- Customer Portal Account: tripstab@test.com / TestPass123 (client 141)
+- Generated documents: invoice, authorization form
+- Customer uploaded: test_passport_f104.txt
+
+#### Current State
+- 142/240 features passing (~59.2%)
+- Git commits: e992816 (feature #95), 0f4b3bc (feature #96), 49b4c1c (feature #104)
+- Backend on port 3001, Frontend on port 3000
+- All features verified working with real file uploads and database persistence
+
+---
