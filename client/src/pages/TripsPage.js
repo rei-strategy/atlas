@@ -4538,10 +4538,11 @@ export default function TripsPage() {
               aria-label="Filter by date to"
             />
           </div>
-          {(stageFilter || plannerFilter || clientFilter || dateFromFilter || dateToFilter) && (
+          {(search || stageFilter || plannerFilter || clientFilter || dateFromFilter || dateToFilter) && (
             <button
               className="btn btn-outline btn-sm"
               onClick={() => {
+                setSearch('');
                 setStageFilter('');
                 setPlannerFilter('');
                 setClientFilter('');
