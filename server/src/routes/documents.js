@@ -452,6 +452,26 @@ router.post('/', upload.single('file'), (req, res) => {
       WHERE d.id = ?
     `).get(result.lastInsertRowid);
 
+    // Log document upload in audit trail
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'upload',
+      'document',
+      result.lastInsertRowid,
+      JSON.stringify({
+        fileName: fileName,
+        documentType: documentType || 'other',
+        isSensitive: isSensitive === 'true' || isSensitive === true,
+        isClientVisible: isClientVisible === 'true' || isClientVisible === true,
+        bookingId: bookingId || null
+      }),
+      tripId
+    );
+
     res.status(201).json({
       message: 'Document uploaded successfully',
       document: formatDocument(doc)
