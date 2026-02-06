@@ -2963,6 +2963,7 @@ function TimelineTab({ tripId, token }) {
 
 /* =================== TRIP DETAIL =================== */
 function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
+  const { formatDate } = useTimezone();
   const [activeTab, setActiveTab] = useState('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
