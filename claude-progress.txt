@@ -687,3 +687,59 @@
 - Backend on port 3001, Frontend on port 3000
 - Search filter functionality fully working
 - Zero console errors
+
+### Session - 2026-02-06 (Feature #136)
+
+**Feature Completed: #136 (Agency task and reminder timing rules)**
+
+#### Feature #136: Agency task and reminder timing rules
+- Admin can configure when tasks and reminders are generated
+- Added 6 new workflow timing fields to agencies table:
+  - deadline_reminder_days: General deadline reminders (default 7)
+  - quote_followup_days: Quote follow-up timing (default 3)
+  - booking_confirmation_days: Booking confirmation task timing (default 1)
+  - final_payment_reminder_days: Final payment reminder timing (default 7)
+  - travel_reminder_days: Bon voyage message timing (default 0 = same day)
+  - feedback_request_days: Post-trip feedback request timing (default 3)
+- Created new "Workflow Timing" tab in Settings page
+- WorkflowSettingsForm component with 6 configurable timing fields
+- Updated trips route to read agency timing settings when generating tasks
+- System-generated tasks now use agency-specific timing instead of hardcoded defaults
+
+#### Verification Steps Completed
+1. Created test agency: workflow_test@agency.com / TestPass123 (ID: 48)
+2. Verified default settings returned in API (all default values)
+3. Updated workflow settings via API:
+   - quoteFollowupDays: 5 (was 3)
+   - bookingConfirmationDays: 2 (was 1)
+   - finalPaymentReminderDays: 10 (was 7)
+   - travelReminderDays: 1 (was 0)
+   - feedbackRequestDays: 7 (was 3)
+4. Created trip TIMING_TEST_TRIP_136 and transitioned to quoted stage
+   - Task created with due date 5 days out (custom setting) ✓
+5. Transitioned to booked stage
+   - Task created with due date 2 days out (custom setting) ✓
+6. Server restart persistence test: PASSED - settings and tasks persisted
+7. Mock data grep: No mock patterns in production code
+8. Client build: Compiled successfully with no errors
+
+#### Key Implementation Details
+- server/migrate-workflow-timing.js: Database migration script
+- server/src/routes/settings.js: GET/PUT endpoints updated for timing fields
+- server/src/routes/trips.js: Reads agency timing settings for task generation
+- client/src/pages/SettingsPage.js: New WorkflowSettingsForm component
+- client/src/styles/index.css: Workflow form styles
+
+#### Test Data Created
+- Agency: Workflow Test Agency (ID: 48)
+- User: workflow_test@agency.com / TestPass123 (admin)
+- Client: John Traveler (ID: 81)
+- Trip: TIMING_TEST_TRIP_136 (ID: 22, Hawaii)
+- Tasks: Follow up on quote (5 days), Confirm booking details (2 days)
+
+#### Current State
+- 49/240 features passing (~20.4%)
+- Backend on port 3001, Frontend on port 3000
+- Agency workflow timing configuration fully functional
+- Tasks follow agency-specific timing rules
+- Zero console errors
