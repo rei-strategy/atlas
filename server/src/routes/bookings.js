@@ -449,12 +449,15 @@ router.put('/:id', canModifyBookings, (req, res) => {
 /**
  * PUT /api/trips/:tripId/bookings/:id/commission
  * Update commission fields on a booking
+ * Commission STATUS changes require admin approval for non-admins
+ * Other commission fields (amount received, date, reference) can be updated directly
  * Restricted to admin and planner roles
  */
 router.put('/:id/commission', canModifyBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;
+    const isAdmin = req.user.role === 'admin';
 
     const existing = db.prepare('SELECT * FROM bookings WHERE id = ? AND trip_id = ? AND agency_id = ?').get(id, tripId, req.agencyId);
     if (!existing) {
@@ -470,6 +473,89 @@ router.put('/:id/commission', canModifyBookings, (req, res) => {
       return res.status(400).json({ error: 'Invalid commission status' });
     }
 
+    // Check if commission STATUS is changing (this requires admin approval)
+    const isStatusChanging = commissionStatus && commissionStatus !== existing.commission_status;
+
+    if (!isAdmin && isStatusChanging) {
+      // Non-admin trying to change commission status - create approval request
+      const actionType = 'change_commission_status';
+
+      // Check if there's already a pending approval for this booking's commission status change
+      const existingPending = db.prepare(`
+        SELECT id FROM approval_requests
+        WHERE agency_id = ? AND entity_type = 'booking' AND entity_id = ?
+          AND action_type = ? AND status = 'pending'
+      `).get(req.agencyId, id, actionType);
+
+      if (existingPending) {
+        return res.status(202).json({
+          message: 'An approval request for commission status change is already pending',
+          approvalRequired: true,
+          approvalRequestId: existingPending.id,
+          restrictedAction: actionType
+        });
+      }
+
+      // Create new approval request
+      const reason = JSON.stringify({
+        newStatus: commissionStatus,
+        oldStatus: existing.commission_status,
+        bookingId: id,
+        supplierName: existing.supplier_name,
+        commissionAmountExpected: existing.commission_amount_expected
+      });
+
+      const result = db.prepare(`
+        INSERT INTO approval_requests (agency_id, requested_by, action_type, entity_type, entity_id, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(req.agencyId, req.user.id, actionType, 'booking', id, reason);
+
+      const requestId = result.lastInsertRowid;
+
+      // Create notifications for admins
+      const admins = db.prepare(
+        "SELECT id FROM users WHERE agency_id = ? AND role = 'admin' AND is_active = 1"
+      ).all(req.agencyId);
+
+      for (const admin of admins) {
+        db.prepare(`
+          INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          admin.id,
+          'normal',
+          'Commission Status Change Requested',
+          `${req.user.firstName || req.user.email} requests to change commission status from ${existing.commission_status || 'expected'} to ${commissionStatus}`,
+          'approval_request',
+          requestId
+        );
+      }
+
+      // Log the approval request creation
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, booking_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'create_approval_request',
+        'approval_request',
+        requestId,
+        JSON.stringify({ action: actionType, bookingId: id, newStatus: commissionStatus, oldStatus: existing.commission_status }),
+        id
+      );
+
+      return res.status(202).json({
+        message: 'Commission status change requires admin approval. An approval request has been created.',
+        approvalRequired: true,
+        approvalRequestId: requestId,
+        restrictedAction: actionType,
+        booking: formatBooking(existing)
+      });
+    }
+
+    // Admin or no status change - proceed with update
     db.prepare(`
       UPDATE bookings SET
         commission_status = COALESCE(?, commission_status),

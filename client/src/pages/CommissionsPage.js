@@ -183,14 +183,31 @@ export default function CommissionsPage() {
     }
   }, [token, bySupplierFilters, addToast]);
 
+  const [pipelineSummary, setPipelineSummary] = useState({ byStatus: [], totals: {} });
+
+  const fetchPipelineSummary = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/commissions/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPipelineSummary(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pipeline summary:', err);
+    }
+  }, [token]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers(), fetchPlanners(), fetchBySupplier(), fetchByPlanner()]);
+      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers(), fetchPlanners(), fetchBySupplier(), fetchByPlanner(), fetchPipelineSummary()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers, fetchPlanners, fetchBySupplier, fetchByPlanner]);
+  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers, fetchPlanners, fetchBySupplier, fetchByPlanner, fetchPipelineSummary]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -213,6 +230,86 @@ export default function CommissionsPage() {
       <div className="page-header">
         <h1 className="page-title">Commissions</h1>
         <p className="page-subtitle">Track and analyze commission earnings across all bookings.</p>
+      </div>
+
+      {/* Commission Pipeline Overview */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
+          Commission Pipeline
+        </h2>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem'
+        }}>
+          {/* Expected Card */}
+          <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-expected">
+            <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>📋</span>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Expected
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+                {formatCurrency(
+                  (pipelineSummary.byStatus.find(s => s.status === 'expected' || s.status === null)?.totalExpected || 0) +
+                  (pipelineSummary.byStatus.find(s => s.status === null)?.totalExpected || 0)
+                )}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                {(pipelineSummary.byStatus.find(s => s.status === 'expected')?.count || 0) +
+                 (pipelineSummary.byStatus.find(s => s.status === null)?.count || 0)} bookings awaiting submission
+              </div>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }} className="pipeline-arrow">
+            →
+          </div>
+
+          {/* Submitted Card */}
+          <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-submitted">
+            <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>📤</span>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Submitted
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+                {formatCurrency(pipelineSummary.byStatus.find(s => s.status === 'submitted')?.totalExpected || 0)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                {pipelineSummary.byStatus.find(s => s.status === 'submitted')?.count || 0} bookings awaiting payment
+              </div>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }} className="pipeline-arrow">
+            →
+          </div>
+
+          {/* Paid Card */}
+          <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-paid">
+            <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>✅</span>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Paid
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+                {formatCurrency(pipelineSummary.byStatus.find(s => s.status === 'paid')?.totalReceived || 0)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                {pipelineSummary.byStatus.find(s => s.status === 'paid')?.count || 0} bookings completed
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
