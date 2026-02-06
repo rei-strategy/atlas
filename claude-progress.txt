@@ -1858,3 +1858,59 @@
 - Build compiles successfully
 - Git commits: 3d45b9b, 2d5e7be
 
+
+
+### Session - 2026-02-06 (Agent batch: Features #68, #69, #70)
+
+**Features Completed: #68, #69, #70 (Commission Reports)**
+
+#### Feature #68: Commission report by supplier
+- Added GET /api/commissions/by-supplier endpoint
+- Groups commission data by supplier name
+- Shows: booking count, avg rate, expected, received, outstanding per supplier
+- Added 'By Supplier' tab to CommissionsPage with filters (date range, status)
+- Clicking supplier row navigates to All Commissions filtered by that supplier
+- Test data: 3 suppliers in agency 67 with different commission statuses
+
+#### Feature #69: Commission report by planner
+- Added GET /api/commissions/planners endpoint for planner dropdown
+- Added GET /api/commissions/by-planner endpoint for grouping
+- Shows: trip count, booking count, expected, received, outstanding per planner
+- Added plannerId filter to GET /api/commissions
+- Added Planner filter dropdown to All Commissions tab
+- Added 'By Planner' tab with same layout as By Supplier
+- Click planner row navigates to All Commissions filtered by that planner
+
+#### Feature #70: Commission variance report
+- Variance Report tab already fully implemented
+- Verified all calculations work correctly:
+  - Shows expected vs received amounts
+  - Calculates variance (received - expected)
+  - Percentage variance displayed
+  - Underpaid/Overpaid/Exact indicators
+- Filters: varianceType (underpaid/overpaid/any), date range
+- Summary shows: underpaid count/amount, overpaid count/amount, net variance
+- Test data created: 3 variance scenarios in agency 77
+
+#### Test Data Created
+- Variance Test Agency (ID: 77)
+  - User: variance_test@atlas.com / TestPass123
+  - Client: Variance TestClient (ID: 149)
+  - Trip: VARIANCE_TEST_TRIP (ID: 65)
+  - Booking 43: Underpaid Resort - Expected $100, Received $80 (-20%)
+  - Booking 44: Overpaid Cruise Line - Expected $600, Received $650 (+8.33%)
+  - Booking 45: Exact Tour Company - Expected $160, Received $160 (0%)
+
+#### Verification Summary
+- All by-supplier, by-planner, and planner filter endpoints tested via API
+- Variance calculations verified: -$20 + $50 + $0 = +$30 net variance
+- Frontend builds without errors
+- No mock data patterns in production code
+
+#### Current State
+- 120/240 features passing (~50.0%)
+- Backend on port 3001, Frontend on port 3000
+- Commission reports fully functional with supplier/planner grouping
+- Variance report working with real test data
+- Git commits: 3620a31, ef25884
+
