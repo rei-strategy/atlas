@@ -561,3 +561,49 @@
 - Backend on port 3001, Frontend on port 3000
 - Notification snooze and dismiss fully functional
 - Zero console errors
+
+### Session - 2026-02-06 (Agent: Feature #138)
+
+**Feature Completed: #138 (Workflow Completeness - Agency timezone setting)**
+
+#### Feature #138: Agency timezone setting
+- Navigate to Settings > Agency Settings tab
+- Timezone dropdown with 15 common travel industry timezones
+- Save setting via PUT /api/settings/agency
+- Date/time displays use selected timezone via useTimezone hook
+- Deadline calculations use timezone-aware date comparisons
+
+#### Key Implementation Details
+- Created `/client/src/hooks/useTimezone.js`:
+  - formatDate: Full date with timezone (e.g., "Feb 6, 2026")
+  - formatDateTime: Date + time with timezone
+  - formatShortDate: Short date (e.g., "Feb 6")
+  - isToday, isOverdue, getDaysUntil: Timezone-aware date comparisons
+- Created `/client/src/hooks/usePortalTimezone.js` for portal pages
+- Updated components to use timezone hook:
+  - DashboardPage (task due dates, deadlines)
+  - TasksPage (task due dates)
+  - TripsPage (all date displays)
+  - ClientsPage (updated dates)
+  - SettingsPage (user joined dates)
+  - EmailTemplatesPage (template timestamps)
+  - NotificationBell (notification dates)
+- Updated `/server/src/routes/portal.js` to include timezone in agency data
+
+#### Verification
+- API test: Set timezone to Asia/Tokyo, verified persistence
+- Server restart test: Timezone persisted after restart
+- Build test: Client compiled successfully with no errors
+- No mock data patterns in production code
+
+#### Test Data Created
+- Agency: TZ Test Agency (ID: 44)
+- User: timezone_test@atlas.com / TestPass123
+- Timezone set to: Asia/Tokyo
+
+#### Current State
+- 46/240 features passing (~19.2%)
+- Backend on port 3001, Frontend on port 3000
+- Agency timezone setting fully functional
+- Zero console errors
+- Git commit: dcebe61
