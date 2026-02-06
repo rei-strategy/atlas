@@ -1973,3 +1973,66 @@
 - All three features verified working
 - Git commit: 39470cf
 
+
+### Session - 2026-02-06 (Agent batch: Features #74, #75, #77)
+
+**Features Completed: #74, #75, #77 (System-Generated Tasks)**
+
+#### Feature #74: System-generated tasks from stage changes
+- Already fully implemented in trips.js PUT /api/trips/:id/stage
+- Tasks auto-created when trip transitions to each stage:
+  - inquiry → quoted: "Follow up on quote" (3 days out)
+  - quoted → booked: "Confirm booking details" (1 day out)
+  - booked → final_payment_pending: "Collect final payment" (7 days out)
+  - final_payment_pending → traveling: "Send bon voyage message" (0 days)
+  - traveling → completed: "Request trip feedback" (3 days out)
+- All tasks have is_system_generated=1 and source_event='stage_change:from:to'
+- Tasks assigned to trip owner/planner
+- Due dates configurable via agency workflow timing settings
+
+#### Feature #75: System-generated tasks from approaching deadlines
+- Created deadlineTaskService.js with three check functions:
+  - checkFinalPaymentDeadlines(7): Trip final_payment_deadline within 7 days
+  - checkTravelDateDeadlines(3): Trip travel_start_date within 3 days
+  - checkBookingPaymentDeadlines(7): Booking final_payment_due_date within 7 days
+- Added POST /api/tasks/check-deadlines endpoint (admin only)
+- Tasks auto-created with appropriate due dates:
+  - Payment deadlines: task due 2 days before deadline
+  - Travel dates: task due 1 day before travel
+- Deduplication prevents duplicate tasks on repeated checks
+- Test data: Trip 69 with payment deadline 2026-02-13, travel 2026-02-09
+
+#### Feature #77: System-generated tasks for commission follow-up
+- Enhanced trip completion logic in trips.js
+- When trip stage changes to 'completed':
+  - Queries all bookings with commission_status='expected' and commission_amount_expected > 0
+  - Creates "Submit commissions for {trip}" task
+  - Description lists each booking with supplier and expected amount
+  - Shows total commission amount to be collected
+  - Due date is 7 days after completion
+  - source_event='commission_followup', category='commission'
+- No commission task created if trip has no pending commissions
+- Test data: Trip 70 with $350 + $75 = $425 total commission
+
+#### Test Data Created
+- Agency: Feature74 Test Agency (ID: 81)
+- User: feature74_test@atlas.com / TestPass123
+- Client: StageTest Client74 (ID: 152)
+- Trip 68: STAGE_TASK_TEST_TRIP_74 - 5 system tasks from stage transitions
+- Trip 69: DEADLINE_TEST_TRIP_75 - 3 deadline tasks (payment, travel, booking)
+- Trip 70: COMMISSION_TEST_TRIP_77 - commission follow-up task with 2 bookings
+
+#### Verification Summary
+- Stage change tasks: tested full inquiry→completed cycle, all 5 tasks created
+- Deadline tasks: tested via POST /api/tasks/check-deadlines
+- Commission tasks: verified task includes booking list and total amount
+- No duplicate tasks on repeated checks
+- Tasks persist in SQLite database
+- Frontend compiles successfully
+
+#### Current State
+- 128/240 features passing (~53.3%)
+- Backend on port 3001, Frontend on port 3000
+- System-generated tasks fully working for stage, deadline, and commission events
+- Git commit: 2ed995c
+

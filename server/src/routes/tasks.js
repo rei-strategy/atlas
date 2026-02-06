@@ -322,6 +322,11 @@ router.put('/:id', (req, res) => {
       }
     }
 
+    // Check if assignee is changing
+    const previousAssignee = existing.assigned_user_id;
+    const newAssignee = assignedUserId || previousAssignee;
+    const isReassigning = assignedUserId && assignedUserId !== previousAssignee;
+
     db.prepare(`
       UPDATE tasks SET
         title = COALESCE(?, title),
@@ -344,6 +349,50 @@ router.put('/:id', (req, res) => {
       taskId,
       req.agencyId
     );
+
+    // If task was reassigned, log it and create notification
+    if (isReassigning) {
+      // Get the new assignee's name
+      const newUser = db.prepare('SELECT first_name, last_name FROM users WHERE id = ?').get(newAssignee);
+      const newAssigneeName = newUser ? `${newUser.first_name} ${newUser.last_name}` : 'Unknown';
+
+      // Log reassignment in audit
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'reassign_task',
+        'task',
+        taskId,
+        JSON.stringify({
+          title: existing.title,
+          previousAssignee,
+          newAssignee,
+          newAssigneeName
+        }),
+        existing.trip_id
+      );
+
+      // Create notification for the new assignee (if different from current user)
+      if (newAssignee !== req.user.id) {
+        const eventKey = `task_assigned_${taskId}_${Date.now()}`;
+        db.prepare(`
+          INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id, event_key)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          newAssignee,
+          'normal',
+          'Task Assigned to You',
+          `"${existing.title}" has been assigned to you by ${req.user.first_name} ${req.user.last_name}.`,
+          'task',
+          taskId,
+          eventKey
+        );
+      }
+    }
 
     // Fetch updated task
     const task = db.prepare(`
