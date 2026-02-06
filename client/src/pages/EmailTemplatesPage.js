@@ -635,20 +635,27 @@ function EmailQueuePreviewModal({ isOpen, onClose, queueItem, token, onApprove, 
   const isPending = queueItem?.status === 'pending';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={queueModalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="email-preview-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">Email Preview</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="email-preview-modal-title">Email Preview</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <div className="modal-body">
           {loading ? (
             <div className="loading-screen" style={{ minHeight: '200px' }}>
-              <div className="loading-spinner" />
+              <div className="loading-spinner" role="status" aria-label="Loading email preview" />
               <p>Loading email preview...</p>
             </div>
           ) : error ? (
-            <div className="auth-error">{error}</div>
+            <div className="auth-error" role="alert">{error}</div>
           ) : preview ? (
             <div className="template-preview">
               <div className="preview-section">

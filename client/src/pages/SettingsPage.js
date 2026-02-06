@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import LoadingButton from '../components/LoadingButton';
 
 const API_BASE = '/api';
@@ -750,6 +751,8 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef } = useModalAccessibility(isOpen, onClose);
 
   // Validate individual field
   const validateField = (name, value) => {
@@ -881,11 +884,18 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={handleClose} role="presentation">
+      <div
+        ref={modalRef}
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-user-modal-title"
+      >
         <div className="modal-header">
-          <h2>{result ? 'User Invited!' : 'Invite Team Member'}</h2>
-          <button className="modal-close" onClick={handleClose} aria-label="Close modal">&times;</button>
+          <h2 id="invite-user-modal-title">{result ? 'User Invited!' : 'Invite Team Member'}</h2>
+          <button className="modal-close" onClick={handleClose} aria-label="Close dialog">&times;</button>
         </div>
 
         {result ? (

@@ -460,6 +460,14 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
         setShowConflictModal(false);
         setConflictData(null);
         addToast('Refreshed with latest data. Your other changes are preserved - review and save again.', 'info');
+      } else if (res.status === 404) {
+        // Client was deleted by another user
+        setShowConflictModal(false);
+        setConflictData(null);
+        onClose();
+        addToast('This client has been deleted by another user.', 'warning');
+      } else {
+        addToast(data.error || 'Failed to refresh data', 'error');
       }
     } catch (err) {
       addToast('Failed to refresh data', 'error');

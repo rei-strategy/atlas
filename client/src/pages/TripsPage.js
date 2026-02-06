@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import Modal from '../components/Modal';
 import Breadcrumb from '../components/Breadcrumb';
 import LoadingButton from '../components/LoadingButton';
@@ -123,6 +124,8 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef } = useModalAccessibility(isOpen, onClose);
   // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
   const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
@@ -308,15 +311,22 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={modalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trip-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{trip ? 'Edit Trip' : 'Create Trip'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="trip-form-modal-title">{trip ? 'Edit Trip' : 'Create Trip'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             <div className="form-group">
               <label className="form-label" htmlFor="clientId">Client</label>
@@ -478,6 +488,8 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: bookingModalRef } = useModalAccessibility(isOpen, onClose);
   // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
   const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
 
@@ -805,15 +817,23 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflow: 'auto' }}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={bookingModalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: '90vh', overflow: 'auto' }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{booking ? 'Edit Booking' : 'Add Booking'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="booking-form-modal-title">{booking ? 'Edit Booking' : 'Add Booking'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             {/* Booking Type & Status */}
             <div className="form-row">
@@ -3497,6 +3517,7 @@ function CommunicationsTab({ tripId, token }) {
 /* =================== TIMELINE TAB =================== */
 function TimelineTab({ tripId, token }) {
   const { addToast } = useToast();
+  const { formatDateTime } = useTimezone();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -3615,7 +3636,7 @@ function TimelineTab({ tripId, token }) {
                 {getActionLabel(activity.action)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                {activity.userName || 'System'} • {new Date(activity.createdAt).toLocaleString()}
+                {activity.userName || 'System'} • {formatDateTime(activity.createdAt)}
               </div>
               {activity.details && (
                 <div style={{
@@ -3696,10 +3717,18 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
         setShowDeleteModal(false);
         onDelete(trip.id);
       } else {
-        console.error('Failed to delete trip');
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 404) {
+          setShowDeleteModal(false);
+          addToast('This trip has already been deleted by another user.', 'warning');
+          onBack && onBack();
+        } else {
+          addToast(data.error || 'Failed to delete trip', 'error');
+        }
       }
     } catch (err) {
       console.error('Error deleting trip:', err);
+      addToast('Failed to delete trip. Please try again.', 'error');
     } finally {
       setDeleteLoading(false);
       deletingRef.current = false;
