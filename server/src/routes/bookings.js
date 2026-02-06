@@ -72,8 +72,9 @@ router.get('/', canViewBookings, (req, res) => {
 /**
  * GET /api/trips/:tripId/bookings/:id
  * Get a single booking
+ * Marketing role cannot access booking data (contains financial information)
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', canViewBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;
