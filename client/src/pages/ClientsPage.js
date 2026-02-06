@@ -776,6 +776,11 @@ export default function ClientsPage() {
   const [editClient, setEditClient] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalClients, setTotalClients] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageSize] = useState(10);
 
   // Fetch users for planner filter dropdown
   useEffect(() => {
@@ -803,23 +808,32 @@ export default function ClientsPage() {
       if (plannerFilter) params.set('assignedTo', plannerFilter);
       params.set('sortBy', sortBy);
       params.set('sortOrder', sortOrder);
+      params.set('page', currentPage.toString());
+      params.set('limit', pageSize.toString());
       const res = await fetch(`${API_BASE}/clients?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok) {
         setClients(data.clients);
+        setTotalClients(data.total);
+        setTotalPages(data.totalPages);
       }
     } catch (err) {
       console.error('Failed to load clients:', err);
     } finally {
       setLoading(false);
     }
-  }, [token, search, plannerFilter, sortBy, sortOrder]);
+  }, [token, search, plannerFilter, sortBy, sortOrder, currentPage, pageSize]);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, plannerFilter]);
 
   // Handle URL parameter for direct navigation to a client
   useEffect(() => {
@@ -850,13 +864,13 @@ export default function ClientsPage() {
   }, [urlClientId, token, selectedClient, notFound]);
 
   const handleClientSaved = (savedClient) => {
-    setClients(prev => {
-      const existing = prev.find(c => c.id === savedClient.id);
-      if (existing) {
-        return prev.map(c => c.id === savedClient.id ? savedClient : c);
-      }
-      return [savedClient, ...prev];
-    });
+    // For new clients, refresh the list to get accurate pagination
+    const isNewClient = !clients.find(c => c.id === savedClient.id);
+    if (isNewClient) {
+      fetchClients();
+    } else {
+      setClients(prev => prev.map(c => c.id === savedClient.id ? savedClient : c));
+    }
     // Update detail view if currently selected
     if (selectedClient && selectedClient.id === savedClient.id) {
       setSelectedClient(savedClient);
@@ -1088,6 +1102,58 @@ export default function ClientsPage() {
               ))}
             </tbody>
           </table>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-controls" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 'var(--spacing-md)',
+              borderTop: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-bg-secondary)'
+            }}>
+              <div className="pagination-info" style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalClients)} of {totalClients} clients
+              </div>
+              <div className="pagination-buttons" style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  title="First page"
+                >
+                  ««
+                </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  title="Previous page"
+                >
+                  ‹ Prev
+                </button>
+                <span style={{ padding: '0 var(--spacing-md)', fontSize: '0.875rem', fontWeight: '500' }}>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  title="Next page"
+                >
+                  Next ›
+                </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  title="Last page"
+                >
+                  »»
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -25,15 +25,26 @@ router.use(tenantScope);
 
 /**
  * GET /api/clients
- * List all clients for the agency with optional search/filter
+ * List all clients for the agency with optional search/filter and pagination
  */
 router.get('/', (req, res) => {
   try {
     const db = getDb();
-    const { search, assignedTo, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
+    const {
+      search,
+      assignedTo,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+      page = '1',
+      limit = '10'
+    } = req.query;
 
-    let query = `
-      SELECT c.*, u.first_name as assigned_first_name, u.last_name as assigned_last_name
+    // Parse pagination params
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const offset = (pageNum - 1) * limitNum;
+
+    let baseQuery = `
       FROM clients c
       LEFT JOIN users u ON c.assigned_user_id = u.id
       WHERE c.agency_id = ?
@@ -41,15 +52,20 @@ router.get('/', (req, res) => {
     const params = [req.agencyId];
 
     if (search) {
-      query += ` AND (c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)`;
+      baseQuery += ` AND (c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)`;
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (assignedTo) {
-      query += ` AND c.assigned_user_id = ?`;
+      baseQuery += ` AND c.assigned_user_id = ?`;
       params.push(assignedTo);
     }
+
+    // Get total count first
+    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+    const countResult = db.prepare(countQuery).get(...params);
+    const total = countResult.total;
 
     // Validate sort columns to prevent injection
     const allowedSortCols = ['first_name', 'last_name', 'email', 'created_at', 'updated_at', 'name', 'planner', 'activity'];
@@ -67,9 +83,19 @@ router.get('/', (req, res) => {
     } else {
       orderClause = `c.${safeSortBy} ${safeSortOrder}`;
     }
-    query += ` ORDER BY ${orderClause}`;
 
-    const clients = db.prepare(query).all(...params);
+    // Build final query with pagination
+    const selectQuery = `
+      SELECT c.*, u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      ${baseQuery}
+      ORDER BY ${orderClause}
+      LIMIT ? OFFSET ?
+    `;
+    const paginatedParams = [...params, limitNum, offset];
+    const clients = db.prepare(selectQuery).all(...paginatedParams);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limitNum);
 
     res.json({
       clients: clients.map(c => ({
@@ -91,7 +117,12 @@ router.get('/', (req, res) => {
         createdAt: c.created_at,
         updatedAt: c.updated_at
       })),
-      total: clients.length
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
+      hasNextPage: pageNum < totalPages,
+      hasPrevPage: pageNum > 1
     });
   } catch (error) {
     console.error('[ERROR] List clients failed:', error.message);
