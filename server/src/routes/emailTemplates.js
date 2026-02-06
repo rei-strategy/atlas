@@ -389,7 +389,7 @@ router.delete('/:id', (req, res) => {
 
 /**
  * POST /api/email-templates/:id/preview
- * Preview a template with sample data
+ * Preview a template with sample data and agency branding
  */
 router.post('/:id/preview', (req, res) => {
   try {
@@ -404,7 +404,13 @@ router.post('/:id/preview', (req, res) => {
       return res.status(404).json({ error: 'Email template not found' });
     }
 
-    // Sample data for preview
+    // Fetch agency branding settings
+    const agency = db.prepare(`
+      SELECT name, logo_url, primary_color, email_signature
+      FROM agencies WHERE id = ?
+    `).get(req.agencyId);
+
+    // Sample data for preview - now includes agency branding
     const sampleData = {
       clientFirstName: 'John',
       clientLastName: 'Smith',
@@ -413,8 +419,12 @@ router.post('/:id/preview', (req, res) => {
       tripDestination: 'Western Caribbean',
       travelStartDate: '2026-03-15',
       travelEndDate: '2026-03-22',
-      agencyName: 'Atlas Travel',
-      plannerName: 'Sarah Johnson'
+      agencyName: agency?.name || 'Atlas Travel',
+      plannerName: 'Sarah Johnson',
+      // Agency branding placeholders
+      agencyLogo: agency?.logo_url || '',
+      agencyColor: agency?.primary_color || '#1a56db',
+      agencySignature: agency?.email_signature || ''
     };
 
     // Simple variable replacement
@@ -427,12 +437,21 @@ router.post('/:id/preview', (req, res) => {
       previewBody = previewBody.replace(regex, value);
     });
 
+    // Build agency branding object for frontend
+    const branding = {
+      name: agency?.name || 'Atlas Travel',
+      logoUrl: agency?.logo_url || null,
+      primaryColor: agency?.primary_color || '#1a56db',
+      emailSignature: agency?.email_signature || null
+    };
+
     res.json({
       preview: {
         subject: previewSubject,
         body: previewBody
       },
-      sampleData
+      sampleData,
+      branding
     });
   } catch (error) {
     console.error('[ERROR] Preview email template failed:', error.message);

@@ -612,6 +612,10 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
   const [portalFormLoading, setPortalFormLoading] = useState(false);
   const [portalToggling, setPortalToggling] = useState(false);
 
+  // Communications state
+  const [emails, setEmails] = useState([]);
+  const [emailsLoading, setEmailsLoading] = useState(true);
+
   // Fetch associated trips when client loads
   useEffect(() => {
     if (client) {
@@ -641,6 +645,22 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
         })
         .catch(() => setPortalStatus(null))
         .finally(() => setPortalLoading(false));
+    }
+  }, [client, token]);
+
+  // Fetch email history for client
+  useEffect(() => {
+    if (client) {
+      setEmailsLoading(true);
+      fetch(`/api/email-templates/queue/list?clientId=${client.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setEmails(data.queue || []);
+        })
+        .catch(() => setEmails([]))
+        .finally(() => setEmailsLoading(false));
     }
   }, [client, token]);
 

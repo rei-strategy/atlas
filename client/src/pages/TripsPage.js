@@ -2716,7 +2716,7 @@ function CommunicationsTab({ tripId, token }) {
   useEffect(() => {
     const fetchEmails = async () => {
       try {
-        const res = await fetch(`${API_BASE}/email-templates/queue?tripId=${tripId}`, {
+        const res = await fetch(`${API_BASE}/email-templates/queue/list?tripId=${tripId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -2775,6 +2775,7 @@ function CommunicationsTab({ tripId, token }) {
           <thead>
             <tr>
               <th>Template</th>
+              <th>Subject</th>
               <th>Recipient</th>
               <th>Status</th>
               <th>Sent/Scheduled</th>
@@ -2785,6 +2786,9 @@ function CommunicationsTab({ tripId, token }) {
               <tr key={email.id}>
                 <td>
                   <span className="table-user-name">{email.templateName || 'Custom Email'}</span>
+                </td>
+                <td>
+                  <span style={{ fontSize: '0.875rem' }}>{email.templateSubject || '—'}</span>
                 </td>
                 <td>
                   <div>

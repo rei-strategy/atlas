@@ -349,20 +349,74 @@ function TemplatePreviewModal({ isOpen, onClose, template, token }) {
             <div className="auth-error">{error}</div>
           ) : preview ? (
             <div className="template-preview">
+              {/* Agency Branding Section */}
+              {preview.branding && (
+                <div className="preview-section preview-branding" style={{
+                  borderBottom: `3px solid ${preview.branding.primaryColor || '#1a56db'}`,
+                  paddingBottom: 'var(--spacing-md)',
+                  marginBottom: 'var(--spacing-md)'
+                }}>
+                  <h4 className="preview-label">Agency Branding</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+                    {preview.branding.logoUrl && (
+                      <div className="branding-logo">
+                        <img
+                          src={preview.branding.logoUrl}
+                          alt={`${preview.branding.name} logo`}
+                          style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }}
+                        />
+                      </div>
+                    )}
+                    <div className="branding-info">
+                      <div style={{ fontWeight: 600, color: preview.branding.primaryColor }}>{preview.branding.name}</div>
+                      <div style={{ fontSize: '0.85em', color: 'var(--color-text-secondary)' }}>
+                        Brand Color: <span style={{
+                          display: 'inline-block',
+                          width: '16px',
+                          height: '16px',
+                          backgroundColor: preview.branding.primaryColor,
+                          borderRadius: '3px',
+                          verticalAlign: 'middle',
+                          marginLeft: '4px',
+                          border: '1px solid var(--color-border)'
+                        }}></span> {preview.branding.primaryColor}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="preview-section">
                 <h4 className="preview-label">Subject</h4>
                 <div className="preview-content preview-subject">{preview.preview.subject}</div>
               </div>
               <div className="preview-section">
                 <h4 className="preview-label">Body</h4>
-                <div className="preview-content preview-body">{preview.preview.body}</div>
+                <div className="preview-content preview-body" style={{ whiteSpace: 'pre-wrap' }}>{preview.preview.body}</div>
               </div>
+              {/* Email Signature Section */}
+              {preview.branding?.emailSignature && (
+                <div className="preview-section">
+                  <h4 className="preview-label">Email Signature</h4>
+                  <div className="preview-content preview-signature" style={{
+                    whiteSpace: 'pre-wrap',
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: 'var(--spacing-sm)',
+                    marginTop: 'var(--spacing-sm)',
+                    fontStyle: 'italic',
+                    color: 'var(--color-text-secondary)'
+                  }}>
+                    {preview.branding.emailSignature}
+                  </div>
+                </div>
+              )}
               <div className="preview-section">
                 <h4 className="preview-label">Sample Data Used</h4>
                 <div className="preview-sample-data">
-                  {Object.entries(preview.sampleData).map(([key, value]) => (
+                  {Object.entries(preview.sampleData).filter(([key]) =>
+                    !['agencyLogo', 'agencyColor', 'agencySignature'].includes(key)
+                  ).map(([key, value]) => (
                     <span key={key} className="sample-data-item">
-                      <strong>{key}:</strong> {value}
+                      <strong>{key}:</strong> {value || '(not set)'}
                     </span>
                   ))}
                 </div>
