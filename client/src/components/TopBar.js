@@ -49,7 +49,6 @@ export default function TopBar({ onMenuToggle }) {
         <NotificationBell />
         <Link to="/profile" className="topbar-user-info" title="View Profile">
           <span className="topbar-user-name">{user?.firstName} {user?.lastName}</span>
-          <span className="topbar-role-badge">{user?.role}</span>
         </Link>
         <button className="btn btn-outline btn-sm" onClick={logout}>
           Sign out

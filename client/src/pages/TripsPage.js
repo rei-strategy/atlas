@@ -2962,12 +2962,20 @@ function TimelineTab({ tripId, token }) {
 }
 
 /* =================== TRIP DETAIL =================== */
-function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
+function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate, token }) {
   const { formatDate } = useTimezone();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateOptions, setDuplicateOptions] = useState({
+    newName: '',
+    includeTravelers: true,
+    includeBookings: false
+  });
 
   if (!trip) return null;
 
@@ -3009,6 +3017,48 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
       console.error('Error deleting trip:', err);
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleDuplicateClick = () => {
+    setDuplicateOptions({
+      newName: `Copy of ${trip.name}`,
+      includeTravelers: true,
+      includeBookings: false
+    });
+    setShowDuplicateModal(true);
+  };
+
+  const handleConfirmDuplicate = async () => {
+    setDuplicateLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/trips/${trip.id}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          newName: duplicateOptions.newName || undefined,
+          includeTravelers: duplicateOptions.includeTravelers,
+          includeBookings: duplicateOptions.includeBookings
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowDuplicateModal(false);
+        addToast(`Trip duplicated successfully! New trip: ${data.trip.name}`, 'success');
+        if (onDuplicate) {
+          onDuplicate(data.trip);
+        }
+      } else {
+        addToast(data.error || 'Failed to duplicate trip', 'error');
+      }
+    } catch (err) {
+      console.error('Error duplicating trip:', err);
+      addToast('Error duplicating trip', 'error');
+    } finally {
+      setDuplicateLoading(false);
     }
   };
 

@@ -1174,6 +1174,195 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+/**
+ * POST /api/trips/:id/duplicate
+ * Duplicate a trip as a template for repeat bookings
+ * Copies trip details, optionally travelers and bookings
+ */
+router.post('/:id/duplicate', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+    const {
+      includeTravelers = true,  // Whether to copy travelers
+      includeBookings = false,  // Whether to copy bookings (default false as they'd need new dates)
+      newName,                  // Optional custom name for the duplicate
+      newClientId               // Optional different client for the duplicate
+    } = req.body;
+
+    // Get the original trip
+    const original = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+    if (!original) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Determine client for new trip (use provided or same as original)
+    const clientId = newClientId || original.client_id;
+
+    // Verify client exists if different from original
+    if (newClientId && newClientId !== original.client_id) {
+      const client = db.prepare('SELECT id FROM clients WHERE id = ? AND agency_id = ?').get(newClientId, req.agencyId);
+      if (!client) {
+        return res.status(404).json({ error: 'Specified client not found' });
+      }
+    }
+
+    // Create the duplicate trip
+    const duplicateName = newName || `Copy of ${original.name}`;
+
+    const result = db.prepare(`
+      INSERT INTO trips (
+        agency_id, client_id, assigned_user_id, name, destination, description,
+        stage, is_locked,
+        travel_start_date, travel_end_date,
+        final_payment_deadline, insurance_cutoff_date, checkin_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      clientId,
+      req.user.id,  // Assign to current user
+      duplicateName,
+      original.destination,
+      original.description,
+      'inquiry',    // Always start as inquiry
+      0,            // Not locked
+      original.travel_start_date,
+      original.travel_end_date,
+      original.final_payment_deadline,
+      original.insurance_cutoff_date,
+      original.checkin_date
+    );
+
+    const newTripId = result.lastInsertRowid;
+    let travelersCopied = 0;
+    let bookingsCopied = 0;
+
+    // Copy travelers if requested
+    if (includeTravelers) {
+      const travelers = db.prepare('SELECT * FROM travelers WHERE trip_id = ?').all(tripId);
+      for (const traveler of travelers) {
+        db.prepare(`
+          INSERT INTO travelers (
+            trip_id, first_name, last_name, date_of_birth, gender,
+            passport_number, passport_expiry, passport_country,
+            nationality, email, phone, relationship, is_lead,
+            dietary_requirements, medical_notes, emergency_contact_name,
+            emergency_contact_phone, frequent_flyer_numbers, seating_preferences,
+            room_preferences, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          newTripId,
+          traveler.first_name,
+          traveler.last_name,
+          traveler.date_of_birth,
+          traveler.gender,
+          traveler.passport_number,
+          traveler.passport_expiry,
+          traveler.passport_country,
+          traveler.nationality,
+          traveler.email,
+          traveler.phone,
+          traveler.relationship,
+          traveler.is_lead,
+          traveler.dietary_requirements,
+          traveler.medical_notes,
+          traveler.emergency_contact_name,
+          traveler.emergency_contact_phone,
+          traveler.frequent_flyer_numbers,
+          traveler.seating_preferences,
+          traveler.room_preferences,
+          traveler.notes
+        );
+        travelersCopied++;
+      }
+    }
+
+    // Copy bookings if requested (with reset statuses)
+    if (includeBookings) {
+      const bookings = db.prepare('SELECT * FROM bookings WHERE trip_id = ?').all(tripId);
+      for (const booking of bookings) {
+        db.prepare(`
+          INSERT INTO bookings (
+            agency_id, trip_id, booking_type, supplier_name,
+            start_date, end_date, confirmation_number, notes,
+            status, payment_status,
+            cost_net, cost_gross, deposit_amount, final_payment_amount, final_payment_due_date,
+            commission_expected, commission_percentage
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          newTripId,
+          booking.booking_type,
+          booking.supplier_name,
+          booking.start_date,
+          booking.end_date,
+          null,           // Reset confirmation number
+          booking.notes,
+          'planned',      // Reset status
+          null,           // Reset payment status
+          booking.cost_net,
+          booking.cost_gross,
+          booking.deposit_amount,
+          booking.final_payment_amount,
+          booking.final_payment_due_date,
+          booking.commission_expected,
+          booking.commission_percentage
+        );
+        bookingsCopied++;
+      }
+    }
+
+    // Create audit log for duplication
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'trip_duplicated',
+      'trip',
+      newTripId,
+      JSON.stringify({
+        sourceTrip: tripId,
+        sourceTripName: original.name,
+        newTripName: duplicateName,
+        travelersCopied,
+        bookingsCopied,
+        includeTravelers,
+        includeBookings
+      }),
+      newTripId
+    );
+
+    // Fetch the new trip with joins
+    const newTrip = db.prepare(`
+      SELECT t.*,
+        c.first_name as client_first_name, c.last_name as client_last_name,
+        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      FROM trips t
+      LEFT JOIN clients c ON t.client_id = c.id
+      LEFT JOIN users u ON t.assigned_user_id = u.id
+      WHERE t.id = ? AND t.agency_id = ?
+    `).get(newTripId, req.agencyId);
+
+    res.status(201).json({
+      message: 'Trip duplicated successfully',
+      trip: formatTrip(newTrip),
+      duplicatedFrom: {
+        id: tripId,
+        name: original.name
+      },
+      copiedData: {
+        travelers: travelersCopied,
+        bookings: bookingsCopied
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Duplicate trip failed:', error.message);
+    res.status(500).json({ error: 'Failed to duplicate trip' });
+  }
+});
+
 function formatTrip(t) {
   return {
     id: t.id,
