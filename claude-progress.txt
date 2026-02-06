@@ -1136,3 +1136,52 @@
 - Role-based route protection fully functional
 - User profile management working
 - Zero console errors
+
+### Session - 2026-02-06 (Agent batch: Features #36, #209, #39)
+
+**Features Completed: #36, #209, #39 (Client Assignment + User Removal + Trip Edit)**
+
+#### Feature #36: Assign and reassign client to planner
+- Added assignedUserId field to ClientFormModal state
+- Added "Assigned Planner" dropdown to client create/edit form
+- Users prop passed to modal to populate planner dropdown
+- Test: Created client assigned to Planner A, reassigned to Planner B
+- Planner B can see client after reassignment
+- Data persists after server restart
+
+#### Feature #209: Removing user reassigns their items
+- Modified DELETE /api/users/:id to unassign items before deactivation
+- When user deactivated: clients, tasks, and trips are unassigned (set to NULL)
+- API returns reassignmentSummary with counts of unassigned items
+- Audit log includes details of unassigned counts
+- Test: 2 clients, 1 task, 1 trip unassigned when user removed
+- No data lost - items remain with NULL assignment for later reassignment
+
+#### Feature #39: Edit trip details (verification)
+- TripFormModal already supports edit mode with PUT /api/trips/:id
+- Edit Trip button exists in TripDetail component
+- Test: Changed destination Paris→Tokyo, dates March 1-10→April 1-15
+- "Trip updated successfully" feedback shown
+- Data persists after server restart
+
+#### Key Implementation Details
+- client/src/pages/ClientsPage.js: assignedUserId field in form, planner dropdown
+- server/src/routes/users.js: Unassign clients/tasks/trips before deactivation
+
+#### Test Data Created
+- Assign Planner Test Agency (ID: 59): assign_planner_admin@test.com
+  - Planner A (ID: 70), Planner B (ID: 71)
+  - Client John Assign36 (ID: 130) - reassigned from A to B
+- User Reassign Test Agency (ID: 62): user_reassign_admin@test.com
+  - Planner ToRemove (ID: 75, deactivated)
+  - 2 clients, 1 task, 1 trip unassigned on removal
+- Edit Trip Test Agency (ID: 63): edit_trip_admin@test.com
+  - Trip ID 46: EDIT_TRIP_TEST_39_UPDATED (Tokyo)
+
+#### Current State
+- 78/240 features passing (~32.5%)
+- Backend on port 3001, Frontend on port 3000
+- Client assignment/reassignment working
+- User removal properly handles assignments
+- Trip editing fully functional
+- Zero console errors

@@ -292,38 +292,161 @@ router.put('/:id', (req, res) => {
       clientId, name, destination, description,
       travelStartDate, travelEndDate,
       finalPaymentDeadline, insuranceCutoffDate, checkinDate,
-      assignedUserId
+      assignedUserId,
+      changeReason // Required when requesting changes to locked fields
     } = req.body;
+
+    const isAdmin = req.user.role === 'admin';
 
     // Check if trip is locked and user is trying to edit locked fields
     if (existing.is_locked) {
       const attemptedLockedFieldChanges = [];
+      const proposedChanges = {};
+
       if (destination !== undefined && destination !== existing.destination) {
         attemptedLockedFieldChanges.push('destination');
+        proposedChanges.destination = { old: existing.destination, new: destination };
       }
       if (travelStartDate !== undefined && travelStartDate !== existing.travel_start_date) {
         attemptedLockedFieldChanges.push('travel start date');
+        proposedChanges.travelStartDate = { old: existing.travel_start_date, new: travelStartDate };
       }
       if (travelEndDate !== undefined && travelEndDate !== existing.travel_end_date) {
         attemptedLockedFieldChanges.push('travel end date');
+        proposedChanges.travelEndDate = { old: existing.travel_end_date, new: travelEndDate };
       }
       if (finalPaymentDeadline !== undefined && finalPaymentDeadline !== existing.final_payment_deadline) {
         attemptedLockedFieldChanges.push('final payment deadline');
+        proposedChanges.finalPaymentDeadline = { old: existing.final_payment_deadline, new: finalPaymentDeadline };
       }
       if (insuranceCutoffDate !== undefined && insuranceCutoffDate !== existing.insurance_cutoff_date) {
         attemptedLockedFieldChanges.push('insurance cutoff date');
+        proposedChanges.insuranceCutoffDate = { old: existing.insurance_cutoff_date, new: insuranceCutoffDate };
       }
       if (checkinDate !== undefined && checkinDate !== existing.checkin_date) {
         attemptedLockedFieldChanges.push('check-in date');
+        proposedChanges.checkinDate = { old: existing.checkin_date, new: checkinDate };
       }
 
       if (attemptedLockedFieldChanges.length > 0) {
-        return res.status(403).json({
-          error: 'Trip is locked',
-          message: `Cannot modify locked fields: ${attemptedLockedFieldChanges.join(', ')}. ${existing.lock_reason || 'Trip is booked with payments complete.'}`,
-          lockedFields: attemptedLockedFieldChanges,
-          lockReason: existing.lock_reason
-        });
+        // If admin, allow the change but still log it
+        if (isAdmin) {
+          // Admin can bypass lock - record the override
+          db.prepare(`
+            INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            req.agencyId,
+            req.user.id,
+            'locked_trip_override',
+            'trip',
+            tripId,
+            JSON.stringify({
+              reason: changeReason || 'Admin override (no reason provided)',
+              changes: proposedChanges,
+              lockReason: existing.lock_reason
+            }),
+            tripId
+          );
+
+          // Record each field change in trip_change_records
+          for (const [field, change] of Object.entries(proposedChanges)) {
+            db.prepare(`
+              INSERT INTO trip_change_records (trip_id, changed_by, field_changed, old_value, new_value)
+              VALUES (?, ?, ?, ?, ?)
+            `).run(tripId, req.user.id, field, change.old || '', change.new || '');
+          }
+          // Continue to allow the update below
+        } else {
+          // Non-admin must provide a reason and request approval
+          if (!changeReason || changeReason.trim() === '') {
+            return res.status(400).json({
+              error: 'Reason required',
+              message: 'Changes to locked trips require a reason. Please provide changeReason in your request.',
+              lockedFields: attemptedLockedFieldChanges,
+              requiresApproval: true
+            });
+          }
+
+          // Check if there's already a pending approval for this trip's locked fields
+          const existingPending = db.prepare(`
+            SELECT id FROM approval_requests
+            WHERE agency_id = ? AND entity_type = 'trip' AND entity_id = ?
+              AND action_type = 'modify_locked_trip' AND status = 'pending'
+          `).get(req.agencyId, tripId);
+
+          if (existingPending) {
+            return res.status(202).json({
+              message: 'An approval request to modify this locked trip is already pending',
+              approvalRequired: true,
+              approvalRequestId: existingPending.id,
+              lockedFields: attemptedLockedFieldChanges
+            });
+          }
+
+          // Create approval request for locked field changes
+          const result = db.prepare(`
+            INSERT INTO approval_requests (agency_id, requested_by, action_type, entity_type, entity_id, reason)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            req.agencyId,
+            req.user.id,
+            'modify_locked_trip',
+            'trip',
+            tripId,
+            JSON.stringify({ changeReason, proposedChanges, tripName: existing.name })
+          );
+
+          const requestId = result.lastInsertRowid;
+
+          // Create notifications for admins
+          const admins = db.prepare(
+            "SELECT id FROM users WHERE agency_id = ? AND role = 'admin' AND is_active = 1"
+          ).all(req.agencyId);
+
+          for (const admin of admins) {
+            db.prepare(`
+              INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              req.agencyId,
+              admin.id,
+              'normal',
+              'Locked Trip Change Request',
+              `${req.user.firstName || req.user.email} requests to modify locked trip "${existing.name}": ${changeReason}`,
+              'approval_request',
+              requestId
+            );
+          }
+
+          // Log the approval request creation
+          db.prepare(`
+            INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            req.agencyId,
+            req.user.id,
+            'create_approval_request',
+            'approval_request',
+            requestId,
+            JSON.stringify({
+              action: 'modify_locked_trip',
+              tripId,
+              tripName: existing.name,
+              changeReason,
+              proposedChanges
+            }),
+            tripId
+          );
+
+          return res.status(202).json({
+            message: 'Changes to locked trips require admin approval. An approval request has been created.',
+            approvalRequired: true,
+            approvalRequestId: requestId,
+            lockedFields: attemptedLockedFieldChanges,
+            proposedChanges
+          });
+        }
       }
     }
 

@@ -366,6 +366,106 @@ function executeApprovedAction(db, request, req) {
       }
       return { error: 'Could not determine new commission status' };
 
+    case 'modify_locked_trip':
+      // Apply the proposed changes to the locked trip
+      try {
+        const params = JSON.parse(request.reason || '{}');
+        const { proposedChanges, changeReason } = params;
+
+        if (!proposedChanges) {
+          return { error: 'No proposed changes found in approval request' };
+        }
+
+        // Get current trip
+        const trip = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(entity_id, agency_id);
+        if (!trip) {
+          return { error: 'Trip not found' };
+        }
+
+        // Build update query dynamically based on proposed changes
+        const updates = [];
+        const updateValues = [];
+        const changeRecords = [];
+
+        if (proposedChanges.destination) {
+          updates.push('destination = ?');
+          updateValues.push(proposedChanges.destination.new);
+          changeRecords.push({ field: 'destination', old: proposedChanges.destination.old, new: proposedChanges.destination.new });
+        }
+        if (proposedChanges.travelStartDate) {
+          updates.push('travel_start_date = ?');
+          updateValues.push(proposedChanges.travelStartDate.new);
+          changeRecords.push({ field: 'travelStartDate', old: proposedChanges.travelStartDate.old, new: proposedChanges.travelStartDate.new });
+        }
+        if (proposedChanges.travelEndDate) {
+          updates.push('travel_end_date = ?');
+          updateValues.push(proposedChanges.travelEndDate.new);
+          changeRecords.push({ field: 'travelEndDate', old: proposedChanges.travelEndDate.old, new: proposedChanges.travelEndDate.new });
+        }
+        if (proposedChanges.finalPaymentDeadline) {
+          updates.push('final_payment_deadline = ?');
+          updateValues.push(proposedChanges.finalPaymentDeadline.new);
+          changeRecords.push({ field: 'finalPaymentDeadline', old: proposedChanges.finalPaymentDeadline.old, new: proposedChanges.finalPaymentDeadline.new });
+        }
+        if (proposedChanges.insuranceCutoffDate) {
+          updates.push('insurance_cutoff_date = ?');
+          updateValues.push(proposedChanges.insuranceCutoffDate.new);
+          changeRecords.push({ field: 'insuranceCutoffDate', old: proposedChanges.insuranceCutoffDate.old, new: proposedChanges.insuranceCutoffDate.new });
+        }
+        if (proposedChanges.checkinDate) {
+          updates.push('checkin_date = ?');
+          updateValues.push(proposedChanges.checkinDate.new);
+          changeRecords.push({ field: 'checkinDate', old: proposedChanges.checkinDate.old, new: proposedChanges.checkinDate.new });
+        }
+
+        if (updates.length === 0) {
+          return { error: 'No valid changes to apply' };
+        }
+
+        updates.push("updated_at = datetime('now')");
+
+        // Apply the changes
+        db.prepare(`
+          UPDATE trips SET ${updates.join(', ')}
+          WHERE id = ? AND agency_id = ?
+        `).run(...updateValues, entity_id, agency_id);
+
+        // Record each change in trip_change_records
+        for (const change of changeRecords) {
+          db.prepare(`
+            INSERT INTO trip_change_records (trip_id, changed_by, field_changed, old_value, new_value)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(entity_id, req.user.id, change.field, change.old || '', change.new || '');
+        }
+
+        // Create audit log for the approved locked trip modification
+        db.prepare(`
+          INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          agency_id,
+          req.user.id,
+          'locked_trip_modified',
+          'trip',
+          entity_id,
+          JSON.stringify({
+            approvalRequestId: request.id,
+            changeReason,
+            changes: changeRecords.map(c => ({ field: c.field, from: c.old, to: c.new }))
+          }),
+          entity_id
+        );
+
+        return {
+          tripId: entity_id,
+          changesApplied: changeRecords.map(c => c.field),
+          changeReason
+        };
+      } catch (e) {
+        console.error('Failed to apply locked trip changes:', e);
+        return { error: 'Failed to apply changes: ' + e.message };
+      }
+
     default:
       return { message: 'No automatic action defined for this type' };
   }
