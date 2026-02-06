@@ -712,6 +712,79 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Planner Performance Card (Admin Only) */}
+        {isAdmin && (
+          <div className="dashboard-card dashboard-card-wide">
+            <div className="dashboard-card-header">
+              <div className="dashboard-card-title-row">
+                {plannerPerformance.planners.length > 0 && (
+                  <span className="dashboard-card-count">{plannerPerformance.planners.length}</span>
+                )}
+                <h3>Team Performance</h3>
+              </div>
+            </div>
+            <div className="dashboard-card-body">
+              {plannerPerformance.planners.length === 0 ? (
+                <p className="dashboard-empty-state">No team members yet. Performance metrics will appear as planners are added.</p>
+              ) : (
+                <div className="planner-performance-widget">
+                  {/* Performance Table */}
+                  <div className="planner-performance-table">
+                    <div className="planner-performance-header">
+                      <div className="planner-col-name">Planner</div>
+                      <div className="planner-col-trips">Active</div>
+                      <div className="planner-col-trips">Completed</div>
+                      <div className="planner-col-rate">Conversion</div>
+                      <div className="planner-col-revenue">Revenue</div>
+                    </div>
+                    {plannerPerformance.planners.map(planner => (
+                      <div key={planner.id} className="planner-performance-row">
+                        <div className="planner-col-name">
+                          <span className="planner-name">{planner.name}</span>
+                          <span className="planner-role">{planner.role}</span>
+                        </div>
+                        <div className="planner-col-trips">{planner.trips.active}</div>
+                        <div className="planner-col-trips">{planner.trips.completed}</div>
+                        <div className="planner-col-rate">
+                          {planner.conversionRate !== null ? (
+                            <span className={`conversion-badge ${planner.conversionRate >= 70 ? 'conversion-high' : planner.conversionRate >= 50 ? 'conversion-medium' : 'conversion-low'}`}>
+                              {planner.conversionRate}%
+                            </span>
+                          ) : (
+                            <span className="conversion-na">N/A</span>
+                          )}
+                        </div>
+                        <div className="planner-col-revenue">${planner.revenue.total.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Agency Totals */}
+                  <div className="planner-performance-totals">
+                    <div className="performance-total-item">
+                      <span className="total-label">Total Active Trips</span>
+                      <span className="total-value">{plannerPerformance.totals.activeTrips}</span>
+                    </div>
+                    <div className="performance-total-item">
+                      <span className="total-label">Total Completed</span>
+                      <span className="total-value">{plannerPerformance.totals.completedTrips}</span>
+                    </div>
+                    <div className="performance-total-item">
+                      <span className="total-label">Agency Conversion</span>
+                      <span className="total-value">
+                        {plannerPerformance.totals.conversionRate !== null ? `${plannerPerformance.totals.conversionRate}%` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="performance-total-item">
+                      <span className="total-label">Total Revenue</span>
+                      <span className="total-value">${plannerPerformance.totals.totalRevenue?.toLocaleString() || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
