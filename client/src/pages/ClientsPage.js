@@ -1017,6 +1017,30 @@ export default function ClientsPage() {
           <p className="page-subtitle">Manage your clients and their information.</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+          <button className="btn btn-outline" onClick={() => {
+            // Build URL with current filters
+            const params = new URLSearchParams();
+            if (search) params.set('search', search);
+            if (plannerFilter) params.set('assignedTo', plannerFilter);
+            const url = `${API_BASE}/clients/export?${params}`;
+            // Create temporary link to download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'clients-export.csv';
+            // Fetch with auth header and trigger download
+            fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+              .then(res => res.blob())
+              .then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                link.href = blobUrl;
+                document.body.appendChild(link);
+                link.click();
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(link);
+              });
+          }}>
+            ⬇ Export CSV
+          </button>
           <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
             ⬆ Import CSV
           </button>
