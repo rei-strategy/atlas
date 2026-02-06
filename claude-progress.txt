@@ -1386,3 +1386,74 @@
 - Form defaults verified in frontend and backend
 - Build compiles successfully
 
+
+### Session - 2026-02-06 (Agent batch: Features #155, #163, #117)
+
+**Features Completed: #155, #163, #117 (Loading States & Urgent Notifications)**
+
+#### Feature #155: Loading states for async operations
+- All data-heavy pages show loading spinners while data loads
+- Content appears after loading completes
+- Loading state initialized to `true` in all main page components (no flash of empty content)
+- Updated ProfilePage loading state to use consistent spinner
+- Updated PortalDashboardPage and PortalTripDetailPage to use spinners
+- Updated portal-loading CSS for flexbox layout with spinner
+
+#### Feature #163: Loading states prevent interaction during operations
+- Added `<fieldset disabled={loading}>` wrapper to form components:
+  - ClientFormModal in ClientsPage.js
+  - TaskFormModal in TasksPage.js
+  - LoginPage form
+  - RegisterPage form
+  - ProfilePage edit form
+- All form fields and buttons disabled during save operations
+- Added CSS for disabled fieldset styling (opacity 0.6, pointer-events none)
+- Cancel buttons also disabled during loading to prevent modal close
+
+#### Feature #117: Urgent notification - payment due within 48 hours
+- Created paymentDeadlineService.js with:
+  - checkUrgentPaymentDeadlines(hoursThreshold): Checks all bookings, creates notifications
+  - getUrgentPaymentDeadlines(agencyId, hoursThreshold): Get urgent bookings for agency
+- Notifications include: supplier name, trip name, client name, amount, due date, confirmation
+- Type is 'urgent' for high priority indicator
+- Uses event key for deduplication (one notification per booking per day per user)
+- Added to notifications.js:
+  - GET /api/notifications now triggers payment deadline check
+  - GET /api/notifications/urgent-payments - list urgent bookings
+  - POST /api/notifications/check-payment-deadlines - admin trigger
+
+#### Key Implementation Details
+- client/src/pages/ProfilePage.js: Loading spinner, fieldset disabled
+- client/src/pages/portal/PortalDashboardPage.js: Loading spinner
+- client/src/pages/portal/PortalTripDetailPage.js: Loading spinner
+- client/src/pages/ClientsPage.js: Fieldset disabled during save
+- client/src/pages/TasksPage.js: Fieldset disabled during save
+- client/src/pages/LoginPage.js: Fieldset disabled during login
+- client/src/pages/RegisterPage.js: Fieldset disabled during registration
+- client/src/styles/index.css: fieldset:disabled styles, portal-loading flexbox
+- server/src/services/paymentDeadlineService.js: New service for payment deadline notifications
+- server/src/routes/notifications.js: Urgent payment endpoints
+
+#### Test Data Created
+- Agency: Payment Test Agency F117 (ID: 68)
+- User: payment_test_f117@atlas.com / TestPass123
+- Client: Urgent Client (ID: 140)
+- Trip: URGENT_PAYMENT_TEST_TRIP (ID: 52)
+- Booking: URGENT-24HR-001 (Bali Beach Resort, ID: 36, payment due 2026-02-07)
+- Notification: ID 56 - "Urgent: Payment due in less than 24 hours"
+
+#### Verification Summary
+- Loading spinners visible on all data-heavy pages
+- Form fields disabled during save operations
+- Urgent payment notification generated for booking with payment due within 24 hours
+- Notification includes: supplier, trip, client, amount ($4,000), due date, confirmation number
+- Deduplication working - no duplicate notifications on repeated fetch
+
+#### Current State
+- 97/240 features passing (~40.4%)
+- Backend on port 3001, Frontend on port 3000
+- Loading states consistent across all pages
+- Form interactions blocked during operations
+- Urgent payment notifications working
+- Build compiles successfully
+
