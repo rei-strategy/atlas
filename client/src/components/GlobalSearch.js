@@ -121,7 +121,12 @@ export default function GlobalSearch() {
           {loading ? (
             <div className="global-search-loading">Searching...</div>
           ) : !hasResults ? (
-            <div className="global-search-empty">No results found for "{query}"</div>
+            <div className="global-search-empty">
+              <div className="global-search-empty-title">No results found for "{query}"</div>
+              <div className="global-search-empty-hint">
+                Try different keywords or check spelling
+              </div>
+            </div>
           ) : (
             <>
               {/* Clients Section */}
