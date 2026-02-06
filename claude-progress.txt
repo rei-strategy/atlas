@@ -2298,3 +2298,46 @@
 - All features verified working with real file uploads and database persistence
 
 ---
+
+### Session - 2026-02-06 (Agent: Feature #106)
+
+**Feature Completed: #106 - Customer portal - no internal data visible**
+
+#### Feature #106: Customer portal hides all internal workflow data
+- Verified customer login as portal_test_99@example.com with JWT token (role: customer)
+- Tested all portal sections return only customer-safe data:
+
+**No commission data visible:**
+- Booking responses exclude: commission_amount_expected, commission_rate, commission_status
+- Booking responses exclude: commission_amount_received, commission_received_date
+- Booking responses exclude: commission_payment_reference, commission_variance_note
+
+**No task/workflow data visible:**
+- /api/portal/tasks returns "Endpoint not found"
+- Staff /api/tasks with customer token returns "Access denied. Customer accounts cannot access internal APIs."
+- Trip data excludes: assigned_user_id, is_locked, lock_reason
+
+**No internal notes visible:**
+- Booking responses exclude: supplier_notes, inclusions_exclusions, cancellation_rules
+- Client notes field not exposed
+- Document queries filter: is_client_visible = 1 AND is_sensitive = 0
+
+**No other client data visible:**
+- Accessing another client's trip returns "Trip not found" (client_id filter enforced)
+- Accessing trip from different agency returns "Trip not found" (agency_id filter enforced)
+- /api/portal/clients returns "Endpoint not found"
+- Staff APIs /api/clients, /api/commissions blocked for customer role
+
+#### Code Implementation Verified
+- portal.js lines 268-288: Trip list SELECT only safe fields
+- portal.js lines 319-325: Booking SELECT excludes all commission/internal fields
+- portal.js lines 327-332: Document filter is_client_visible AND NOT is_sensitive
+- auth middleware blocks customer tokens from internal APIs
+
+#### Current State
+- 153/240 features passing (~63.7%)
+- Backend on port 3001, Frontend on port 3000
+- Build compiles successfully
+- Git commit: 2ed35ff
+
+---
