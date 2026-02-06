@@ -835,7 +835,7 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
         </div>
 
         {/* Tabs for Info, Trips, and Portal */}
-        <div className="detail-tabs" style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-lg)' }}>
+        <div className="detail-tabs client-detail-tabs" style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-lg)' }}>
           <button
             className={`detail-tab ${activeTab === 'info' ? 'detail-tab-active' : ''}`}
             onClick={() => setActiveTab('info')}

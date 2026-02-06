@@ -1522,7 +1522,7 @@ fieldset:disabled .btn {
 .data-table-container {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
   overflow: hidden;
 }
 
@@ -1637,6 +1637,10 @@ fieldset:disabled .btn {
 
 .client-tab-content .detail-sections {
   padding: 0;
+}
+
+.client-detail-tabs {
+  padding: 0 var(--spacing-lg);
 }
 
 .trip-detail-header {
@@ -3793,6 +3797,209 @@ html, body {
 .atrisk-due.text-warning {
   color: var(--color-warning);
   font-weight: 500;
+}
+
+/* Commission Pipeline Widget */
+.commission-pipeline-widget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.commission-pipeline-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.pipeline-stage {
+  flex: 1;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pipeline-stage:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.pipeline-expected {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.pipeline-submitted {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.pipeline-paid {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pipeline-stage-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pipeline-stage-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pipeline-stage-amount {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.pipeline-arrow {
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.commission-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.commission-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.summary-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.summary-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.summary-received {
+  color: var(--color-success);
+}
+
+.summary-outstanding {
+  color: var(--color-warning);
+}
+
+/* ============================================
+   Dashboard Quick Access Styles
+   ============================================ */
+.dashboard-quick-access {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.quick-access-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.quick-access-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.quick-access-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.quick-access-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quick-access-item:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-access-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.quick-access-icon-client {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+}
+
+.quick-access-icon-trip {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.quick-access-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-access-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-access-meta {
+  display: flex;
+  gap: var(--spacing-xs);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.quick-access-meta span::after {
+  content: " \00b7 ";
+}
+
+.quick-access-meta span:last-child::after {
+  content: "";
+}
+
+.quick-access-destination {
+  font-style: italic;
 }
 
 /* ============================================

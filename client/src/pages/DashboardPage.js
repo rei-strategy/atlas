@@ -65,6 +65,10 @@ export default function DashboardPage() {
   const [trips, setTrips] = useState([]);
   const [atRiskPayments, setAtRiskPayments] = useState({ overdue: [], nearDue: [], totalAtRisk: 0 });
   const [recentItems, setRecentItems] = useState({ clients: [], trips: [] });
+  const [commissionPipeline, setCommissionPipeline] = useState({
+    pipeline: { expected: { count: 0, amount: 0 }, submitted: { count: 0, amount: 0 }, paid: { count: 0, amount: 0 } },
+    summary: { totalBookings: 0, totalExpected: 0, totalReceived: 0, outstanding: 0 }
+  });
   const [loading, setLoading] = useState(true);
 
   // Handle access denied redirect from admin routes
@@ -178,14 +182,32 @@ export default function DashboardPage() {
     }
   }, [token, checkTokenExpiration]);
 
+  const fetchCommissionPipeline = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/commission-pipeline`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        setCommissionPipeline(data);
+      }
+    } catch (err) {
+      console.error('Failed to load commission pipeline:', err);
+    }
+  }, [token, checkTokenExpiration]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems()]);
+      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems]);
+  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems, fetchCommissionPipeline]);
 
   const handleCompleteTask = async (taskId) => {
     try {
@@ -608,10 +630,58 @@ export default function DashboardPage() {
         {/* Commission Pipeline Card */}
         <div className="dashboard-card">
           <div className="dashboard-card-header">
-            <h3>Commission Pipeline</h3>
+            <div className="dashboard-card-title-row">
+              {commissionPipeline.summary.totalBookings > 0 && (
+                <span className="dashboard-card-count">{commissionPipeline.summary.totalBookings}</span>
+              )}
+              <h3>Commission Pipeline</h3>
+            </div>
           </div>
           <div className="dashboard-card-body">
-            <p className="dashboard-empty-state">No commissions tracked yet. Commission data will appear as bookings are created.</p>
+            {commissionPipeline.summary.totalBookings === 0 ? (
+              <p className="dashboard-empty-state">No commissions tracked yet. Commission data will appear as bookings are created.</p>
+            ) : (
+              <div className="commission-pipeline-widget">
+                {/* Pipeline Flow */}
+                <div className="commission-pipeline-flow">
+                  <div className="pipeline-stage pipeline-expected" onClick={() => navigate('/commissions?status=expected')}>
+                    <div className="pipeline-stage-label">Expected</div>
+                    <div className="pipeline-stage-count">{commissionPipeline.pipeline.expected.count}</div>
+                    <div className="pipeline-stage-amount">${commissionPipeline.pipeline.expected.amount.toLocaleString()}</div>
+                  </div>
+                  <div className="pipeline-arrow">→</div>
+                  <div className="pipeline-stage pipeline-submitted" onClick={() => navigate('/commissions?status=submitted')}>
+                    <div className="pipeline-stage-label">Submitted</div>
+                    <div className="pipeline-stage-count">{commissionPipeline.pipeline.submitted.count}</div>
+                    <div className="pipeline-stage-amount">${commissionPipeline.pipeline.submitted.amount.toLocaleString()}</div>
+                  </div>
+                  <div className="pipeline-arrow">→</div>
+                  <div className="pipeline-stage pipeline-paid" onClick={() => navigate('/commissions?status=paid')}>
+                    <div className="pipeline-stage-label">Paid</div>
+                    <div className="pipeline-stage-count">{commissionPipeline.pipeline.paid.count}</div>
+                    <div className="pipeline-stage-amount">${commissionPipeline.pipeline.paid.amount.toLocaleString()}</div>
+                  </div>
+                </div>
+                {/* Summary Row */}
+                <div className="commission-summary-row">
+                  <div className="commission-summary-item">
+                    <span className="summary-label">Total Expected</span>
+                    <span className="summary-value">${commissionPipeline.summary.totalExpected.toLocaleString()}</span>
+                  </div>
+                  <div className="commission-summary-item">
+                    <span className="summary-label">Received</span>
+                    <span className="summary-value summary-received">${commissionPipeline.summary.totalReceived.toLocaleString()}</span>
+                  </div>
+                  <div className="commission-summary-item">
+                    <span className="summary-label">Outstanding</span>
+                    <span className="summary-value summary-outstanding">${commissionPipeline.summary.outstanding.toLocaleString()}</span>
+                  </div>
+                </div>
+                <button className="btn btn-link" onClick={() => navigate('/commissions')}>
+                  View all commissions
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
