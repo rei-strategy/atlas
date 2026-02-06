@@ -13,17 +13,30 @@ const VALID_STAGES = ['inquiry', 'quoted', 'booked', 'final_payment_pending', 't
 
 /**
  * GET /api/trips
- * List all trips for the agency with optional filters
+ * List all trips for the agency with optional filters and pagination
  */
 router.get('/', (req, res) => {
   try {
     const db = getDb();
-    const { search, stage, clientId, assignedTo, dateFrom, dateTo, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
+    const {
+      search,
+      stage,
+      clientId,
+      assignedTo,
+      dateFrom,
+      dateTo,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+      page = '1',
+      limit = '10'
+    } = req.query;
 
-    let query = `
-      SELECT t.*,
-        c.first_name as client_first_name, c.last_name as client_last_name,
-        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+    // Parse pagination params
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const offset = (pageNum - 1) * limitNum;
+
+    let baseQuery = `
       FROM trips t
       LEFT JOIN clients c ON t.client_id = c.id
       LEFT JOIN users u ON t.assigned_user_id = u.id
@@ -32,47 +45,69 @@ router.get('/', (req, res) => {
     const params = [req.agencyId];
 
     if (search) {
-      query += ` AND (t.name LIKE ? OR t.destination LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ?)`;
+      baseQuery += ` AND (t.name LIKE ? OR t.destination LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ?)`;
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (stage) {
-      query += ` AND t.stage = ?`;
+      baseQuery += ` AND t.stage = ?`;
       params.push(stage);
     }
 
     if (clientId) {
-      query += ` AND t.client_id = ?`;
+      baseQuery += ` AND t.client_id = ?`;
       params.push(clientId);
     }
 
     if (assignedTo) {
-      query += ` AND t.assigned_user_id = ?`;
+      baseQuery += ` AND t.assigned_user_id = ?`;
       params.push(assignedTo);
     }
 
     // Date range filter - filters on travel_start_date
     if (dateFrom) {
-      query += ` AND t.travel_start_date >= ?`;
+      baseQuery += ` AND t.travel_start_date >= ?`;
       params.push(dateFrom);
     }
 
     if (dateTo) {
-      query += ` AND t.travel_start_date <= ?`;
+      baseQuery += ` AND t.travel_start_date <= ?`;
       params.push(dateTo);
     }
+
+    // Get total count first
+    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+    const countResult = db.prepare(countQuery).get(...params);
+    const total = countResult.total;
 
     const allowedSortCols = ['name', 'destination', 'stage', 'travel_start_date', 'travel_end_date', 'created_at', 'updated_at'];
     const safeSortBy = allowedSortCols.includes(sortBy) ? sortBy : 'created_at';
     const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
-    query += ` ORDER BY t.${safeSortBy} ${safeSortOrder}`;
 
-    const trips = db.prepare(query).all(...params);
+    // Build final query with pagination
+    const selectQuery = `
+      SELECT t.*,
+        c.first_name as client_first_name, c.last_name as client_last_name,
+        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      ${baseQuery}
+      ORDER BY t.${safeSortBy} ${safeSortOrder}
+      LIMIT ? OFFSET ?
+    `;
+    const paginatedParams = [...params, limitNum, offset];
+    const trips = db.prepare(selectQuery).all(...paginatedParams);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limitNum);
 
     res.json({
       trips: trips.map(t => formatTrip(t)),
-      total: trips.length
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
+      hasNextPage: pageNum < totalPages,
+      hasPrevPage: pageNum > 1
     });
   } catch (error) {
     console.error('[ERROR] List trips failed:', error.message);

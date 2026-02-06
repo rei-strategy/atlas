@@ -2552,6 +2552,11 @@ export default function TripsPage() {
   const [tripNotFound, setTripNotFound] = useState(false);
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTrips, setTotalTrips] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageSize] = useState(10);
 
   // Sync filter state to URL search params for persistence during navigation
   useEffect(() => {
@@ -2593,23 +2598,32 @@ export default function TripsPage() {
       if (clientFilter) params.set('clientId', clientFilter);
       if (dateFromFilter) params.set('dateFrom', dateFromFilter);
       if (dateToFilter) params.set('dateTo', dateToFilter);
+      params.set('page', currentPage.toString());
+      params.set('limit', pageSize.toString());
       const res = await fetch(`${API_BASE}/trips?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (res.ok) {
         setTrips(data.trips);
+        setTotalTrips(data.total);
+        setTotalPages(data.totalPages);
       }
     } catch (err) {
       console.error('Failed to load trips:', err);
     } finally {
       setLoading(false);
     }
-  }, [token, search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter]);
+  }, [token, search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter, currentPage, pageSize]);
 
   useEffect(() => {
     fetchTrips();
   }, [fetchTrips]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, stageFilter, plannerFilter, clientFilter, dateFromFilter, dateToFilter]);
 
   // Handle URL parameter for direct navigation to a trip
   useEffect(() => {
