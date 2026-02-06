@@ -6483,3 +6483,37 @@ html, body {
     margin-top: var(--spacing-md);
   }
 }
+
+/* ============================================
+   Character Count & Field Footer
+   ============================================ */
+
+.form-field-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-xs);
+  min-height: 20px;
+}
+
+.form-field-footer .form-error-message {
+  margin: 0;
+  flex: 1;
+}
+
+.character-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-left: auto;
+  padding-left: var(--spacing-sm);
+}
+
+.character-count-warning {
+  color: var(--color-warning);
+  font-weight: 500;
+}
+
+.character-count-error {
+  color: var(--color-error);
+  font-weight: 600;
+}

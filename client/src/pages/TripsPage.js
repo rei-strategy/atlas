@@ -118,10 +118,63 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const [error, setError] = useState('');
   const [clients, setClients] = useState([]);
   const [showChangeReason, setShowChangeReason] = useState(false);
+  const [dateErrors, setDateErrors] = useState({});
+  const [dateWarnings, setDateWarnings] = useState({});
   const [form, setForm] = useState({
     clientId: '', name: '', destination: '', description: '',
     travelStartDate: '', travelEndDate: '', changeReason: ''
   });
+
+  // Validate date constraints
+  const validateDates = (startDate, endDate) => {
+    const errors = {};
+    const warnings = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check if end date is before start date
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end < start) {
+        errors.travelEndDate = 'End date cannot be before start date';
+      }
+    }
+
+    // Check for past dates (warning, not error)
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      if (start < today) {
+        warnings.travelStartDate = 'Start date is in the past';
+      }
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(0, 0, 0, 0);
+      if (end < today) {
+        warnings.travelEndDate = 'End date is in the past';
+      }
+    }
+
+    return { errors, warnings };
+  };
+
+  // Handle date change with validation
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    const newForm = { ...form, [name]: value };
+    setForm(newForm);
+
+    // Validate dates
+    const { errors, warnings } = validateDates(
+      name === 'travelStartDate' ? value : newForm.travelStartDate,
+      name === 'travelEndDate' ? value : newForm.travelEndDate
+    );
+    setDateErrors(errors);
+    setDateWarnings(warnings);
+  };
 
   useEffect(() => {
     if (isOpen && token) {
@@ -147,12 +200,18 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
       });
       // Show change reason field if trip is locked
       setShowChangeReason(trip.isLocked || false);
+      // Validate existing dates when editing
+      const { errors, warnings } = validateDates(trip.travelStartDate, trip.travelEndDate);
+      setDateErrors(errors);
+      setDateWarnings(warnings);
     } else {
       setForm({
         clientId: '', name: '', destination: '', description: '',
         travelStartDate: '', travelEndDate: '', changeReason: ''
       });
       setShowChangeReason(false);
+      setDateErrors({});
+      setDateWarnings({});
     }
     setError('');
   }, [trip, isOpen]);
@@ -168,6 +227,14 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
 
     if (!form.name.trim()) {
       setError('Trip name is required');
+      return;
+    }
+
+    // Validate dates before submission
+    const { errors } = validateDates(form.travelStartDate, form.travelEndDate);
+    if (Object.keys(errors).length > 0) {
+      setDateErrors(errors);
+      setError('Please fix the date errors before submitting');
       return;
     }
 
@@ -289,27 +356,44 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
             </div>
 
             <div className="form-row">
-              <div className="form-group">
+              <div className={`form-group ${dateErrors.travelStartDate ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="travelStartDate">Travel Start Date</label>
                 <input
                   id="travelStartDate"
                   name="travelStartDate"
                   type="date"
-                  className="form-input"
+                  className={`form-input ${dateErrors.travelStartDate ? 'form-input-error' : ''}`}
                   value={form.travelStartDate}
-                  onChange={handleChange}
+                  onChange={handleDateChange}
                 />
+                {dateErrors.travelStartDate && (
+                  <span className="form-error-message">{dateErrors.travelStartDate}</span>
+                )}
+                {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
+                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    ⚠️ {dateWarnings.travelStartDate}
+                  </span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${dateErrors.travelEndDate ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="travelEndDate">Travel End Date</label>
                 <input
                   id="travelEndDate"
                   name="travelEndDate"
                   type="date"
-                  className="form-input"
+                  className={`form-input ${dateErrors.travelEndDate ? 'form-input-error' : ''}`}
                   value={form.travelEndDate}
-                  onChange={handleChange}
+                  onChange={handleDateChange}
+                  min={form.travelStartDate || undefined}
                 />
+                {dateErrors.travelEndDate && (
+                  <span className="form-error-message">{dateErrors.travelEndDate}</span>
+                )}
+                {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
+                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    ⚠️ {dateWarnings.travelEndDate}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -365,6 +449,60 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [dateErrors, setDateErrors] = useState({});
+  const [dateWarnings, setDateWarnings] = useState({});
+
+  // Validate date constraints for booking
+  const validateBookingDates = (startDate, endDate) => {
+    const errors = {};
+    const warnings = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check if end date is before start date
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (end < start) {
+        errors.travelEndDate = 'End date cannot be before start date';
+      }
+    }
+
+    // Check for past dates (warning, not error)
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      if (start < today) {
+        warnings.travelStartDate = 'Start date is in the past';
+      }
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(0, 0, 0, 0);
+      if (end < today) {
+        warnings.travelEndDate = 'End date is in the past';
+      }
+    }
+
+    return { errors, warnings };
+  };
+
+  // Handle date change with validation
+  const handleBookingDateChange = (e) => {
+    const { name, value } = e.target;
+    const newForm = { ...form, [name]: value };
+    setForm(newForm);
+
+    // Validate dates
+    const { errors, warnings } = validateBookingDates(
+      name === 'travelStartDate' ? value : newForm.travelStartDate,
+      name === 'travelEndDate' ? value : newForm.travelEndDate
+    );
+    setDateErrors(errors);
+    setDateWarnings(warnings);
+  };
+
   const [form, setForm] = useState({
     bookingType: 'hotel',
     supplierName: '',
@@ -430,9 +568,17 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
         inclusionsExclusions: '',
         cancellationRules: ''
       });
+      setDateErrors({});
+      setDateWarnings({});
     }
     setError('');
     setFieldErrors({});
+    // Validate existing dates when editing
+    if (booking) {
+      const { errors, warnings } = validateBookingDates(booking.travelStartDate, booking.travelEndDate);
+      setDateErrors(errors);
+      setDateWarnings(warnings);
+    }
   }, [booking, isOpen, defaultCommissionRate]);
 
   // Validate numeric financial fields
@@ -534,6 +680,14 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
 
     if (!form.bookingType) {
       setError('Booking type is required');
+      return;
+    }
+
+    // Validate dates before submission
+    const { errors: dateValidationErrors } = validateBookingDates(form.travelStartDate, form.travelEndDate);
+    if (Object.keys(dateValidationErrors).length > 0) {
+      setDateErrors(dateValidationErrors);
+      setError('Please fix the date errors before submitting');
       return;
     }
 
@@ -670,27 +824,44 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                   onChange={handleChange}
                 />
               </div>
-              <div className="form-group">
+              <div className={`form-group ${dateErrors.travelStartDate ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="bkTravelStart">Travel Start</label>
                 <input
                   id="bkTravelStart"
                   name="travelStartDate"
                   type="date"
-                  className="form-input"
+                  className={`form-input ${dateErrors.travelStartDate ? 'form-input-error' : ''}`}
                   value={form.travelStartDate}
-                  onChange={handleChange}
+                  onChange={handleBookingDateChange}
                 />
+                {dateErrors.travelStartDate && (
+                  <span className="form-error-message">{dateErrors.travelStartDate}</span>
+                )}
+                {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
+                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    ⚠️ {dateWarnings.travelStartDate}
+                  </span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${dateErrors.travelEndDate ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="bkTravelEnd">Travel End</label>
                 <input
                   id="bkTravelEnd"
                   name="travelEndDate"
                   type="date"
-                  className="form-input"
+                  className={`form-input ${dateErrors.travelEndDate ? 'form-input-error' : ''}`}
+                  min={form.travelStartDate || undefined}
                   value={form.travelEndDate}
-                  onChange={handleChange}
+                  onChange={handleBookingDateChange}
                 />
+                {dateErrors.travelEndDate && (
+                  <span className="form-error-message">{dateErrors.travelEndDate}</span>
+                )}
+                {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
+                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    ⚠️ {dateWarnings.travelEndDate}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -829,14 +1000,19 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                   <input
                     id="commissionAmountExpected"
                     name="commissionAmountExpected"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-input"
+                    type="text"
+                    inputMode="decimal"
+                    className={`form-input ${fieldErrors.commissionAmountExpected ? 'form-input-error' : ''}`}
                     value={form.commissionAmountExpected}
-                    onChange={handleChange}
+                    onChange={handleFinancialChange}
+                    onBlur={handleFinancialBlur}
                     placeholder="Auto-calculated or manual"
+                    aria-invalid={!!fieldErrors.commissionAmountExpected}
+                    aria-describedby={fieldErrors.commissionAmountExpected ? 'commissionAmountExpected-error' : undefined}
                   />
+                  {fieldErrors.commissionAmountExpected && (
+                    <span id="commissionAmountExpected-error" className="form-error-message" role="alert">{fieldErrors.commissionAmountExpected}</span>
+                  )}
                 </div>
               </div>
             </div>

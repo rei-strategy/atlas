@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessage } from '../utils/apiErrors';
+import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit } from '../utils/validation';
 import Breadcrumb from '../components/Breadcrumb';
 
 const API_BASE = '/api';
@@ -49,6 +50,9 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         if (value.trim().length < 2) {
           return 'First name must be at least 2 characters';
         }
+        if (value.length > FIELD_LIMITS.name) {
+          return `First name must be ${FIELD_LIMITS.name} characters or less`;
+        }
         return '';
       case 'lastName':
         if (!value || !value.trim()) {
@@ -57,9 +61,15 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         if (value.trim().length < 2) {
           return 'Last name must be at least 2 characters';
         }
+        if (value.length > FIELD_LIMITS.name) {
+          return `Last name must be ${FIELD_LIMITS.name} characters or less`;
+        }
         return '';
       case 'email':
         if (value && value.trim()) {
+          if (value.length > FIELD_LIMITS.email) {
+            return `Email must be ${FIELD_LIMITS.email} characters or less`;
+          }
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(value.trim())) {
             return 'Please enter a valid email address';
@@ -68,11 +78,34 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         return '';
       case 'phone':
         if (value && value.trim()) {
+          if (value.length > FIELD_LIMITS.phone) {
+            return `Phone must be ${FIELD_LIMITS.phone} characters or less`;
+          }
           // Allow various phone formats but require at least 7 digits
           const digits = value.replace(/\D/g, '');
           if (digits.length < 7) {
             return 'Please enter a valid phone number';
           }
+        }
+        return '';
+      case 'city':
+        if (value && value.length > FIELD_LIMITS.city) {
+          return `City must be ${FIELD_LIMITS.city} characters or less`;
+        }
+        return '';
+      case 'state':
+        if (value && value.length > FIELD_LIMITS.state) {
+          return `State must be ${FIELD_LIMITS.state} characters or less`;
+        }
+        return '';
+      case 'country':
+        if (value && value.length > FIELD_LIMITS.country) {
+          return `Country must be ${FIELD_LIMITS.country} characters or less`;
+        }
+        return '';
+      case 'notes':
+        if (value && value.length > FIELD_LIMITS.notes) {
+          return `Notes must be ${FIELD_LIMITS.notes} characters or less`;
         }
         return '';
       default:
@@ -83,7 +116,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   // Validate all fields and return errors object
   const validateAllFields = () => {
     const errors = {};
-    const fieldsToValidate = ['firstName', 'lastName', 'email', 'phone'];
+    const fieldsToValidate = ['firstName', 'lastName', 'email', 'phone', 'city', 'state', 'country', 'notes'];
     fieldsToValidate.forEach(field => {
       const error = validateField(field, form[field]);
       if (error) {
@@ -352,6 +385,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                   onChange={handleChange}
                   onBlur={handleBlur}
                   placeholder="First name"
+                  maxLength={FIELD_LIMITS.name}
                   aria-invalid={!!(fieldErrors.firstName && touched.firstName)}
                   aria-describedby={fieldErrors.firstName && touched.firstName ? 'firstName-error' : undefined}
                 />
@@ -436,38 +470,53 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
 
             <h3 className="form-section-title">Location</h3>
             <div className="form-row-3">
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.city && touched.city ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="city">City</label>
                 <input
                   id="city"
                   name="city"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.city && touched.city ? 'form-input-error' : ''}`}
                   value={form.city}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="City"
+                  maxLength={FIELD_LIMITS.city}
                 />
+                {fieldErrors.city && touched.city && (
+                  <span className="form-error-message">{fieldErrors.city}</span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.state && touched.state ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="state">State</label>
                 <input
                   id="state"
                   name="state"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.state && touched.state ? 'form-input-error' : ''}`}
                   value={form.state}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="State"
+                  maxLength={FIELD_LIMITS.state}
                 />
+                {fieldErrors.state && touched.state && (
+                  <span className="form-error-message">{fieldErrors.state}</span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.country && touched.country ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="country">Country</label>
                 <input
                   id="country"
                   name="country"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.country && touched.country ? 'form-input-error' : ''}`}
                   value={form.country}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="Country"
+                  maxLength={FIELD_LIMITS.country}
                 />
+                {fieldErrors.country && touched.country && (
+                  <span className="form-error-message">{fieldErrors.country}</span>
+                )}
               </div>
             </div>
 
@@ -504,17 +553,27 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
               </div>
             </div>
 
-            <div className="form-group">
+            <div className={`form-group ${fieldErrors.notes && touched.notes ? 'form-group-error' : ''}`}>
               <label className="form-label" htmlFor="notes">Notes</label>
               <textarea
                 id="notes"
                 name="notes"
-                className="form-input form-textarea"
+                className={`form-input form-textarea ${fieldErrors.notes && touched.notes ? 'form-input-error' : ''}`}
                 value={form.notes}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="Relationship context, anniversaries, repeat preferences..."
                 rows={3}
+                maxLength={FIELD_LIMITS.notes}
               />
+              <div className="form-field-footer">
+                {fieldErrors.notes && touched.notes && (
+                  <span className="form-error-message">{fieldErrors.notes}</span>
+                )}
+                <span className={`character-count ${isApproachingLimit(form.notes, FIELD_LIMITS.notes) ? 'character-count-warning' : ''}`}>
+                  {getCharacterCount(form.notes, FIELD_LIMITS.notes)}
+                </span>
+              </div>
             </div>
 
             <h3 className="form-section-title">Consent</h3>
