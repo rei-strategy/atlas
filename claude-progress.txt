@@ -474,3 +474,45 @@
 - Zero console errors, code compiles successfully
 - Git commit: 5672453
 
+
+
+### Session - 2026-02-06 (Agent: Feature #37)
+
+**Features Completed: #37 (Real Data Verification - Client list sortable by columns)**
+
+#### Feature #37: Client list sortable by columns
+- Implemented sortable columns on the client list table
+- Three sortable columns: Name (alphabetical by last name), Planner, Last Activity
+- Clicking column header toggles sort direction (ASC/DESC)
+- Sort indicators: ⇅ when inactive, ↑ when ascending, ↓ when descending
+- Added Planner column to display assigned user
+- Updated backend GET /api/clients to support name, planner, activity sort options
+
+#### Key Implementation Details
+- server/src/routes/clients.js: Added name, planner, activity to allowed sort columns
+  - name: sorts by last_name, first_name
+  - planner: sorts by assigned user last_name, first_name
+  - activity: sorts by updated_at timestamp
+- client/src/pages/ClientsPage.js: Added sortBy/sortOrder state, handleSort/renderSortIndicator functions
+- client/src/styles/index.css: Added .sortable-header and .sort-indicator styles
+
+#### Verification
+- Created test agency with 4 clients assigned to 2 different planners
+- Verified sort by name ASC: Anderson, Johnson, Smith, Williams
+- Verified sort by name DESC: Williams, Smith, Johnson, Anderson
+- Verified sort by planner: clients grouped by planner name
+- Verified sort by activity: most recently updated client appears first
+- Data persists after server restart
+- No mock data patterns in codebase
+
+#### Test Data Created
+- Agency: Sort Test Agency (ID: 42)
+- Admin: sorttest@example.com / TestPass123
+- Planner: planner2@sorttest.com / TestPass123 (Alice Planner)
+- Clients: Zack Williams, Alice Smith, Mary Johnson, Bob Anderson
+
+#### Current State
+- 46/240 features passing (~19.2%)
+- Backend on port 3001, Frontend on port 3000
+- Client list sorting fully functional
+- Zero console errors
