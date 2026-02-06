@@ -1491,3 +1491,39 @@
 - Breadcrumb navigation fully functional
 - Build compiles successfully
 - Git commit: 3131c90
+
+
+### Session - 2026-02-06 (Agent batch: Features #12, #13, #15)
+
+**Features Completed: #12, #13, #15 (Security & Access Control)**
+
+#### Feature #12: User can logout with session cleanup
+- Logout button exists in TopBar.js ("Sign out" button, line 54)
+- Calls logout() function from AuthContext
+- clearAuth() in AuthContext removes token from localStorage
+- ProtectedRoute in App.js redirects to /login when not authenticated
+- API returns 401 without valid token, triggering redirect
+
+#### Feature #13: Password is hashed and stored securely
+- Passwords hashed using bcryptjs (cost factor 10)
+- Registration uses bcrypt.hashSync(password, 10) in auth.js line 37
+- Login uses bcrypt.compareSync() to verify in auth.js line 118
+- Database stores hashes in format $2a$10$... (bcrypt standard)
+- Verified in database: password_hash column contains bcrypt hashes, not plain text
+
+#### Feature #15: Protected routes require authentication
+- All API endpoints return 401 without valid JWT token
+- Tested: GET /api/clients, /api/trips, /api/tasks without auth = 401
+- Expired tokens return 401 with code "TOKEN_EXPIRED"
+- auth.js middleware handles TokenExpiredError specifically (line 25-26)
+
+#### Verification Summary
+- Logout: TopBar button → clearAuth() → localStorage.removeItem('atlas_token') → redirect to /login
+- Password hashing: bcrypt with $2a$10$ format verified in database
+- Auth protection: 401 on all protected endpoints without/invalid/expired token
+
+#### Current State
+- 103/240 features passing (~42.9%)
+- Backend on port 3001, Frontend on port 3000
+- All security & access control features verified
+- No code changes required - features already implemented
