@@ -59,6 +59,12 @@ export default function TopBar({ onMenuToggle }) {
         </button>
         <NotificationBell />
         <Link to="/profile" className="topbar-user-info" title="View Profile">
+          <span className="topbar-user-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21c0-3.866-3.134-7-7-7h-2c-3.866 0-7 3.134-7 7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+              <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.7"/>
+            </svg>
+          </span>
           <span className="topbar-user-name">{user?.firstName} {user?.lastName}</span>
         </Link>
         <button className="btn btn-outline btn-sm" onClick={logout}>

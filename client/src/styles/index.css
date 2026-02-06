@@ -784,6 +784,19 @@ fieldset:disabled .btn {
   gap: var(--spacing-sm);
 }
 
+.topbar-user-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
 .topbar-user-name {
   font-size: var(--font-size-sm);
   font-weight: 500;
