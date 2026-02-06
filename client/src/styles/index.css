@@ -5378,3 +5378,143 @@ html, body {
   font-size: 0.9375rem;
   color: var(--color-text);
 }
+
+/* ============================================
+   Portal Acknowledgments Styles
+   ============================================ */
+
+.portal-ack-intro {
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.portal-ack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.portal-ack-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.portal-ack-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.portal-ack-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  transition: box-shadow 0.15s ease;
+}
+
+.portal-ack-card.pending {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.portal-ack-card.confirmed {
+  border-left: 4px solid #10b981;
+  background: #f9fafb;
+  opacity: 0.85;
+}
+
+.portal-ack-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.portal-ack-type {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.portal-ack-type.type-info {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.portal-ack-type.type-document {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.portal-ack-type.type-itinerary {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.portal-ack-type.type-booking {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.portal-ack-type.type-payment {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.portal-ack-type.type-terms {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.portal-ack-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.portal-ack-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.portal-ack-desc {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.portal-ack-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.portal-ack-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.portal-ack-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
