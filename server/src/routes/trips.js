@@ -1660,7 +1660,30 @@ router.post('/import', csvUpload.single('file'), (req, res) => {
         if (client) {
           clientId = client.id;
         } else {
-          results.errors.push({ row: rowNum, warning: `Client with email "${clientEmail}" not found, trip created without client` });
+          // Create a placeholder client with the email
+          try {
+            const clientResult = db.prepare(`
+              INSERT INTO clients (agency_id, first_name, last_name, email)
+              VALUES (?, ?, ?, ?)
+            `).run(req.agencyId, 'CSV Import', clientEmail.split('@')[0], clientEmail);
+            clientId = clientResult.lastInsertRowid;
+            results.errors.push({ row: rowNum, warning: `Created new client for email "${clientEmail}"` });
+          } catch (clientErr) {
+            results.errors.push({ row: rowNum, error: `Failed to create client: ${clientErr.message}` });
+            continue;
+          }
+        }
+      } else {
+        // No client email provided - use or create a default "CSV Import" client
+        let defaultClient = db.prepare('SELECT id FROM clients WHERE email = ? AND agency_id = ?').get('csv-import@placeholder.local', req.agencyId);
+        if (!defaultClient) {
+          const clientResult = db.prepare(`
+            INSERT INTO clients (agency_id, first_name, last_name, email)
+            VALUES (?, ?, ?, ?)
+          `).run(req.agencyId, 'CSV', 'Import', 'csv-import@placeholder.local');
+          clientId = clientResult.lastInsertRowid;
+        } else {
+          clientId = defaultClient.id;
         }
       }
 

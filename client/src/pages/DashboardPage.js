@@ -134,7 +134,7 @@ export default function DashboardPage() {
         showNetworkError(err, fetchTasks);
       }
     }
-  }, [token, checkTokenExpiration, timezone]);
+  }, [token, checkTokenExpiration, timezone, showNetworkError]);
 
   const fetchTrips = useCallback(async () => {
     try {
@@ -155,8 +155,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load trips:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchTrips);
+      }
     }
-  }, [token, checkTokenExpiration]);
+  }, [token, checkTokenExpiration, showNetworkError]);
 
   const fetchAtRiskPayments = useCallback(async () => {
     try {
@@ -173,8 +177,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load at-risk payments:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchAtRiskPayments);
+      }
     }
-  }, [token, checkTokenExpiration]);
+  }, [token, checkTokenExpiration, showNetworkError]);
 
   const fetchRecentItems = useCallback(async () => {
     try {
@@ -191,8 +199,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load recent items:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchRecentItems);
+      }
     }
-  }, [token, checkTokenExpiration]);
+  }, [token, checkTokenExpiration, showNetworkError]);
 
   const fetchCommissionPipeline = useCallback(async () => {
     try {
@@ -209,8 +221,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load commission pipeline:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchCommissionPipeline);
+      }
     }
-  }, [token, checkTokenExpiration]);
+  }, [token, checkTokenExpiration, showNetworkError]);
 
   const fetchPlannerPerformance = useCallback(async () => {
     // Only fetch for admin users
@@ -230,8 +246,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load planner performance:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchPlannerPerformance);
+      }
     }
-  }, [token, checkTokenExpiration, isAdmin]);
+  }, [token, checkTokenExpiration, isAdmin, showNetworkError]);
 
   const fetchRecentActivity = useCallback(async () => {
     try {
@@ -248,8 +268,12 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load recent activity:', err);
+      if (isNetworkError(err)) {
+        setNetworkErrorState(err);
+        showNetworkError(err, fetchRecentActivity);
+      }
     }
-  }, [token, checkTokenExpiration]);
+  }, [token, checkTokenExpiration, showNetworkError]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -387,6 +411,28 @@ export default function DashboardPage() {
   };
 
   const upcomingDeadlines = getUpcomingDeadlines();
+
+  // Retry function for network error fallback
+  const retryLoadData = async () => {
+    setNetworkErrorState(null);
+    setLoading(true);
+    const promises = [fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline(), fetchRecentActivity()];
+    if (isAdmin) {
+      promises.push(fetchPlannerPerformance());
+    }
+    await Promise.all(promises);
+    setLoading(false);
+  };
+
+  // Show network error fallback if we have a network error and no data loaded
+  if (networkErrorState && !loading && tasks.length === 0 && trips.length === 0) {
+    return (
+      <NetworkErrorFallback
+        error={networkErrorState}
+        onRetry={retryLoadData}
+      />
+    );
+  }
 
   if (loading) {
     return (
