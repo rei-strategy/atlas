@@ -12,6 +12,10 @@ router.use(tenantScope);
 // Support role can only view, not create/modify bookings
 const canModifyBookings = authorize('admin', 'planner', 'planner_advisor');
 
+// Middleware to restrict access to booking data from marketing role
+// Marketing role cannot access financial data, commissions, or booking details per spec
+const canViewBookings = authorize('admin', 'planner', 'planner_advisor', 'support', 'support_assistant');
+
 const VALID_BOOKING_TYPES = ['hotel', 'cruise', 'resort', 'tour', 'insurance', 'transfer', 'other'];
 const VALID_STATUSES = ['planned', 'quoted', 'booked', 'canceled'];
 const VALID_PAYMENT_STATUSES = ['deposit_paid', 'final_due', 'paid_in_full'];
@@ -20,8 +24,9 @@ const VALID_COMMISSION_STATUSES = ['expected', 'submitted', 'paid'];
 /**
  * GET /api/trips/:tripId/bookings
  * List all bookings for a trip
+ * Marketing role cannot access booking data (contains financial information)
  */
-router.get('/', (req, res) => {
+router.get('/', canViewBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId } = req.params;
