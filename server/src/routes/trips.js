@@ -3,6 +3,7 @@ const multer = require('multer');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
 const { createNotificationsForUsers, generateEventKey } = require('../services/notificationService');
+const { validateTripFields, formatValidationErrors } = require('../utils/validation');
 
 const router = express.Router();
 
@@ -184,6 +185,12 @@ router.post('/', (req, res) => {
     // Validation
     if (!name) {
       return res.status(400).json({ error: 'Trip name is required' });
+    }
+
+    // Max length validation
+    const lengthErrors = validateTripFields(req.body);
+    if (lengthErrors.length > 0) {
+      return res.status(400).json({ error: formatValidationErrors(lengthErrors) });
     }
 
     const db = getDb();

@@ -2868,3 +2868,35 @@
 - Backend on port 3001, Frontend on port 3000
 - All features verified working via API testing
 - Git commits: c6880bd (#164), dba96f3 (#165), d159b5a (#166)
+
+---
+
+### Session - 2026-02-06 (Agent: Feature #169)
+
+**Feature Verified: #169 - Graceful handling of deleted entity navigation**
+
+#### Feature #169: Graceful handling of deleted entity navigation
+- Verified existing implementation for both Clients and Trips
+- Feature steps:
+  1. Created test client ID 175 (TEST_TO_DELETE Client169)
+  2. Deleted client via API
+  3. Navigated to /clients/175 - API returns 404
+  4. Frontend shows "Client Not Found" with helpful message
+  5. "← Back to Clients" button navigates to /clients
+
+#### Implementation Details
+- ClientsPage.js: Uses urlClientId from useParams(), fetches client, sets notFound=true on 404
+- TripsPage.js: Uses urlTripId from useParams(), fetches trip, sets tripNotFound=true on 404
+- Both show user-friendly message: "may have been deleted or you don't have permission"
+- Both have navigation button to return to list
+
+#### Verification
+- Backend returns 404 for deleted/non-existent entities
+- Frontend detects non-OK response and shows Not Found view
+- No code changes needed - feature was already fully implemented
+- Frontend build successful
+- No mock data patterns detected
+
+#### Current State
+- 190/240 features passing (~79.2%)
+- Feature verified working end-to-end
