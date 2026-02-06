@@ -1527,3 +1527,49 @@
 - Backend on port 3001, Frontend on port 3000
 - All security & access control features verified
 - No code changes required - features already implemented
+
+
+### Session - 2026-02-06 (Agent batch: Features #237, #238)
+
+**Features Completed: #237, #238 (Export/Import)**
+
+#### Feature #237: Client list export to CSV
+- Added GET /api/clients/export endpoint to backend
+- Endpoint returns CSV file with Content-Type: text/csv
+- Content-Disposition header set for download
+- All client fields included in export:
+  - id, first_name, last_name, email, phone
+  - city, state, country, preferred_communication
+  - travel_preferences, notes, marketing_opt_in, contact_consent
+  - assigned_planner, created_at, updated_at
+- Proper CSV escaping for special characters (commas, quotes, newlines)
+- Added Export CSV button to ClientsPage header
+
+#### Feature #238: Filtered export respects current filters
+- Export endpoint accepts search and assignedTo query parameters
+- Filters applied to database query before export
+- Tested with agency having 26 clients:
+  - Filtered export (search=Number01): 1 client exported
+  - Unfiltered export: 26 clients exported
+- Frontend passes current filter state to export URL
+
+#### Key Implementation Details
+- server/src/routes/clients.js: Added /export endpoint with filter support
+  - Route placed BEFORE /:id to prevent Express matching "export" as an ID
+  - Uses same filter logic as list endpoint (search, assignedTo)
+- client/src/pages/ClientsPage.js: Added Export CSV button
+  - Fetches with auth header, triggers blob download
+  - Passes current search and plannerFilter to export URL
+
+#### Verification Summary
+- CSV export returns proper headers and data
+- Filtered export only includes matching records
+- Build compiles successfully
+- Server logs show export operations
+
+#### Current State
+- 99/240 features passing (~41.3%)
+- Backend on port 3001, Frontend on port 3000
+- Client CSV export fully functional with filter support
+- Build compiles successfully
+- Git commit: 1f1cd79
