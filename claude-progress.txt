@@ -791,3 +791,46 @@
 - Zero console errors
 - Git commit: 5cc7134
 
+
+### Session - 2026-02-06 (Agent batch: Features #60, #210, #207)
+
+**Features Completed: #60, #210, #207 (Workflow Completeness + Data Cleanup)**
+
+#### Feature #60: Delete booking with confirmation
+- Backend DELETE endpoint already existed at /api/trips/:tripId/bookings/:id
+- Frontend handleDeleteBooking function uses window.confirm() for confirmation dialog
+- Fixed audit log issue: now logs BEFORE delete with booking_id as NULL (to avoid FK constraint)
+- After deletion, fetchBookings() refreshes the list
+- Trip totals automatically update (calculated dynamically from remaining bookings)
+- Verified data persists after server restart
+
+#### Feature #210: Canceling booking updates commission tracking
+- When booking status changes to "canceled", commission_amount_expected is set to 0
+- Added effectiveCommissionExpected variable that's 0 when canceling a booking
+- Updated totals calculation to exclude canceled bookings from commission totals
+- Test: Created 2 bookings ($320 total commission), canceled one, totals updated to $120
+- Verified data persists after server restart
+
+#### Feature #207: Deleting booking updates trip totals
+- Trip totals are calculated dynamically in GET /api/trips/:tripId/bookings endpoint
+- Test: Created 3 bookings totaling $5000, deleted $2000 booking, total updated to $3000
+- Commission totals also updated: $605 → $405 (after removing $200 commission booking)
+- Verified data persists after server restart
+
+#### Key Implementation Details
+- server/src/routes/bookings.js: 
+  - Audit log now uses NULL for booking_id on delete (avoids FK constraint)
+  - Added effectiveCommissionExpected logic for cancelation
+  - Updated totals calculation to exclude canceled bookings from commission totals
+- Frontend already had confirmation dialog in handleDeleteBooking
+
+#### Test Data Created
+- Agency: Delete Booking Test Agency (ID: 49) - delete_booking_test@atlas.com
+- Agency: Cancel Commission Test Agency (ID: 51) - cancel_commission_test@atlas.com
+- Agency: Trip Totals Test Agency (ID: 53) - trip_totals_test@atlas.com
+
+#### Current State
+- 60/240 features passing (25%)
+- Backend on port 3001, Frontend on port 3000
+- No mock data patterns in production code
+- All data persists across server restarts

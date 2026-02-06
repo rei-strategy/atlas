@@ -430,9 +430,28 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
         <div className="modal-body">
           {importResult ? (
             <div className="import-success">
-              <div className="success-icon" style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>✓</div>
-              <h3 style={{ color: 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>Import Complete!</h3>
+              <div className="success-icon" style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>
+                {importResult.validationErrors ? '⚠️' : '✓'}
+              </div>
+              <h3 style={{ color: importResult.validationErrors ? 'var(--color-warning)' : 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>
+                {importResult.validationErrors ? 'Partial Import Complete' : 'Import Complete!'}
+              </h3>
               <p>{importResult.imported} client{importResult.imported !== 1 ? 's' : ''} imported successfully.</p>
+              {importResult.validationErrors && (
+                <div style={{ marginTop: 'var(--spacing-md)', textAlign: 'left' }}>
+                  <h4 style={{ color: 'var(--color-danger)', marginBottom: 'var(--spacing-sm)' }}>
+                    {importResult.validationErrors.length} row{importResult.validationErrors.length !== 1 ? 's' : ''} failed:
+                  </h4>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--border-radius)', padding: 'var(--spacing-sm)' }}>
+                    {importResult.validationErrors.map((err, idx) => (
+                      <div key={idx} style={{ padding: 'var(--spacing-xs) 0', borderBottom: idx < importResult.validationErrors.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                        <strong>Row {err.row}:</strong>{' '}
+                        <span style={{ color: 'var(--color-danger)' }}>{err.errors.join(', ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-lg)' }} onClick={handleClose}>
                 Done
               </button>
