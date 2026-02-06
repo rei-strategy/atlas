@@ -38,6 +38,30 @@ function ProtectedRoute({ children }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+function AdminRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Non-admin users are redirected to dashboard with access denied message
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace state={{ accessDenied: true, message: 'Admin access required' }} />;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -189,9 +213,9 @@ function AppRoutes() {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <SettingsPage />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 

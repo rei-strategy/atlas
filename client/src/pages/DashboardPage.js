@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
@@ -59,10 +59,20 @@ export default function DashboardPage() {
   const { token, handleSessionExpired } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { formatShortDate, isOverdue: checkOverdue, timezone } = useTimezone();
   const [tasks, setTasks] = useState([]);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Handle access denied redirect from admin routes
+  useEffect(() => {
+    if (location.state?.accessDenied) {
+      addToast(location.state.message || 'Access denied', 'error');
+      // Clear the state so the message doesn't repeat
+      navigate('/dashboard', { replace: true, state: {} });
+    }
+  }, [location.state, addToast, navigate]);
 
   // Helper to check for token expiration
   const checkTokenExpiration = useCallback(async (res) => {
