@@ -2406,6 +2406,7 @@ function DocumentsTab({ tripId, token }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -2538,6 +2539,33 @@ function DocumentsTab({ tripId, token }) {
     }
   };
 
+  const handleGenerateInvoice = async () => {
+    setGeneratingInvoice(true);
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ type: 'invoice' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate invoice');
+      }
+
+      addToast(`Invoice ${data.invoice.invoiceNumber} generated successfully`, 'success');
+      setDocuments(prev => [data.document, ...prev]);
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setGeneratingInvoice(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-screen" style={{ minHeight: '120px' }}>
@@ -2551,9 +2579,19 @@ function DocumentsTab({ tripId, token }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0 }}>Documents ({documents.length})</h3>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>
-          + Upload Document
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleGenerateInvoice}
+            disabled={generatingInvoice}
+            title="Generate an invoice from trip financial data"
+          >
+            {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>
+            + Upload Document
+          </button>
+        </div>
       </div>
 
       {documents.length === 0 ? (
@@ -2568,9 +2606,14 @@ function DocumentsTab({ tripId, token }) {
           </div>
           <h3 className="empty-state-title">No documents yet</h3>
           <p className="empty-state-description">Upload contracts, invoices, itineraries, and other trip documents.</p>
-          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={() => setShowUploadModal(true)}>
-            + Upload First Document
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'var(--spacing-md)', justifyContent: 'center' }}>
+            <button className="btn btn-outline" onClick={handleGenerateInvoice} disabled={generatingInvoice}>
+              {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
+            </button>
+            <button className="btn btn-primary" onClick={() => setShowUploadModal(true)}>
+              + Upload Document
+            </button>
+          </div>
         </div>
       ) : (
         <div className="data-table-container">
