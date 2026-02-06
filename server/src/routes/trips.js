@@ -555,6 +555,40 @@ router.put('/:id/stage', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(tripId, req.user.id, 'stage', oldStage, stage);
 
+    // Handle trip cancellation - update all bookings to canceled status
+    if (stage === 'canceled') {
+      // Get all non-canceled bookings for this trip
+      const bookingsToCancel = db.prepare(`
+        SELECT id FROM bookings WHERE trip_id = ? AND status != 'canceled'
+      `).all(tripId);
+
+      if (bookingsToCancel.length > 0) {
+        // Update all bookings to canceled status
+        db.prepare(`
+          UPDATE bookings SET status = 'canceled', updated_at = datetime('now')
+          WHERE trip_id = ? AND status != 'canceled'
+        `).run(tripId);
+
+        // Log the booking cancellations
+        db.prepare(`
+          INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          req.agencyId,
+          req.user.id,
+          'bookings_canceled',
+          'trip',
+          tripId,
+          JSON.stringify({
+            reason: 'Trip canceled',
+            bookingsCanceled: bookingsToCancel.length,
+            bookingIds: bookingsToCancel.map(b => b.id)
+          }),
+          tripId
+        );
+      }
+    }
+
     // Fetch agency workflow timing settings
     const agencySettings = db.prepare(`
       SELECT quote_followup_days, booking_confirmation_days, final_payment_reminder_days,

@@ -1272,6 +1272,33 @@ function BookingsTab({ tripId, token }) {
                   </span>
                 </div>
               )}
+              {/* Variance Flag - shown when received differs from expected */}
+              {b.commissionAmountReceived != null && b.commissionAmountExpected != null &&
+               b.commissionAmountReceived !== b.commissionAmountExpected && (
+                <div className="detail-field">
+                  <span className="detail-field-label">Variance</span>
+                  {(() => {
+                    const variance = b.commissionAmountReceived - b.commissionAmountExpected;
+                    const isUnderpaid = variance < 0;
+                    const isOverpaid = variance > 0;
+                    return (
+                      <span
+                        className={`status-badge ${isUnderpaid ? 'status-error' : 'status-success'}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        {isUnderpaid ? '⚠️ Underpaid' : '✓ Overpaid'}
+                        <span style={{ fontWeight: 600 }}>
+                          ({isOverpaid ? '+' : ''}{formatCurrency(variance)})
+                        </span>
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
               {b.commissionReceivedDate && (
                 <div className="detail-field">
                   <span className="detail-field-label">Date Received</span>
@@ -1538,12 +1565,20 @@ function CommissionsTab({ tripId, token }) {
                 <th>Rate</th>
                 <th>Expected</th>
                 <th>Received</th>
+                <th>Variance</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {commissionsData.map(b => (
+              {commissionsData.map(b => {
+                const hasVariance = b.commissionAmountReceived != null && b.commissionAmountExpected != null &&
+                                   b.commissionAmountReceived !== b.commissionAmountExpected;
+                const variance = hasVariance ? (b.commissionAmountReceived - b.commissionAmountExpected) : null;
+                const isUnderpaid = variance !== null && variance < 0;
+                const isOverpaid = variance !== null && variance > 0;
+
+                return (
                 <tr key={b.id}>
                   <td>
                     <span className="table-user-name">
@@ -1555,6 +1590,21 @@ function CommissionsTab({ tripId, token }) {
                   <td style={{ fontWeight: 600 }}>{formatCurrency(b.commissionAmountExpected)}</td>
                   <td style={{ color: b.commissionAmountReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
                     {b.commissionAmountReceived != null && b.commissionAmountReceived > 0 ? formatCurrency(b.commissionAmountReceived) : '—'}
+                  </td>
+                  <td>
+                    {hasVariance ? (
+                      <span
+                        className={`status-badge ${isUnderpaid ? 'status-error' : 'status-success'}`}
+                        title={b.commissionVarianceNote || ''}
+                      >
+                        {isUnderpaid ? '⚠️ Underpaid' : '✓ Overpaid'}
+                        <span style={{ marginLeft: '0.25rem', fontWeight: 600 }}>
+                          ({isOverpaid ? '+' : ''}{formatCurrency(variance)})
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                    )}
                   </td>
                   <td>
                     <span className={`status-badge ${COMMISSION_STATUS_COLORS[b.commissionStatus]}`}>
@@ -1571,7 +1621,7 @@ function CommissionsTab({ tripId, token }) {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -2913,6 +2963,22 @@ export default function TripsPage() {
   };
 
   const handleStageChange = async (tripId, newStage) => {
+    // Show confirmation dialog for cancellation
+    if (newStage === 'canceled') {
+      const tripName = selectedTrip?.name || trips.find(t => t.id === tripId)?.name || 'this trip';
+      const confirmed = window.confirm(
+        `Are you sure you want to cancel "${tripName}"?\n\n` +
+        `This will:\n` +
+        `• Mark the trip as Canceled\n` +
+        `• Cancel all associated bookings\n` +
+        `• The trip will be hidden from active views\n\n` +
+        `This action can be undone by changing the stage back.`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/trips/${tripId}/stage`, {
         method: 'PUT',
