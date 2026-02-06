@@ -3,6 +3,7 @@ const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
+const { validateClientFields, formatValidationErrors } = require('../utils/validation');
 
 // Configure multer for CSV file uploads (in memory)
 const upload = multer({
@@ -305,6 +306,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
+    // Max length validation
+    const lengthErrors = validateClientFields(req.body);
+    if (lengthErrors.length > 0) {
+      return res.status(400).json({ error: formatValidationErrors(lengthErrors) });
+    }
+
     const db = getDb();
 
     // Check email uniqueness within agency if email is provided
@@ -415,6 +422,12 @@ router.put('/:id', (req, res) => {
         serverUpdatedAt: existing.updated_at,
         clientUpdatedAt: updatedAt
       });
+    }
+
+    // Max length validation
+    const lengthErrors = validateClientFields(req.body);
+    if (lengthErrors.length > 0) {
+      return res.status(400).json({ error: formatValidationErrors(lengthErrors) });
     }
 
     // Check email uniqueness if email changed

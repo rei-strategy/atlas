@@ -403,6 +403,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                   onChange={handleChange}
                   onBlur={handleBlur}
                   placeholder="Last name"
+                  maxLength={FIELD_LIMITS.name}
                   aria-invalid={!!(fieldErrors.lastName && touched.lastName)}
                   aria-describedby={fieldErrors.lastName && touched.lastName ? 'lastName-error' : undefined}
                 />
@@ -424,6 +425,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                   onChange={handleChange}
                   onBlur={handleBlur}
                   placeholder="email@example.com"
+                  maxLength={FIELD_LIMITS.email}
                   aria-invalid={!!(fieldErrors.email && touched.email)}
                   aria-describedby={fieldErrors.email && touched.email ? 'email-error' : undefined}
                 />
@@ -441,6 +443,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                   onChange={handleChange}
                   onBlur={handleBlur}
                   placeholder="(555) 555-1234"
+                  maxLength={FIELD_LIMITS.phone}
                   aria-invalid={!!(fieldErrors.phone && touched.phone)}
                   aria-describedby={fieldErrors.phone && touched.phone ? 'phone-error' : undefined}
                 />
