@@ -287,6 +287,38 @@ fieldset:disabled .btn {
   opacity: 0.6;
 }
 
+/* Form field error states */
+.form-group-error .form-label {
+  color: var(--color-danger);
+}
+
+.form-input-error {
+  border-color: var(--color-danger) !important;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.form-input-error:focus {
+  border-color: var(--color-danger) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.form-error-message {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  font-weight: 400;
+}
+
+/* Icon indicator for error fields */
+.form-group-error .form-input {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

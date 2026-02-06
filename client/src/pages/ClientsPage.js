@@ -227,55 +227,77 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
             <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
             <h3 className="form-section-title">Personal Information</h3>
             <div className="form-row">
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.firstName && touched.firstName ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="firstName">First Name *</label>
                 <input
                   id="firstName"
                   name="firstName"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.firstName && touched.firstName ? 'form-input-error' : ''}`}
                   value={form.firstName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="First name"
-                  required
+                  aria-invalid={!!(fieldErrors.firstName && touched.firstName)}
+                  aria-describedby={fieldErrors.firstName && touched.firstName ? 'firstName-error' : undefined}
                 />
+                {fieldErrors.firstName && touched.firstName && (
+                  <span id="firstName-error" className="form-error-message">{fieldErrors.firstName}</span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.lastName && touched.lastName ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="lastName">Last Name *</label>
                 <input
                   id="lastName"
                   name="lastName"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.lastName && touched.lastName ? 'form-input-error' : ''}`}
                   value={form.lastName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="Last name"
-                  required
+                  aria-invalid={!!(fieldErrors.lastName && touched.lastName)}
+                  aria-describedby={fieldErrors.lastName && touched.lastName ? 'lastName-error' : undefined}
                 />
+                {fieldErrors.lastName && touched.lastName && (
+                  <span id="lastName-error" className="form-error-message">{fieldErrors.lastName}</span>
+                )}
               </div>
             </div>
 
             <div className="form-row">
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.email && touched.email ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="email">Email</label>
                 <input
                   id="email"
                   name="email"
                   type="email"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.email && touched.email ? 'form-input-error' : ''}`}
                   value={form.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="email@example.com"
+                  aria-invalid={!!(fieldErrors.email && touched.email)}
+                  aria-describedby={fieldErrors.email && touched.email ? 'email-error' : undefined}
                 />
+                {fieldErrors.email && touched.email && (
+                  <span id="email-error" className="form-error-message">{fieldErrors.email}</span>
+                )}
               </div>
-              <div className="form-group">
+              <div className={`form-group ${fieldErrors.phone && touched.phone ? 'form-group-error' : ''}`}>
                 <label className="form-label" htmlFor="phone">Phone</label>
                 <input
                   id="phone"
                   name="phone"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.phone && touched.phone ? 'form-input-error' : ''}`}
                   value={form.phone}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="(555) 555-1234"
+                  aria-invalid={!!(fieldErrors.phone && touched.phone)}
+                  aria-describedby={fieldErrors.phone && touched.phone ? 'phone-error' : undefined}
                 />
+                {fieldErrors.phone && touched.phone && (
+                  <span id="phone-error" className="form-error-message">{fieldErrors.phone}</span>
+                )}
               </div>
             </div>
 
