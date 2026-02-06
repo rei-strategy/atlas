@@ -1,9 +1,41 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { getDb } = require('../config/database');
 
 const router = express.Router();
+
+// File upload configuration for customer portal
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    cb(null, `customer_${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    // Allow common document types
+    const allowedTypes = /pdf|doc|docx|xls|xlsx|txt|csv|jpg|jpeg|png|gif/;
+    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+    if (allowedTypes.test(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Allowed: PDF, Word, Excel, images, text files'));
+    }
+  }
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'atlas-dev-secret-change-in-production';
 const JWT_EXPIRES_IN = '24h';
@@ -477,8 +509,9 @@ router.put('/trips/:tripId/travelers/:id', authenticateCustomer, (req, res) => {
 /**
  * POST /api/portal/trips/:id/documents
  * Customer uploads a document to their trip
+ * Supports actual file upload via multipart/form-data
  */
-router.post('/trips/:id/documents', authenticateCustomer, (req, res) => {
+router.post('/trips/:id/documents', authenticateCustomer, upload.single('file'), (req, res) => {
   try {
     const db = getDb();
     const tripId = req.params.id;
@@ -492,11 +525,21 @@ router.post('/trips/:id/documents', authenticateCustomer, (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    const { fileName, documentType, filePath } = req.body;
-
-    if (!fileName) {
-      return res.status(400).json({ error: 'File name is required' });
+    // Support both file upload and metadata-only
+    let fileName, filePath;
+    if (req.file) {
+      fileName = req.file.originalname;
+      filePath = `/uploads/${req.file.filename}`;
+    } else {
+      // Metadata-only fallback
+      fileName = req.body.fileName;
+      if (!fileName) {
+        return res.status(400).json({ error: 'File is required' });
+      }
+      filePath = req.body.filePath || `/uploads/${Date.now()}_${fileName}`;
     }
+
+    const documentType = req.body.documentType || 'other';
 
     const result = db.prepare(`
       INSERT INTO documents (agency_id, trip_id, document_type, file_name, file_path, is_sensitive, is_client_visible, uploaded_by)
@@ -504,9 +547,22 @@ router.post('/trips/:id/documents', authenticateCustomer, (req, res) => {
     `).run(
       req.customer.agency_id,
       tripId,
-      documentType || 'other',
+      documentType,
       fileName,
-      filePath || `/uploads/${Date.now()}_${fileName}`
+      filePath
+    );
+
+    // Log customer upload in audit
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, NULL, ?, ?, ?, ?, ?)
+    `).run(
+      req.customer.agency_id,
+      'customer_document_upload',
+      'document',
+      result.lastInsertRowid,
+      JSON.stringify({ fileName, documentType, customerEmail: req.customer.email }),
+      tripId
     );
 
     const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(result.lastInsertRowid);
@@ -517,6 +573,7 @@ router.post('/trips/:id/documents', authenticateCustomer, (req, res) => {
         id: doc.id,
         documentType: doc.document_type,
         fileName: doc.file_name,
+        filePath: doc.file_path,
         createdAt: doc.created_at
       }
     });
@@ -657,6 +714,55 @@ router.get('/trips/:tripId/documents/:docId/download', authenticateCustomer, (re
 });
 
 /**
+ * GET /api/portal/trips/:id/feedback
+ * Get feedback for a trip (if already submitted)
+ */
+router.get('/trips/:id/feedback', authenticateCustomer, (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    // Verify trip belongs to this customer
+    const trip = db.prepare(
+      'SELECT id, stage FROM trips WHERE id = ? AND client_id = ? AND agency_id = ?'
+    ).get(tripId, req.customer.client_id, req.customer.agency_id);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Get existing feedback
+    const feedback = db.prepare(`
+      SELECT id, overall_rating, service_rating, destination_rating, accommodations_rating,
+        would_recommend, highlights, improvements, comments, created_at, updated_at
+      FROM trip_feedback
+      WHERE trip_id = ? AND agency_id = ?
+    `).get(tripId, req.customer.agency_id);
+
+    res.json({
+      tripStage: trip.stage,
+      canSubmitFeedback: trip.stage === 'completed',
+      feedback: feedback ? {
+        id: feedback.id,
+        overallRating: feedback.overall_rating,
+        serviceRating: feedback.service_rating,
+        destinationRating: feedback.destination_rating,
+        accommodationsRating: feedback.accommodations_rating,
+        wouldRecommend: !!feedback.would_recommend,
+        highlights: feedback.highlights,
+        improvements: feedback.improvements,
+        comments: feedback.comments,
+        createdAt: feedback.created_at,
+        updatedAt: feedback.updated_at
+      } : null
+    });
+  } catch (error) {
+    console.error('[ERROR] Get feedback failed:', error.message);
+    res.status(500).json({ error: 'Failed to get feedback' });
+  }
+});
+
+/**
  * POST /api/portal/trips/:id/feedback
  * Customer submits post-trip feedback
  */
@@ -666,29 +772,104 @@ router.post('/trips/:id/feedback', authenticateCustomer, (req, res) => {
     const tripId = req.params.id;
 
     const trip = db.prepare(
-      'SELECT id FROM trips WHERE id = ? AND client_id = ? AND agency_id = ?'
+      'SELECT id, stage FROM trips WHERE id = ? AND client_id = ? AND agency_id = ?'
     ).get(tripId, req.customer.client_id, req.customer.agency_id);
 
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    const { rating, comments } = req.body;
+    // Only allow feedback for completed trips
+    if (trip.stage !== 'completed') {
+      return res.status(400).json({
+        error: 'Feedback can only be submitted for completed trips',
+        tripStage: trip.stage
+      });
+    }
 
-    // Store feedback as a document of type 'feedback'
+    // Check if feedback already exists
+    const existingFeedback = db.prepare(
+      'SELECT id FROM trip_feedback WHERE trip_id = ? AND agency_id = ?'
+    ).get(tripId, req.customer.agency_id);
+
+    if (existingFeedback) {
+      return res.status(409).json({
+        error: 'Feedback has already been submitted for this trip',
+        feedbackId: existingFeedback.id
+      });
+    }
+
+    const {
+      overallRating,
+      serviceRating,
+      destinationRating,
+      accommodationsRating,
+      wouldRecommend,
+      highlights,
+      improvements,
+      comments
+    } = req.body;
+
+    if (!overallRating || overallRating < 1 || overallRating > 5) {
+      return res.status(400).json({ error: 'Overall rating (1-5) is required' });
+    }
+
+    // Insert feedback into dedicated table
     const result = db.prepare(`
-      INSERT INTO documents (agency_id, trip_id, document_type, file_name, file_path, is_sensitive, is_client_visible, uploaded_by)
-      VALUES (?, ?, 'feedback', ?, ?, 0, 1, NULL)
+      INSERT INTO trip_feedback (
+        agency_id, trip_id, client_id, customer_id,
+        overall_rating, service_rating, destination_rating, accommodations_rating,
+        would_recommend, highlights, improvements, comments
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.customer.agency_id,
       tripId,
-      `Feedback - Rating: ${rating || 'N/A'}`,
-      JSON.stringify({ rating, comments, submittedAt: new Date().toISOString() })
+      req.customer.client_id,
+      req.customer.id,
+      overallRating,
+      serviceRating || null,
+      destinationRating || null,
+      accommodationsRating || null,
+      wouldRecommend ? 1 : 0,
+      highlights || null,
+      improvements || null,
+      comments || null
     );
 
+    // Log feedback submission in audit
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id, client_id)
+      VALUES (?, NULL, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.customer.agency_id,
+      'feedback_submitted',
+      'trip_feedback',
+      result.lastInsertRowid,
+      JSON.stringify({
+        overallRating,
+        customerEmail: req.customer.email,
+        submittedAt: new Date().toISOString()
+      }),
+      tripId,
+      req.customer.client_id
+    );
+
+    const feedback = db.prepare('SELECT * FROM trip_feedback WHERE id = ?').get(result.lastInsertRowid);
+
     res.status(201).json({
-      message: 'Feedback submitted successfully',
-      feedbackId: result.lastInsertRowid
+      message: 'Thank you for your feedback!',
+      feedback: {
+        id: feedback.id,
+        overallRating: feedback.overall_rating,
+        serviceRating: feedback.service_rating,
+        destinationRating: feedback.destination_rating,
+        accommodationsRating: feedback.accommodations_rating,
+        wouldRecommend: !!feedback.would_recommend,
+        highlights: feedback.highlights,
+        improvements: feedback.improvements,
+        comments: feedback.comments,
+        createdAt: feedback.created_at
+      }
     });
   } catch (error) {
     console.error('[ERROR] Submit feedback failed:', error.message);

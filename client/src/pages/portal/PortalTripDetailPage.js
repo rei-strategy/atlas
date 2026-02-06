@@ -28,9 +28,11 @@ export default function PortalTripDetailPage() {
 
   // Document upload state
   const [showDocUpload, setShowDocUpload] = useState(false);
-  const [docForm, setDocForm] = useState({ fileName: '', documentType: 'other' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [docForm, setDocForm] = useState({ documentType: 'other' });
   const [docSubmitting, setDocSubmitting] = useState(false);
   const [docMessage, setDocMessage] = useState('');
+  const fileInputRef = React.useRef();
 
   // Helper to check if a payment is overdue
   const isPaymentOverdue = (booking) => {
@@ -108,26 +110,39 @@ export default function PortalTripDetailPage() {
 
   const handleDocUpload = async (e) => {
     e.preventDefault();
+
+    if (!selectedFile) {
+      setDocMessage('Error: Please select a file to upload');
+      return;
+    }
+
     setDocSubmitting(true);
     setDocMessage('');
 
     try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('documentType', docForm.documentType);
+
       const res = await fetch(`/api/portal/trips/${id}/documents`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(docForm)
+        body: formData
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to upload document');
 
       setDocuments([...documents, data.document]);
-      setDocForm({ fileName: '', documentType: 'other' });
+      setSelectedFile(null);
+      setDocForm({ documentType: 'other' });
       setShowDocUpload(false);
       setDocMessage('Document uploaded successfully!');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
       setDocMessage('Error: ' + err.message);
     } finally {
@@ -488,16 +503,25 @@ export default function PortalTripDetailPage() {
           {showDocUpload && (
             <form onSubmit={handleDocUpload} className="portal-form">
               <div className="portal-form-grid">
-                <div className="portal-form-group">
-                  <label htmlFor="docName">Document Name *</label>
+                <div className="portal-form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor="docFile">Select File *</label>
                   <input
-                    id="docName"
-                    type="text"
-                    value={docForm.fileName}
-                    onChange={(e) => setDocForm({ ...docForm, fileName: e.target.value })}
+                    ref={fileInputRef}
+                    id="docFile"
+                    type="file"
+                    onChange={(e) => setSelectedFile(e.target.files[0])}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif"
                     required
-                    placeholder="e.g., Passport Scan - John Smith"
+                    style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', width: '100%' }}
                   />
+                  {selectedFile && (
+                    <div style={{ marginTop: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Allowed: PDF, Word, Excel, images, text files (max 10MB)
+                  </p>
                 </div>
                 <div className="portal-form-group">
                   <label htmlFor="docType">Document Type</label>
@@ -514,7 +538,7 @@ export default function PortalTripDetailPage() {
                 </div>
               </div>
               <div className="portal-form-actions">
-                <button type="submit" className="portal-submit-btn" disabled={docSubmitting}>
+                <button type="submit" className="portal-submit-btn" disabled={docSubmitting || !selectedFile}>
                   {docSubmitting ? 'Uploading...' : 'Upload Document'}
                 </button>
               </div>
