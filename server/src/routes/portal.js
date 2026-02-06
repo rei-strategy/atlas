@@ -27,12 +27,12 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
   fileFilter: (req, file, cb) => {
     // Allow common document types
-    const allowedTypes = /pdf|doc|docx|xls|xlsx|txt|csv|jpg|jpeg|png|gif/;
+    const allowedTypes = /pdf|doc|docx|xls|xlsx|txt|csv|jpg|jpeg|png|gif|html/;
     const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
     if (allowedTypes.test(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Allowed: PDF, Word, Excel, images, text files'));
+      cb(new Error('Invalid file type. Allowed: PDF, Word, Excel, images, text, HTML files'));
     }
   }
 });
