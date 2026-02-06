@@ -1189,6 +1189,8 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: commissionModalRef } = useModalAccessibility(isOpen, onClose);
   const [form, setForm] = useState({
     commissionStatus: '',
     commissionAmountReceived: '',
@@ -1279,15 +1281,22 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
     : null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-md" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={commissionModalRef}
+        className="modal-content modal-md"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="commission-status-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">Update Commission Status</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="commission-status-modal-title">Update Commission Status</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             {/* Current Commission Info */}
             <div style={{
@@ -2194,6 +2203,8 @@ function TravelerFormModal({ isOpen, onClose, onSaved, traveler, tripId, token }
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: travelerModalRef } = useModalAccessibility(isOpen, onClose);
   const [form, setForm] = useState({
     fullLegalName: '',
     dateOfBirth: '',
@@ -2278,15 +2289,22 @@ function TravelerFormModal({ isOpen, onClose, onSaved, traveler, tripId, token }
   const derivedAge = calculateAge(form.dateOfBirth);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={travelerModalRef}
+        className="modal-content modal-lg"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="traveler-form-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">{traveler ? 'Edit Traveler' : 'Add Traveler'}</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="traveler-form-modal-title">{traveler ? 'Edit Traveler' : 'Add Traveler'}</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
 
             <div className="form-group">
               <label className="form-label" htmlFor="fullLegalName">Full Legal Name *</label>
@@ -2632,6 +2650,8 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef: documentModalRef } = useModalAccessibility(isOpen, onClose);
   const [form, setForm] = useState({
     documentType: 'other',
     isSensitive: false,
@@ -2756,11 +2776,18 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={documentModalRef}
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-upload-modal-title"
+      >
         <div className="modal-header">
-          <h2 className="modal-title">Upload Document</h2>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+          <h2 className="modal-title" id="document-upload-modal-title">Upload Document</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
