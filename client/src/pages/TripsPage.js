@@ -3900,6 +3900,21 @@ export default function TripsPage() {
       return;
     }
 
+    // Validate file type
+    const fileExt = importFile.name.split('.').pop()?.toLowerCase();
+    if (fileExt !== 'csv') {
+      addToast(`Invalid file type (.${fileExt || 'unknown'}). Please select a CSV file.`, 'error');
+      return;
+    }
+
+    // Validate file size (2MB limit for CSV)
+    const maxSize = 2 * 1024 * 1024;
+    if (importFile.size > maxSize) {
+      const fileSizeMB = (importFile.size / (1024 * 1024)).toFixed(2);
+      addToast(`File too large (${fileSizeMB}MB). Maximum file size for CSV import is 2MB.`, 'error');
+      return;
+    }
+
     setImportLoading(true);
     setImportResult(null);
 
@@ -3907,15 +3922,31 @@ export default function TripsPage() {
       const formData = new FormData();
       formData.append('file', importFile);
 
-      const res = await fetch(`${API_BASE}/trips/import`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      let res;
+      try {
+        res = await fetch(`${API_BASE}/trips/import`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+      } catch (networkErr) {
+        throw new Error('Network error: Unable to upload file. Please check your internet connection and try again.');
+      }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Server error: Received an unexpected response. Please try again later.');
+      }
 
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('File too large. Maximum file size is 2MB.');
+        }
+        if (res.status === 415) {
+          throw new Error('Invalid file type. Please upload a CSV file.');
+        }
         throw new Error(data.error || 'Import failed');
       }
 

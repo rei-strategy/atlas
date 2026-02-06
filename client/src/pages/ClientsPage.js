@@ -488,11 +488,36 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
             </fieldset>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (client ? 'Save Changes' : 'Create Client')}
-            </button>
+          <div className="modal-footer" style={{ flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+            {/* Slow/timeout warning */}
+            {showSlowWarning && (
+              <div
+                className={`loading-slow-warning ${showTimeoutWarning ? 'loading-timeout-warning' : ''}`}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                {showTimeoutWarning ? (
+                  <>
+                    <span>This is taking longer than expected ({Math.floor(loadingElapsed / 1000)}s)</span>
+                  </>
+                ) : (
+                  <span>Still working... ({Math.floor(loadingElapsed / 1000)}s)</span>
+                )}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 'var(--spacing-sm)', justifyContent: 'flex-end', width: '100%' }}>
+              {loading && showSlowWarning ? (
+                <button type="button" className="btn btn-outline" onClick={handleCancel}>
+                  Cancel Request
+                </button>
+              ) : (
+                <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
+                  Cancel
+                </button>
+              )}
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? 'Saving...' : (client ? 'Save Changes' : 'Create Client')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

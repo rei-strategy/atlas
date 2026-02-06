@@ -207,43 +207,4 @@ export function isServerError(res) {
   return res.status >= 500;
 }
 
-/**
- * Check if an error is a timeout error
- * @param {Error} error - The error to check
- * @returns {boolean}
- */
-export function isTimeoutError(error) {
-  return error.name === 'AbortError' && error.isTimeout === true;
-}
-
-/**
- * Fetch with timeout support
- * @param {string} url - The URL to fetch
- * @param {Object} options - Fetch options with optional timeout
- * @returns {Promise<Response>}
- */
-export async function fetchWithTimeout(url, options = {}) {
-  const { timeout = 30000, ...fetchOptions } = options;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeout);
-
-  try {
-    const response = await fetch(url, {
-      ...fetchOptions,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      // Mark as timeout error
-      error.isTimeout = true;
-      error.message = 'Request timed out';
-    }
-    throw error;
-  }
-}
+// Note: isTimeoutError and fetchWithTimeout are defined above (lines 73-75 and 17-52)
