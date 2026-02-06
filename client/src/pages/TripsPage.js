@@ -3108,6 +3108,14 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
             </button>
           )}
           <button
+            className="btn btn-outline btn-sm"
+            onClick={handleDuplicateClick}
+            disabled={duplicateLoading}
+            title="Create a copy of this trip for repeat bookings"
+          >
+            {duplicateLoading ? 'Duplicating...' : 'Duplicate Trip'}
+          </button>
+          <button
             className="btn btn-sm"
             style={{
               background: 'var(--color-error, #dc2626)',
@@ -3121,6 +3129,60 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
           </button>
         </div>
       </div>
+
+      {/* Duplicate Trip Modal */}
+      <Modal isOpen={showDuplicateModal} onClose={() => setShowDuplicateModal(false)}>
+        <div className="modal-header">
+          <h2 className="modal-title">Duplicate Trip</h2>
+        </div>
+        <div className="modal-body">
+          <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+            Create a copy of "{trip.name}" for a repeat booking. The new trip will start in the Inquiry stage.
+          </p>
+          <div className="form-group">
+            <label className="form-label">New Trip Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={duplicateOptions.newName}
+              onChange={(e) => setDuplicateOptions(prev => ({ ...prev, newName: e.target.value }))}
+              placeholder="Enter name for the duplicated trip"
+            />
+          </div>
+          <div className="form-group" style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={duplicateOptions.includeTravelers}
+                onChange={(e) => setDuplicateOptions(prev => ({ ...prev, includeTravelers: e.target.checked }))}
+              />
+              <span>Copy travelers from original trip</span>
+            </label>
+          </div>
+          <div className="form-group" style={{ marginTop: '0.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={duplicateOptions.includeBookings}
+                onChange={(e) => setDuplicateOptions(prev => ({ ...prev, includeBookings: e.target.checked }))}
+              />
+              <span>Copy bookings (status will be reset to Planned)</span>
+            </label>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-outline" onClick={() => setShowDuplicateModal(false)}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleConfirmDuplicate}
+            disabled={duplicateLoading}
+          >
+            {duplicateLoading ? 'Duplicating...' : 'Duplicate Trip'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Locked Trip Banner */}
       {trip.isLocked && (
@@ -3624,6 +3686,12 @@ export default function TripsPage() {
           onEdit={handleEditTrip}
           onStageChange={handleStageChange}
           onDelete={handleDeleteTrip}
+          onDuplicate={(newTrip) => {
+            // Refresh the trips list and navigate to the new trip
+            fetchTrips();
+            setSelectedTrip(newTrip);
+            navigate(`/trips?id=${newTrip.id}`);
+          }}
           token={token}
         />
         <TripFormModal

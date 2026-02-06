@@ -17,7 +17,7 @@ router.use(tenantScope);
 router.get('/', authorize('admin', 'planner'), (req, res) => {
   try {
     const db = getDb();
-    const { status, startDate, endDate, bookingId, supplier } = req.query;
+    const { status, startDate, endDate, bookingId, supplier, plannerId } = req.query;
 
     let query = `
       SELECT
@@ -26,11 +26,13 @@ router.get('/', authorize('admin', 'planner'), (req, res) => {
         b.commission_amount_received, b.commission_received_date,
         b.commission_payment_reference, b.commission_variance_note,
         b.total_cost, b.status as booking_status,
-        t.id as trip_id, t.name as trip_name, t.destination,
+        t.id as trip_id, t.name as trip_name, t.destination, t.assigned_user_id,
+        u.first_name as planner_first_name, u.last_name as planner_last_name,
         c.id as client_id, c.first_name as client_first_name, c.last_name as client_last_name
       FROM bookings b
       JOIN trips t ON b.trip_id = t.id
       JOIN clients c ON t.client_id = c.id
+      LEFT JOIN users u ON t.assigned_user_id = u.id
       WHERE b.agency_id = ?
     `;
     const params = [req.agencyId];
@@ -63,6 +65,12 @@ router.get('/', authorize('admin', 'planner'), (req, res) => {
       params.push(supplier);
     }
 
+    // Filter by planner (trip assigned user)
+    if (plannerId) {
+      query += ' AND t.assigned_user_id = ?';
+      params.push(parseInt(plannerId, 10));
+    }
+
     query += ' ORDER BY b.created_at DESC';
 
     const commissions = db.prepare(query).all(...params);
@@ -92,6 +100,10 @@ router.get('/', authorize('admin', 'planner'), (req, res) => {
         tripId: c.trip_id,
         tripName: c.trip_name,
         destination: c.destination,
+        plannerId: c.assigned_user_id,
+        plannerName: c.planner_first_name && c.planner_last_name
+          ? `${c.planner_first_name} ${c.planner_last_name}`
+          : null,
         clientId: c.client_id,
         clientName: `${c.client_first_name} ${c.client_last_name}`
       })),
@@ -129,6 +141,120 @@ router.get('/suppliers', authorize('admin', 'planner'), (req, res) => {
   } catch (error) {
     console.error('[ERROR] Get suppliers failed:', error.message);
     res.status(500).json({ error: 'Failed to get suppliers' });
+  }
+});
+
+/**
+ * GET /api/commissions/planners
+ * Get list of planners who have trips with bookings (for filtering)
+ * Accessible to admin and planner roles only
+ */
+router.get('/planners', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const planners = db.prepare(`
+      SELECT DISTINCT u.id, u.first_name, u.last_name
+      FROM users u
+      JOIN trips t ON t.assigned_user_id = u.id
+      JOIN bookings b ON b.trip_id = t.id
+      WHERE b.agency_id = ?
+      ORDER BY u.first_name, u.last_name
+    `).all(req.agencyId);
+
+    res.json({
+      planners: planners.map(p => ({
+        id: p.id,
+        name: `${p.first_name} ${p.last_name}`
+      }))
+    });
+  } catch (error) {
+    console.error('[ERROR] Get planners failed:', error.message);
+    res.status(500).json({ error: 'Failed to get planners' });
+  }
+});
+
+/**
+ * GET /api/commissions/by-planner
+ * Group commission data by planner with totals per planner
+ * Accessible to admin and planner roles only
+ */
+router.get('/by-planner', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const { startDate, endDate, status } = req.query;
+
+    let whereClause = 'WHERE b.agency_id = ? AND t.assigned_user_id IS NOT NULL';
+    const params = [req.agencyId];
+
+    // Optional date range filter
+    if (startDate) {
+      whereClause += ' AND b.created_at >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      whereClause += ' AND b.created_at <= ?';
+      params.push(endDate);
+    }
+
+    // Optional status filter
+    if (status) {
+      whereClause += ' AND b.commission_status = ?';
+      params.push(status);
+    }
+
+    // Get commission data grouped by planner
+    const plannerGroups = db.prepare(`
+      SELECT
+        u.id as planner_id,
+        u.first_name as planner_first_name,
+        u.last_name as planner_last_name,
+        COUNT(DISTINCT b.id) as booking_count,
+        COUNT(DISTINCT t.id) as trip_count,
+        SUM(b.commission_amount_expected) as total_expected,
+        SUM(b.commission_amount_received) as total_received,
+        SUM(CASE WHEN b.commission_status = 'expected' OR b.commission_status IS NULL THEN 1 ELSE 0 END) as expected_count,
+        SUM(CASE WHEN b.commission_status = 'submitted' THEN 1 ELSE 0 END) as submitted_count,
+        SUM(CASE WHEN b.commission_status = 'paid' THEN 1 ELSE 0 END) as paid_count
+      FROM bookings b
+      JOIN trips t ON b.trip_id = t.id
+      JOIN users u ON t.assigned_user_id = u.id
+      ${whereClause}
+      GROUP BY u.id, u.first_name, u.last_name
+      ORDER BY SUM(b.commission_amount_expected) DESC
+    `).all(...params);
+
+    // Calculate overall totals
+    const totals = plannerGroups.reduce((acc, p) => {
+      acc.totalExpected += p.total_expected || 0;
+      acc.totalReceived += p.total_received || 0;
+      acc.totalBookings += p.booking_count || 0;
+      return acc;
+    }, { totalExpected: 0, totalReceived: 0, totalBookings: 0 });
+
+    res.json({
+      planners: plannerGroups.map(p => ({
+        plannerId: p.planner_id,
+        plannerName: `${p.planner_first_name} ${p.planner_last_name}`,
+        bookingCount: p.booking_count,
+        tripCount: p.trip_count,
+        totalExpected: p.total_expected || 0,
+        totalReceived: p.total_received || 0,
+        outstanding: (p.total_expected || 0) - (p.total_received || 0),
+        expectedCount: p.expected_count,
+        submittedCount: p.submitted_count,
+        paidCount: p.paid_count
+      })),
+      totals: {
+        totalExpected: totals.totalExpected,
+        totalReceived: totals.totalReceived,
+        outstanding: totals.totalExpected - totals.totalReceived,
+        totalBookings: totals.totalBookings,
+        plannerCount: plannerGroups.length
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Get commissions by planner failed:', error.message);
+    res.status(500).json({ error: 'Failed to get commissions by planner' });
   }
 });
 

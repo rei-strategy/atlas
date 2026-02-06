@@ -42,6 +42,14 @@ export default function CommissionsPage() {
     status: ''
   });
   const [expandedSupplier, setExpandedSupplier] = useState(null);
+  const [plannerFilter, setPlannerFilter] = useState('');
+  const [planners, setPlanners] = useState([]);
+  const [byPlannerData, setByPlannerData] = useState({ planners: [], totals: {} });
+  const [byPlannerFilters, setByPlannerFilters] = useState({
+    startDate: '',
+    endDate: '',
+    status: ''
+  });
 
   const fetchVarianceReport = useCallback(async () => {
     try {
@@ -75,6 +83,7 @@ export default function CommissionsPage() {
       if (dateFilter.startDate) params.append('startDate', dateFilter.startDate);
       if (dateFilter.endDate) params.append('endDate', dateFilter.endDate);
       if (supplierFilter) params.append('supplier', supplierFilter);
+      if (plannerFilter) params.append('plannerId', plannerFilter);
 
       const url = `${API_BASE}/commissions${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url, {
@@ -92,7 +101,7 @@ export default function CommissionsPage() {
       console.error('Failed to fetch commissions:', err);
       addToast('Failed to load commissions', 'error');
     }
-  }, [token, statusFilter, dateFilter, supplierFilter, addToast]);
+  }, [token, statusFilter, dateFilter, supplierFilter, plannerFilter, addToast]);
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -108,6 +117,46 @@ export default function CommissionsPage() {
       console.error('Failed to fetch suppliers:', err);
     }
   }, [token]);
+
+  const fetchPlanners = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/commissions/planners`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPlanners(data.planners || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch planners:', err);
+    }
+  }, [token]);
+
+  const fetchByPlanner = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (byPlannerFilters.startDate) params.append('startDate', byPlannerFilters.startDate);
+      if (byPlannerFilters.endDate) params.append('endDate', byPlannerFilters.endDate);
+      if (byPlannerFilters.status) params.append('status', byPlannerFilters.status);
+
+      const url = `${API_BASE}/commissions/by-planner${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setByPlannerData(data);
+      } else {
+        const error = await res.json();
+        addToast(error.error || 'Failed to load planner report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch by-planner report:', err);
+      addToast('Failed to load planner report', 'error');
+    }
+  }, [token, byPlannerFilters, addToast]);
 
   const fetchBySupplier = useCallback(async () => {
     try {
@@ -137,11 +186,11 @@ export default function CommissionsPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers(), fetchBySupplier()]);
+      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers(), fetchPlanners(), fetchBySupplier(), fetchByPlanner()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers, fetchBySupplier]);
+  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers, fetchPlanners, fetchBySupplier, fetchByPlanner]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -238,6 +287,13 @@ export default function CommissionsPage() {
             style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
           >
             By Supplier
+          </button>
+          <button
+            className={`btn ${activeTab === 'byPlanner' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('byPlanner')}
+            style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          >
+            By Planner
           </button>
         </div>
       </div>
@@ -479,6 +535,59 @@ export default function CommissionsPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Time Period</label>
+              <select
+                name="timePeriod"
+                className="form-input"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const now = new Date();
+                  let startDate, endDate;
+
+                  if (value === 'this_month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  } else if (value === 'last_month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                  } else if (value === 'this_quarter') {
+                    const qtr = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), qtr * 3, 1);
+                    endDate = new Date(now.getFullYear(), qtr * 3 + 3, 0);
+                  } else if (value === 'last_quarter') {
+                    const qtr = Math.floor(now.getMonth() / 3) - 1;
+                    const year = qtr < 0 ? now.getFullYear() - 1 : now.getFullYear();
+                    const adjustedQtr = qtr < 0 ? 3 : qtr;
+                    startDate = new Date(year, adjustedQtr * 3, 1);
+                    endDate = new Date(year, adjustedQtr * 3 + 3, 0);
+                  } else if (value === 'this_year') {
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), 11, 31);
+                  } else if (value === 'last_year') {
+                    startDate = new Date(now.getFullYear() - 1, 0, 1);
+                    endDate = new Date(now.getFullYear() - 1, 11, 31);
+                  }
+
+                  if (startDate && endDate) {
+                    setDateFilter({
+                      startDate: startDate.toISOString().split('T')[0],
+                      endDate: endDate.toISOString().split('T')[0]
+                    });
+                  }
+                }}
+              >
+                <option value="">Select Period...</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="this_quarter">This Quarter</option>
+                <option value="last_quarter">Last Quarter</option>
+                <option value="this_year">This Year</option>
+                <option value="last_year">Last Year</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
               <label className="form-label" style={{ fontSize: '0.75rem' }}>Supplier</label>
               <select
                 name="supplierFilter"
@@ -492,13 +601,28 @@ export default function CommissionsPage() {
                 ))}
               </select>
             </div>
-            {(statusFilter || dateFilter.startDate || dateFilter.endDate || supplierFilter) && (
+            <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Planner</label>
+              <select
+                name="plannerFilter"
+                className="form-input"
+                value={plannerFilter}
+                onChange={(e) => setPlannerFilter(e.target.value)}
+              >
+                <option value="">All Planners</option>
+                {planners.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            {(statusFilter || dateFilter.startDate || dateFilter.endDate || supplierFilter || plannerFilter) && (
               <button
                 className="btn btn-outline"
                 onClick={() => {
                   setStatusFilter('');
                   setDateFilter({ startDate: '', endDate: '' });
                   setSupplierFilter('');
+                  setPlannerFilter('');
                 }}
                 style={{ height: '38px' }}
               >
@@ -815,6 +939,198 @@ export default function CommissionsPage() {
 
           <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             💡 Click on a supplier row to view all their commissions in the "All Commissions" tab.
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'byPlanner' && (
+        <div>
+          {/* Filters */}
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            alignItems: 'flex-end'
+          }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Start Date</label>
+              <input
+                type="date"
+                name="startDate"
+                className="form-input"
+                value={byPlannerFilters.startDate}
+                onChange={(e) => setByPlannerFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                className="form-input"
+                value={byPlannerFilters.endDate}
+                onChange={(e) => setByPlannerFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Commission Status</label>
+              <select
+                name="status"
+                className="form-input"
+                value={byPlannerFilters.status}
+                onChange={(e) => setByPlannerFilters(prev => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="">All Statuses</option>
+                <option value="expected">Expected</option>
+                <option value="submitted">Submitted</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            {(byPlannerFilters.startDate || byPlannerFilters.endDate || byPlannerFilters.status) && (
+              <button
+                className="btn btn-outline"
+                onClick={() => setByPlannerFilters({ startDate: '', endDate: '', status: '' })}
+                style={{ height: '38px' }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '0.75rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Planners
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                {byPlannerData.totals?.plannerCount || 0}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Expected
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+                {formatCurrency(byPlannerData.totals?.totalExpected || 0)}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Received
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+                {formatCurrency(byPlannerData.totals?.totalReceived || 0)}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Outstanding
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+                {formatCurrency(byPlannerData.totals?.outstanding || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Planner Table */}
+          {byPlannerData.planners.length === 0 ? (
+            <div className="page-empty-state" style={{ padding: '2rem' }}>
+              <h3 className="empty-state-title">No planner data</h3>
+              <p className="empty-state-description">
+                Commission data grouped by planner will appear here as trips with assigned planners have bookings created.
+              </p>
+            </div>
+          ) : (
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Planner</th>
+                    <th>Trips</th>
+                    <th>Bookings</th>
+                    <th>Expected</th>
+                    <th>Received</th>
+                    <th>Outstanding</th>
+                    <th>Status Breakdown</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byPlannerData.planners.map(p => (
+                    <tr
+                      key={p.plannerId}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setPlannerFilter(String(p.plannerId));
+                        setActiveTab('all');
+                      }}
+                    >
+                      <td>
+                        <div className="table-user-name">{p.plannerName}</div>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{p.tripCount}</td>
+                      <td style={{ fontWeight: 600 }}>{p.bookingCount}</td>
+                      <td style={{ fontWeight: 600 }}>{formatCurrency(p.totalExpected)}</td>
+                      <td style={{ fontWeight: 600, color: p.totalReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                        {p.totalReceived > 0 ? formatCurrency(p.totalReceived) : '—'}
+                      </td>
+                      <td style={{ fontWeight: 600, color: p.outstanding > 0 ? 'var(--color-warning, #f59e0b)' : 'inherit' }}>
+                        {p.outstanding > 0 ? formatCurrency(p.outstanding) : '—'}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {p.expectedCount > 0 && (
+                            <span className="status-badge status-warning" style={{ fontSize: '0.6875rem' }}>
+                              {p.expectedCount} Expected
+                            </span>
+                          )}
+                          {p.submittedCount > 0 && (
+                            <span className="status-badge status-info" style={{ fontSize: '0.6875rem' }}>
+                              {p.submittedCount} Submitted
+                            </span>
+                          )}
+                          {p.paidCount > 0 && (
+                            <span className="status-badge status-success" style={{ fontSize: '0.6875rem' }}>
+                              {p.paidCount} Paid
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            💡 Click on a planner row to view all their commissions in the "All Commissions" tab.
           </div>
         </div>
       )}

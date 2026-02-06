@@ -1243,35 +1243,18 @@ router.post('/:id/duplicate', (req, res) => {
       for (const traveler of travelers) {
         db.prepare(`
           INSERT INTO travelers (
-            trip_id, first_name, last_name, date_of_birth, gender,
-            passport_number, passport_expiry, passport_country,
-            nationality, email, phone, relationship, is_lead,
-            dietary_requirements, medical_notes, emergency_contact_name,
-            emergency_contact_phone, frequent_flyer_numbers, seating_preferences,
-            room_preferences, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            trip_id, full_legal_name, date_of_birth,
+            passport_status, passport_expiration,
+            special_needs, relationship_to_client
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
           newTripId,
-          traveler.first_name,
-          traveler.last_name,
+          traveler.full_legal_name,
           traveler.date_of_birth,
-          traveler.gender,
-          traveler.passport_number,
-          traveler.passport_expiry,
-          traveler.passport_country,
-          traveler.nationality,
-          traveler.email,
-          traveler.phone,
-          traveler.relationship,
-          traveler.is_lead,
-          traveler.dietary_requirements,
-          traveler.medical_notes,
-          traveler.emergency_contact_name,
-          traveler.emergency_contact_phone,
-          traveler.frequent_flyer_numbers,
-          traveler.seating_preferences,
-          traveler.room_preferences,
-          traveler.notes
+          traveler.passport_status,
+          traveler.passport_expiration,
+          traveler.special_needs,
+          traveler.relationship_to_client
         );
         travelersCopied++;
       }
@@ -1284,29 +1267,30 @@ router.post('/:id/duplicate', (req, res) => {
         db.prepare(`
           INSERT INTO bookings (
             agency_id, trip_id, booking_type, supplier_name,
-            start_date, end_date, confirmation_number, notes,
+            travel_start_date, travel_end_date,
             status, payment_status,
-            cost_net, cost_gross, deposit_amount, final_payment_amount, final_payment_due_date,
-            commission_expected, commission_percentage
+            total_cost, deposit_amount, final_payment_amount, final_payment_due_date,
+            commission_amount_expected, commission_rate,
+            supplier_notes, inclusions_exclusions, cancellation_rules
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           req.agencyId,
           newTripId,
           booking.booking_type,
           booking.supplier_name,
-          booking.start_date,
-          booking.end_date,
-          null,           // Reset confirmation number
-          booking.notes,
+          booking.travel_start_date,
+          booking.travel_end_date,
           'planned',      // Reset status
-          null,           // Reset payment status
-          booking.cost_net,
-          booking.cost_gross,
+          'deposit_paid', // Reset payment status to initial
+          booking.total_cost,
           booking.deposit_amount,
           booking.final_payment_amount,
           booking.final_payment_due_date,
-          booking.commission_expected,
-          booking.commission_percentage
+          booking.commission_amount_expected,
+          booking.commission_rate,
+          booking.supplier_notes,
+          booking.inclusions_exclusions,
+          booking.cancellation_rules
         );
         bookingsCopied++;
       }
