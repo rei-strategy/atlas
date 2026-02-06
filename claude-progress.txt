@@ -1914,3 +1914,62 @@
 - Variance report working with real test data
 - Git commits: 3620a31, ef25884
 
+
+### Session - 2026-02-06 (Agent batch: Features #71, #73, #81)
+
+**Features Completed: #71, #73, #81 (Real Data Verification)**
+
+#### Feature #71: Commission dashboard summary
+- Already fully implemented with pipeline overview cards
+- Commission Pipeline section shows: Expected → Submitted → Paid flow
+- Each card shows amount and booking count per status
+- Summary cards show: Total Expected, Total Received, Outstanding, Total Bookings
+- Filterable commission table with status, date, supplier, planner filters
+- Test data: Agency 79 with 3 bookings in different commission states
+
+#### Feature #73: Commission audit trail
+- All commission changes tracked in audit_logs table
+- Booking creates log commission details (rate, expected amount)
+- Commission status changes logged with new status value
+- Each entry includes: userId, userName, userEmail, timestamp
+- Timeline tab in trip detail shows audit log entries
+- Verified: booking 47 has full audit trail (create → submitted → paid)
+
+#### Feature #81: Task list sorted by urgency and due date
+- Backend ORDER BY: priority (urgent first), then due_date ASC
+- Overdue tasks auto-detected and status updated to 'overdue'
+- Frontend highlights overdue tasks with red left border
+- Urgent count includes both urgent priority AND overdue tasks
+- Test data: 5 tasks with different priorities and due dates
+- Verified sort order: URGENT_TASK_TODAY, URGENT_TASK_NEXT_WEEK, then normal tasks by date
+
+#### Test Data Created
+- Agency: Commission Test Agency 71 (ID: 79)
+- User: commission_test_71@atlas.com / TestPass123
+- Client: Pipeline TestClient71 (ID: 151)
+- Trip: PIPELINE_TEST_TRIP_F71 (ID: 67)
+- Bookings:
+  - ID 47: Grand Hawaii Resort (expected→submitted→paid, $360)
+  - ID 49: Pacific Cruise Lines (submitted, $750)
+  - ID 50: Hawaii Adventures (paid, $120)
+- Tasks:
+  - URGENT_TASK_TODAY (urgent, 2026-02-06)
+  - URGENT_TASK_NEXT_WEEK (urgent, 2026-02-13)
+  - NORMAL_TASK_YESTERDAY_OVERDUE (normal, 2026-02-05, overdue)
+  - NORMAL_TASK_TOMORROW (normal, 2026-02-07)
+  - NORMAL_TASK_NEXT_WEEK (normal, 2026-02-10)
+
+#### Verification Summary
+- Commission pipeline cards display correct amounts per status
+- Audit log entries recorded for all commission changes
+- Task sorting verified: urgent first, then by due date
+- Overdue tasks highlighted with red border
+- Data persists in SQLite database
+- Frontend compiles successfully
+
+#### Current State
+- 127/240 features passing (~52.9%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commit: 39470cf
+
