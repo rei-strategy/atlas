@@ -569,4 +569,197 @@ router.get('/tasks', authorize('admin', 'planner'), (req, res) => {
   }
 });
 
+/**
+ * GET /api/reports/clients
+ * Client activity report - engagement and activity metrics
+ * Shows client engagement statistics including trips, bookings, and revenue
+ * Accessible to admin and planner roles only
+ */
+router.get('/clients', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const { startDate, endDate } = req.query;
+
+    // Get all clients with their activity metrics
+    let clientsQuery = `
+      SELECT
+        c.id, c.first_name, c.last_name, c.email, c.phone, c.city, c.state,
+        c.created_at, c.updated_at
+      FROM clients c
+      WHERE c.agency_id = ?
+    `;
+    const params = [req.agencyId];
+
+    // Apply date filter on client creation
+    if (startDate) {
+      clientsQuery += ' AND c.created_at >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      clientsQuery += ' AND c.created_at <= ?';
+      params.push(endDate + ' 23:59:59');
+    }
+
+    clientsQuery += ' ORDER BY c.created_at DESC';
+
+    const clients = db.prepare(clientsQuery).all(...params);
+
+    // Get trip counts per client
+    const tripCounts = db.prepare(`
+      SELECT
+        client_id,
+        COUNT(*) as trip_count,
+        SUM(CASE WHEN stage = 'completed' THEN 1 ELSE 0 END) as completed_trips,
+        SUM(CASE WHEN stage = 'canceled' THEN 1 ELSE 0 END) as canceled_trips,
+        SUM(CASE WHEN stage IN ('inquiry', 'quoting', 'quoted', 'pending_approval') THEN 1 ELSE 0 END) as in_progress_trips,
+        SUM(CASE WHEN stage IN ('booked', 'final_payment_pending', 'traveling') THEN 1 ELSE 0 END) as active_trips
+      FROM trips
+      WHERE agency_id = ?
+      GROUP BY client_id
+    `).all(req.agencyId);
+
+    const tripCountMap = {};
+    tripCounts.forEach(tc => {
+      tripCountMap[tc.client_id] = {
+        totalTrips: tc.trip_count,
+        completedTrips: tc.completed_trips,
+        canceledTrips: tc.canceled_trips,
+        inProgressTrips: tc.in_progress_trips,
+        activeTrips: tc.active_trips
+      };
+    });
+
+    // Get booking stats per client (via trips)
+    const bookingStats = db.prepare(`
+      SELECT
+        t.client_id,
+        COUNT(b.id) as booking_count,
+        SUM(b.total_cost) as total_revenue
+      FROM trips t
+      JOIN bookings b ON b.trip_id = t.id
+      WHERE t.agency_id = ?
+        AND b.status != 'canceled'
+      GROUP BY t.client_id
+    `).all(req.agencyId);
+
+    const bookingMap = {};
+    bookingStats.forEach(bs => {
+      bookingMap[bs.client_id] = {
+        bookingCount: bs.booking_count,
+        totalRevenue: bs.total_revenue || 0
+      };
+    });
+
+    // Get most recent trip per client
+    const recentTrips = db.prepare(`
+      SELECT
+        client_id,
+        MAX(created_at) as last_trip_date
+      FROM trips
+      WHERE agency_id = ?
+      GROUP BY client_id
+    `).all(req.agencyId);
+
+    const lastTripMap = {};
+    recentTrips.forEach(rt => {
+      lastTripMap[rt.client_id] = rt.last_trip_date;
+    });
+
+    // Build client activity data
+    const clientActivity = clients.map(c => {
+      const trips = tripCountMap[c.id] || { totalTrips: 0, completedTrips: 0, canceledTrips: 0, inProgressTrips: 0, activeTrips: 0 };
+      const bookings = bookingMap[c.id] || { bookingCount: 0, totalRevenue: 0 };
+      const lastTripDate = lastTripMap[c.id] || null;
+
+      // Calculate activity level based on metrics
+      let activityLevel = 'inactive';
+      if (trips.activeTrips > 0 || trips.inProgressTrips > 0) {
+        activityLevel = 'active';
+      } else if (trips.completedTrips > 0) {
+        // Check if last trip was within 365 days
+        if (lastTripDate) {
+          const daysSinceLastTrip = Math.floor((new Date() - new Date(lastTripDate)) / (1000 * 60 * 60 * 24));
+          if (daysSinceLastTrip <= 365) {
+            activityLevel = 'recent';
+          } else {
+            activityLevel = 'dormant';
+          }
+        }
+      }
+
+      return {
+        id: c.id,
+        name: `${c.first_name} ${c.last_name}`,
+        email: c.email,
+        phone: c.phone,
+        location: c.city && c.state ? `${c.city}, ${c.state}` : c.city || c.state || null,
+        createdAt: c.created_at,
+        lastActivity: lastTripDate,
+        activityLevel,
+        trips: trips.totalTrips,
+        completedTrips: trips.completedTrips,
+        activeTrips: trips.activeTrips,
+        inProgressTrips: trips.inProgressTrips,
+        canceledTrips: trips.canceledTrips,
+        bookings: bookings.bookingCount,
+        totalRevenue: bookings.totalRevenue
+      };
+    });
+
+    // Calculate summary statistics
+    const activeClients = clientActivity.filter(c => c.activityLevel === 'active').length;
+    const recentClients = clientActivity.filter(c => c.activityLevel === 'recent').length;
+    const dormantClients = clientActivity.filter(c => c.activityLevel === 'dormant').length;
+    const inactiveClients = clientActivity.filter(c => c.activityLevel === 'inactive').length;
+    const totalRevenue = clientActivity.reduce((sum, c) => sum + c.totalRevenue, 0);
+    const totalTrips = clientActivity.reduce((sum, c) => sum + c.trips, 0);
+    const totalBookings = clientActivity.reduce((sum, c) => sum + c.bookings, 0);
+    const avgRevenuePerClient = clientActivity.length > 0 ? totalRevenue / clientActivity.length : 0;
+
+    const summary = {
+      totalClients: clients.length,
+      activeClients,
+      recentClients,
+      dormantClients,
+      inactiveClients,
+      totalTrips,
+      totalBookings,
+      totalRevenue,
+      avgRevenuePerClient
+    };
+
+    // Group by activity level
+    const byActivityLevel = [
+      { level: 'active', count: activeClients, description: 'Currently have trips in progress or booked' },
+      { level: 'recent', count: recentClients, description: 'Completed a trip within the last year' },
+      { level: 'dormant', count: dormantClients, description: 'No trips in over a year' },
+      { level: 'inactive', count: inactiveClients, description: 'No trips recorded' }
+    ];
+
+    // Top clients by revenue
+    const topClientsByRevenue = [...clientActivity]
+      .filter(c => c.totalRevenue > 0)
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 10);
+
+    // Top clients by trips
+    const topClientsByTrips = [...clientActivity]
+      .filter(c => c.trips > 0)
+      .sort((a, b) => b.trips - a.trips)
+      .slice(0, 10);
+
+    res.json({
+      summary,
+      byActivityLevel,
+      topClientsByRevenue,
+      topClientsByTrips,
+      clients: clientActivity,
+      dateRange: { startDate, endDate }
+    });
+  } catch (error) {
+    console.error('[ERROR] Client activity report failed:', error.message);
+    res.status(500).json({ error: 'Failed to generate client activity report' });
+  }
+});
+
 module.exports = router;

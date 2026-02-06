@@ -157,6 +157,29 @@ export default function ReportsPage() {
     }
   }, [token, dateRange, taskCategoryFilter, addToast]);
 
+  const fetchClientsReport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+
+      const res = await fetch(`${API_BASE}/reports/clients?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReportData(data);
+      } else {
+        const error = await res.json();
+        addToast(error.error || 'Failed to load clients report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch clients report:', err);
+      addToast('Failed to load clients report', 'error');
+    }
+  }, [token, dateRange, addToast]);
+
   useEffect(() => {
     const loadReport = async () => {
       setLoading(true);
@@ -170,11 +193,13 @@ export default function ReportsPage() {
         await fetchConversionReport();
       } else if (activeReport === 'tasks') {
         await fetchTasksReport();
+      } else if (activeReport === 'clients') {
+        await fetchClientsReport();
       }
       setLoading(false);
     };
     loadReport();
-  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport, fetchConversionReport, fetchTasksReport]);
+  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport, fetchConversionReport, fetchTasksReport, fetchClientsReport]);
 
   const handleDateChange = (field, value) => {
     setDateRange(prev => ({ ...prev, [field]: value }));
@@ -290,6 +315,13 @@ export default function ReportsPage() {
             style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
           >
             Task Report
+          </button>
+          <button
+            className={`btn ${activeReport === 'clients' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveReport('clients')}
+            style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          >
+            Client Report
           </button>
           <Link
             to="/commissions"
@@ -1139,6 +1171,236 @@ export default function ReportsPage() {
                   <h3 className="empty-state-title">No tasks in this date range</h3>
                   <p className="empty-state-description">
                     Try adjusting your date range or category filter to see task data.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Client Activity Report */}
+          {activeReport === 'clients' && reportData && (
+            <div>
+              {/* Summary Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Total Clients
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {reportData.summary?.totalClients || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Active
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                      {reportData.summary?.activeClients || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Recent
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info)' }}>
+                      {reportData.summary?.recentClients || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Dormant
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                      {reportData.summary?.dormantClients || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Total Revenue
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                      {formatCurrency(reportData.summary?.totalRevenue || 0)}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Avg Revenue/Client
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {formatCurrency(reportData.summary?.avgRevenuePerClient || 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Level Breakdown */}
+              {reportData.byActivityLevel && reportData.byActivityLevel.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">Client Activity Levels</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.byActivityLevel.map(item => (
+                            <tr key={item.level}>
+                              <td>
+                                <span className={`status-badge ${
+                                  item.level === 'active' ? 'status-success' :
+                                  item.level === 'recent' ? 'status-info' :
+                                  item.level === 'dormant' ? 'status-warning' :
+                                  'status-error'
+                                }`} style={{ textTransform: 'capitalize' }}>
+                                  {item.level}
+                                </span>
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{item.count}</td>
+                              <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{item.description}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Top Clients by Revenue */}
+              {reportData.topClientsByRevenue && reportData.topClientsByRevenue.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">💰 Top Clients by Revenue</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Client</th>
+                            <th>Revenue</th>
+                            <th>Trips</th>
+                            <th>Bookings</th>
+                            <th>Activity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.topClientsByRevenue.map(client => (
+                            <tr key={client.id}>
+                              <td>
+                                <Link to={`/clients?id=${client.id}`} style={{ color: 'var(--color-primary)' }}>
+                                  {client.name}
+                                </Link>
+                              </td>
+                              <td style={{ fontWeight: 600, color: 'var(--color-success)' }}>
+                                {formatCurrency(client.totalRevenue)}
+                              </td>
+                              <td>{client.trips}</td>
+                              <td>{client.bookings}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  client.activityLevel === 'active' ? 'status-success' :
+                                  client.activityLevel === 'recent' ? 'status-info' :
+                                  client.activityLevel === 'dormant' ? 'status-warning' :
+                                  'status-error'
+                                }`} style={{ textTransform: 'capitalize' }}>
+                                  {client.activityLevel}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* All Clients List */}
+              {reportData.clients && reportData.clients.length > 0 && (
+                <div className="dashboard-card">
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">All Clients ({reportData.clients.length})</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Client</th>
+                            <th>Location</th>
+                            <th>Trips</th>
+                            <th>Bookings</th>
+                            <th>Revenue</th>
+                            <th>Last Activity</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.clients.map(client => (
+                            <tr key={client.id}>
+                              <td>
+                                <Link to={`/clients?id=${client.id}`} style={{ color: 'var(--color-primary)' }}>
+                                  {client.name}
+                                </Link>
+                                {client.email && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    {client.email}
+                                  </div>
+                                )}
+                              </td>
+                              <td>{client.location || '—'}</td>
+                              <td>{client.trips}</td>
+                              <td>{client.bookings}</td>
+                              <td>{formatCurrency(client.totalRevenue)}</td>
+                              <td>{client.lastActivity ? formatDate(client.lastActivity) : '—'}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  client.activityLevel === 'active' ? 'status-success' :
+                                  client.activityLevel === 'recent' ? 'status-info' :
+                                  client.activityLevel === 'dormant' ? 'status-warning' :
+                                  'status-error'
+                                }`} style={{ textTransform: 'capitalize' }}>
+                                  {client.activityLevel}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(!reportData.clients || reportData.clients.length === 0) && (
+                <div className="page-empty-state" style={{ padding: '2rem' }}>
+                  <h3 className="empty-state-title">No clients in this date range</h3>
+                  <p className="empty-state-description">
+                    Try adjusting your date range to see client activity data.
                   </p>
                 </div>
               )}

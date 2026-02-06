@@ -201,4 +201,65 @@ router.get('/me', authenticate, (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/notification-preferences
+ * Update current user's notification preferences
+ */
+router.put('/notification-preferences', authenticate, (req, res) => {
+  try {
+    const { preferences } = req.body;
+
+    if (!preferences || typeof preferences !== 'object') {
+      return res.status(400).json({ error: 'Invalid preferences format' });
+    }
+
+    // Define valid notification types and their defaults
+    const validNotificationTypes = [
+      'taskAssigned',
+      'taskDue',
+      'paymentReminder',
+      'commissionUpdate',
+      'tripStageChange',
+      'approvalRequired',
+      'approvalResolved',
+      'documentUploaded',
+      'clientMessage'
+    ];
+
+    // Validate and sanitize preferences - only allow boolean values for valid types
+    const sanitizedPreferences = {};
+    for (const type of validNotificationTypes) {
+      // If not specified, default to true (enabled)
+      sanitizedPreferences[type] = preferences[type] !== false;
+    }
+
+    const db = getDb();
+
+    db.prepare(
+      "UPDATE users SET notification_preferences = ?, updated_at = datetime('now') WHERE id = ? AND agency_id = ?"
+    ).run(JSON.stringify(sanitizedPreferences), req.user.id, req.user.agency_id);
+
+    // Create audit log entry
+    db.prepare(
+      `INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(
+      req.user.agency_id,
+      req.user.id,
+      'update_notification_preferences',
+      'user',
+      req.user.id,
+      JSON.stringify({ preferences: sanitizedPreferences })
+    );
+
+    res.json({
+      message: 'Notification preferences updated successfully',
+      preferences: sanitizedPreferences
+    });
+  } catch (error) {
+    console.error('[ERROR] Update notification preferences failed:', error.message);
+    res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+});
+
 module.exports = router;

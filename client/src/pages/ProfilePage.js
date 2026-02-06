@@ -5,6 +5,19 @@ import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
+// Notification preference types with labels and descriptions
+const NOTIFICATION_TYPES = [
+  { key: 'taskAssigned', label: 'Task Assigned', description: 'When a task is assigned to you' },
+  { key: 'taskDue', label: 'Task Due Reminders', description: 'Reminders for upcoming task deadlines' },
+  { key: 'paymentReminder', label: 'Payment Reminders', description: 'Alerts for upcoming client payment deadlines' },
+  { key: 'commissionUpdate', label: 'Commission Updates', description: 'When commission status changes' },
+  { key: 'tripStageChange', label: 'Trip Stage Changes', description: 'When a trip moves to a new stage' },
+  { key: 'approvalRequired', label: 'Approval Requests', description: 'When an action requires your approval' },
+  { key: 'approvalResolved', label: 'Approval Resolved', description: 'When your approval request is resolved' },
+  { key: 'documentUploaded', label: 'Document Uploads', description: 'When documents are uploaded to your trips' },
+  { key: 'clientMessage', label: 'Client Messages', description: 'When clients send messages or feedback' }
+];
+
 export default function ProfilePage() {
   const { user, token } = useAuth();
   const { showToast } = useToast();
@@ -118,6 +131,135 @@ export default function ProfilePage() {
       marketing: '#d97706'
     };
     return colors[role] || '#6b7280';
+  };
+
+  // Notification Preferences Component
+  const NotificationPreferencesCard = () => {
+    const [preferences, setPreferences] = useState({});
+    const [loadingPrefs, setLoadingPrefs] = useState(true);
+    const [savingPrefs, setSavingPrefs] = useState(false);
+
+    // Fetch current preferences
+    useEffect(() => {
+      const fetchPreferences = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+
+          if (res.ok && data.user?.notificationPreferences) {
+            // Initialize with defaults for any missing keys
+            const prefs = { ...data.user.notificationPreferences };
+            NOTIFICATION_TYPES.forEach(type => {
+              if (prefs[type.key] === undefined) {
+                prefs[type.key] = true; // Default to enabled
+              }
+            });
+            setPreferences(prefs);
+          } else {
+            // Set all to true by default
+            const defaultPrefs = {};
+            NOTIFICATION_TYPES.forEach(type => {
+              defaultPrefs[type.key] = true;
+            });
+            setPreferences(defaultPrefs);
+          }
+        } catch (err) {
+          console.error('Failed to load notification preferences:', err);
+        } finally {
+          setLoadingPrefs(false);
+        }
+      };
+
+      fetchPreferences();
+    }, []);
+
+    const handleToggle = (key) => {
+      setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleSave = async () => {
+      setSavingPrefs(true);
+      try {
+        const res = await fetch(`${API_BASE}/auth/notification-preferences`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ preferences })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to save preferences');
+        }
+
+        showToast('Notification preferences saved!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setSavingPrefs(false);
+      }
+    };
+
+    if (loadingPrefs) {
+      return (
+        <div className="dashboard-card">
+          <div className="dashboard-card-header">
+            <h3>Email Notification Preferences</h3>
+          </div>
+          <div className="dashboard-card-body">
+            <p className="dashboard-empty-state">Loading preferences...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="dashboard-card">
+        <div className="dashboard-card-header">
+          <h3>Email Notification Preferences</h3>
+        </div>
+        <div className="dashboard-card-body">
+          <p className="settings-description" style={{ marginBottom: '16px' }}>
+            Choose which types of email notifications you want to receive. These settings affect email delivery only -
+            you'll still see in-app notifications regardless of these preferences.
+          </p>
+
+          <div className="notification-prefs-list">
+            {NOTIFICATION_TYPES.map(type => (
+              <div key={type.key} className="notification-pref-item">
+                <div className="notification-pref-info">
+                  <span className="notification-pref-label">{type.label}</span>
+                  <span className="notification-pref-desc">{type.description}</span>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences[type.key] || false}
+                    onChange={() => handleToggle(type.key)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            ))}
+          </div>
+
+          <div className="form-actions" style={{ marginTop: '20px' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleSave}
+              disabled={savingPrefs}
+            >
+              {savingPrefs ? 'Saving...' : 'Save Preferences'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -284,6 +426,9 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Notification Preferences Card */}
+        <NotificationPreferencesCard />
       </div>
     </div>
   );
