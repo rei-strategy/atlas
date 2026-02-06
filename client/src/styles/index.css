@@ -385,6 +385,22 @@ button {
   border-color: rgba(239, 68, 68, 0.3);
 }
 
+.auth-warning {
+  padding: 10px 14px;
+  background-color: #fefce8;
+  color: #a16207;
+  border: 1px solid #fde047;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+[data-theme="dark"] .auth-warning {
+  background-color: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: #facc15;
+}
+
 .auth-footer-text {
   text-align: center;
   font-size: var(--font-size-sm);

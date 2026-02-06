@@ -1,4 +1,0 @@
-first_name,last_name,email,phone,city,state,country,preferred_communication,notes,marketing_opt_in,contact_consent
-CSVTEST_Alice,ImportOne,csvtest_alice@import.com,555-111-1111,New York,NY,USA,Email,First import test client,true,true
-CSVTEST_Bob,ImportTwo,csvtest_bob@import.com,555-222-2222,Los Angeles,CA,USA,Phone,Second import test client,false,true
-CSVTEST_Charlie,ImportThree,,555-333-3333,Chicago,IL,USA,Text,Third client without email,yes,yes

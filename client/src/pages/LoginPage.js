@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,12 +7,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, sessionExpired, clearSessionExpiredMessage } = useAuth();
   const navigate = useNavigate();
+
+  // Clear session expired message when component unmounts or user starts typing
+  useEffect(() => {
+    return () => {
+      if (sessionExpired) {
+        clearSessionExpiredMessage();
+      }
+    };
+  }, [sessionExpired, clearSessionExpiredMessage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Clear session expired message when attempting to login
+    if (sessionExpired) {
+      clearSessionExpiredMessage();
+    }
     setLoading(true);
 
     try {
@@ -42,6 +55,12 @@ export default function LoginPage() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <h2 className="auth-form-title">Sign in to your account</h2>
+
+          {sessionExpired && (
+            <div className="auth-warning" role="alert">
+              Your session has expired. Please sign in again.
+            </div>
+          )}
 
           {error && (
             <div className="auth-error" role="alert">

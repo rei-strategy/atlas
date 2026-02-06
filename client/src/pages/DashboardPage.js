@@ -56,7 +56,7 @@ function TaskItem({ task, onComplete, onClick, formatShortDate }) {
 }
 
 export default function DashboardPage() {
-  const { token } = useAuth();
+  const { token, handleSessionExpired } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const { formatShortDate, isOverdue: checkOverdue, timezone } = useTimezone();
@@ -64,12 +64,28 @@ export default function DashboardPage() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper to check for token expiration
+  const checkTokenExpiration = useCallback(async (res) => {
+    if (res.status === 401) {
+      const data = await res.clone().json().catch(() => ({}));
+      if (data.code === 'TOKEN_EXPIRED') {
+        handleSessionExpired();
+        return true;
+      }
+    }
+    return false;
+  }, [handleSessionExpired]);
+
   const fetchTasks = useCallback(async () => {
     try {
       // Fetch all non-completed tasks (open or overdue)
       const res = await fetch(`${API_BASE}/tasks`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
       const data = await res.json();
       if (res.ok) {
         // Filter to today's tasks and overdue tasks, sort by urgency
@@ -90,13 +106,17 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to load tasks:', err);
     }
-  }, [token]);
+  }, [token, checkTokenExpiration, timezone]);
 
   const fetchTrips = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/trips`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
       const data = await res.json();
       if (res.ok) {
         // Filter active trips (not completed, canceled, or archived)
@@ -108,7 +128,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to load trips:', err);
     }
-  }, [token]);
+  }, [token, checkTokenExpiration]);
 
   useEffect(() => {
     const loadData = async () => {

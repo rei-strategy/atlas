@@ -1,4 +1,0 @@
-first_name,last_name,email,phone,city,state,country
-,MissingFirst,test@error.com,555-000-0000,Miami,FL,USA
-NoLast,,test2@error.com,555-000-0001,Miami,FL,USA
-CSVTEST_Duplicate,ImportTest,csvtest_alice@import.com,555-000-0002,Miami,FL,USA

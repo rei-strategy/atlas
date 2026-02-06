@@ -9,13 +9,26 @@ export function AuthProvider({ children }) {
   const [agency, setAgency] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('atlas_token'));
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
-  const clearAuth = useCallback(() => {
+  const clearAuth = useCallback((wasExpired = false) => {
     setUser(null);
     setAgency(null);
     setToken(null);
     localStorage.removeItem('atlas_token');
+    if (wasExpired) {
+      setSessionExpired(true);
+    }
   }, []);
+
+  const clearSessionExpiredMessage = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
+
+  // Handle session expiration - call this when an API returns TOKEN_EXPIRED
+  const handleSessionExpired = useCallback(() => {
+    clearAuth(true);
+  }, [clearAuth]);
 
   // Verify token on mount
   useEffect(() => {
@@ -93,15 +106,40 @@ export function AuthProvider({ children }) {
     clearAuth();
   };
 
+  // Helper function to make authenticated API calls with automatic token expiration handling
+  const authFetch = useCallback(async (url, options = {}) => {
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    // Check for token expiration
+    if (res.status === 401) {
+      const data = await res.clone().json().catch(() => ({}));
+      if (data.code === 'TOKEN_EXPIRED') {
+        handleSessionExpired();
+        throw new Error('Session expired');
+      }
+    }
+
+    return res;
+  }, [token, handleSessionExpired]);
+
   const value = {
     user,
     agency,
     token,
     loading,
     isAuthenticated: !!user,
+    sessionExpired,
     login,
     register,
-    logout
+    logout,
+    handleSessionExpired,
+    clearSessionExpiredMessage,
+    authFetch
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
