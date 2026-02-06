@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessage } from '../utils/apiErrors';
 import Breadcrumb from '../components/Breadcrumb';
 
 const API_BASE = '/api';
+const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 const COMMUNICATION_OPTIONS = ['Email', 'Phone', 'Text', 'Video Call'];
 const TRAVEL_PREFERENCE_OPTIONS = [

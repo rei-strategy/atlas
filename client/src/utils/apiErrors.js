@@ -3,6 +3,77 @@
  * Provides consistent error message extraction and handling for API responses
  */
 
+// Default timeout in milliseconds (30 seconds)
+const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Create a timeout-enabled fetch request with cancellation support
+ * @param {string} url - The URL to fetch
+ * @param {Object} options - Fetch options
+ * @param {number} options.timeout - Timeout in milliseconds (default: 30000)
+ * @param {AbortSignal} options.signal - External abort signal (optional)
+ * @returns {Promise<Response>} The fetch response
+ */
+export async function fetchWithTimeout(url, options = {}) {
+  const { timeout = DEFAULT_TIMEOUT, signal: externalSignal, ...fetchOptions } = options;
+
+  // Create our own abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
+  // If an external signal is provided, listen to it as well
+  if (externalSignal) {
+    externalSignal.addEventListener('abort', () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    });
+  }
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    // Enhance the error with timeout information
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timeout after ${timeout}ms`);
+      timeoutError.name = 'AbortError';
+      timeoutError.isTimeout = true;
+      throw timeoutError;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create an abort controller for cancelling requests
+ * Returns the controller and a cancel function
+ * @returns {{ controller: AbortController, cancel: Function, signal: AbortSignal }}
+ */
+export function createCancellableRequest() {
+  const controller = new AbortController();
+  return {
+    controller,
+    signal: controller.signal,
+    cancel: () => controller.abort()
+  };
+}
+
+/**
+ * Check if an error is a timeout error
+ * @param {Error} error - The error to check
+ * @returns {boolean}
+ */
+export function isTimeoutError(error) {
+  return error.name === 'AbortError' && error.isTimeout === true;
+}
+
 /**
  * Check if an error is a network error
  * @param {Error} error - The error to check
@@ -125,4 +196,54 @@ export function isPermissionError(res) {
  */
 export function isAuthError(res) {
   return res.status === 401;
+}
+
+/**
+ * Check if an error response is a server error (5xx)
+ * @param {Response} res - Fetch API Response object
+ * @returns {boolean}
+ */
+export function isServerError(res) {
+  return res.status >= 500;
+}
+
+/**
+ * Check if an error is a timeout error
+ * @param {Error} error - The error to check
+ * @returns {boolean}
+ */
+export function isTimeoutError(error) {
+  return error.name === 'AbortError' && error.isTimeout === true;
+}
+
+/**
+ * Fetch with timeout support
+ * @param {string} url - The URL to fetch
+ * @param {Object} options - Fetch options with optional timeout
+ * @returns {Promise<Response>}
+ */
+export async function fetchWithTimeout(url, options = {}) {
+  const { timeout = 30000, ...fetchOptions } = options;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      // Mark as timeout error
+      error.isTimeout = true;
+      error.message = 'Request timed out';
+    }
+    throw error;
+  }
 }

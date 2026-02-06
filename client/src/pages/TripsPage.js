@@ -2235,10 +2235,23 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
     const file = e.target.files[0];
     if (file) {
       // Check file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('File size must be less than 10MB');
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        setError(`File too large (${fileSizeMB}MB). Maximum file size is 10MB.`);
+        e.target.value = ''; // Clear the input
         return;
       }
+
+      // Check file type
+      const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'jpg', 'jpeg', 'png', 'gif'];
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        setError(`Invalid file type (.${fileExt || 'unknown'}). Allowed types: PDF, Word, Excel, images (JPG, PNG, GIF), text, and CSV files.`);
+        e.target.value = ''; // Clear the input
+        return;
+      }
+
       setSelectedFile(file);
       setError('');
     }
@@ -2269,17 +2282,42 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
         formData.append('bookingId', form.bookingId);
       }
 
-      const res = await fetch(`${API_BASE}/trips/${tripId}/documents`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      let res;
+      try {
+        res = await fetch(`${API_BASE}/trips/${tripId}/documents`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+      } catch (networkErr) {
+        // Network error (no connection, timeout, etc.)
+        throw new Error('Network error: Unable to upload file. Please check your internet connection and try again.');
+      }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        // Server returned non-JSON response
+        throw new Error('Server error: Received an unexpected response. Please try again later.');
+      }
 
       if (!res.ok) {
+        // Handle specific error codes from backend
+        if (res.status === 413 || data.code === 'FILE_TOO_LARGE') {
+          throw new Error(data.error || 'File too large. Maximum file size is 10MB.');
+        }
+        if (res.status === 415 || data.code === 'INVALID_FILE_TYPE') {
+          throw new Error(data.error || 'Invalid file type. Please upload a supported file format.');
+        }
+        if (res.status === 401) {
+          throw new Error('Session expired. Please log in again to upload files.');
+        }
+        if (res.status >= 500) {
+          throw new Error('Server error: Unable to process upload. Please try again later.');
+        }
         throw new Error(data.error || 'Failed to upload document');
       }
 

@@ -37,6 +37,50 @@ const upload = multer({
   }
 });
 
+/**
+ * Multer error handling middleware for customer portal uploads
+ * Handles file upload errors with user-friendly messages
+ */
+const handleCustomerUploadError = (err, req, res, next) => {
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      // Multer-specific errors
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          error: 'File too large. Maximum file size is 10MB.',
+          code: 'FILE_TOO_LARGE',
+          maxSize: '10MB'
+        });
+      }
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({
+          error: 'Unexpected file field. Please use "file" as the field name.',
+          code: 'INVALID_FIELD'
+        });
+      }
+      // Generic multer error
+      return res.status(400).json({
+        error: `Upload error: ${err.message}`,
+        code: 'UPLOAD_ERROR'
+      });
+    }
+    // Custom errors (e.g., from fileFilter)
+    if (err.message && err.message.includes('Invalid file type')) {
+      return res.status(415).json({
+        error: 'Invalid file type. Allowed types: PDF, JPEG, PNG, GIF, Word (.doc, .docx), Excel (.xls, .xlsx), Text (.txt), CSV, and HTML files.',
+        code: 'INVALID_FILE_TYPE',
+        allowedTypes: ['pdf', 'jpeg', 'png', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'html']
+      });
+    }
+    // Other errors
+    return res.status(500).json({
+      error: err.message || 'Failed to upload file',
+      code: 'UPLOAD_FAILED'
+    });
+  }
+  next();
+};
+
 const JWT_SECRET = process.env.JWT_SECRET || 'atlas-dev-secret-change-in-production';
 const JWT_EXPIRES_IN = '24h';
 
@@ -511,7 +555,7 @@ router.put('/trips/:tripId/travelers/:id', authenticateCustomer, (req, res) => {
  * Customer uploads a document to their trip
  * Supports actual file upload via multipart/form-data
  */
-router.post('/trips/:id/documents', authenticateCustomer, upload.single('file'), (req, res) => {
+router.post('/trips/:id/documents', authenticateCustomer, upload.single('file'), handleCustomerUploadError, (req, res) => {
   try {
     const db = getDb();
     const tripId = req.params.id;
