@@ -1671,3 +1671,42 @@
 - Backend on port 3001, Frontend on port 3000
 - Role-based access controls fully enforced
 - Build compiles successfully
+
+
+### Session - 2026-02-06 (Agent batch: Features #23, #29, #43)
+
+**Features Completed: #23, #29, #43 (Security & Access Control)**
+
+#### Feature #23: Customer access toggled by planner
+- Added GET/POST/PUT/DELETE /api/clients/:id/portal endpoints
+- Planners can enable portal access by creating a customer account with email/password
+- Planners can toggle is_active status to enable/disable portal access
+- Customer portal login rejected with clear message when disabled: "Your portal access has been disabled. Please contact your travel planner."
+- Added Portal Access tab to ClientDetail with UI to manage access
+- Data persists after server restart (SQLite customers table)
+
+#### Feature #29: Permission denied shows clear message
+- Enhanced authorize middleware in auth.js with user-friendly messages
+- 403 responses now include detailed message: "You don't have permission to perform this action. This action requires Administrator access."
+- Response includes requiredRoles array and currentRole for debugging
+- Frontend updated to display message field from permission errors
+- Created /client/src/utils/apiErrors.js for consistent API error handling
+
+#### Feature #43: Stage transitions involving money require approval
+- Financial stage transitions (quoted→booked, booked→final_payment_pending, etc.) require admin approval for non-admins
+- Planner attempts financial transition → approval request created (HTTP 202)
+- Stage unchanged until admin approves
+- Added stage_change case to executeApprovedAction in approvals.js
+- Admin approval executes the stage change and logs to audit
+- Full audit trail: create_approval_request, approve_request, stage_change actions logged
+
+#### Test Data Created
+- Feature #23: Agency 70, Client 142 with portal access
+- Feature #29: Agency 71, Support user (permission_support@atlas.com)
+- Feature #43: Agency 73, Trip 58 (Stage Test Trip F43) with approved stage change
+
+#### Current State
+- 116/240 features passing (~48.3%)
+- Backend on port 3001, Frontend on port 3000
+- Build compiles successfully
+- All security features verified with API tests and persistence checks
