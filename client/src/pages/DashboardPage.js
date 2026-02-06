@@ -266,10 +266,12 @@ export default function DashboardPage() {
         {/* Active Trips Card */}
         <div className="dashboard-card">
           <div className="dashboard-card-header">
-            <h3>Active Trips</h3>
-            {trips.length > 0 && (
-              <span className="dashboard-card-count">{trips.length}</span>
-            )}
+            <div className="dashboard-card-title-row">
+              {trips.length > 0 && (
+                <span className="dashboard-card-count">{trips.length}</span>
+              )}
+              <h3>Active Trips</h3>
+            </div>
           </div>
           <div className="dashboard-card-body">
             {trips.length === 0 ? (
@@ -307,10 +309,12 @@ export default function DashboardPage() {
         {/* Today's Tasks Card */}
         <div className="dashboard-card">
           <div className="dashboard-card-header">
-            <h3>Today's Tasks</h3>
-            {tasks.length > 0 && (
-              <span className="dashboard-card-count">{tasks.length}</span>
-            )}
+            <div className="dashboard-card-title-row">
+              {tasks.length > 0 && (
+                <span className="dashboard-card-count">{tasks.length}</span>
+              )}
+              <h3>Today's Tasks</h3>
+            </div>
           </div>
           <div className="dashboard-card-body">
             {tasks.length === 0 ? (
@@ -339,10 +343,12 @@ export default function DashboardPage() {
         {/* Upcoming Deadlines Card */}
         <div className="dashboard-card">
           <div className="dashboard-card-header">
-            <h3>Upcoming Deadlines</h3>
-            {upcomingDeadlines.length > 0 && (
-              <span className="dashboard-card-count">{upcomingDeadlines.length}</span>
-            )}
+            <div className="dashboard-card-title-row">
+              {upcomingDeadlines.length > 0 && (
+                <span className="dashboard-card-count">{upcomingDeadlines.length}</span>
+              )}
+              <h3>Upcoming Deadlines</h3>
+            </div>
           </div>
           <div className="dashboard-card-body">
             {upcomingDeadlines.length === 0 ? (

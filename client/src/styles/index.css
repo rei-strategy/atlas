@@ -212,6 +212,17 @@ button {
   color: var(--color-text-secondary);
 }
 
+/* Disabled fieldset styling for loading states */
+fieldset:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+fieldset:disabled .form-input,
+fieldset:disabled .btn {
+  cursor: not-allowed;
+}
+
 /* Loading screen */
 .loading-screen {
   display: flex;
@@ -962,6 +973,14 @@ button {
 .dashboard-card-header {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .dashboard-card-header h3 {

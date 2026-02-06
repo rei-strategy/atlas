@@ -54,7 +54,7 @@ app.use('/api/email-templates', require('./routes/emailTemplates'));
 app.use('/api/approvals', require('./routes/approvals'));
 app.use('/api/notifications', require('./routes/notifications'));
 // app.use('/api/dashboard', require('./routes/dashboard'));
-// app.use('/api/reports', require('./routes/reports'));
+app.use('/api/reports', require('./routes/reports'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/users', require('./routes/users'));

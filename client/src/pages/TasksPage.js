@@ -265,6 +265,8 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
 }
 
 function TaskCard({ task, onComplete, onEdit }) {
+  const { formatDate } = useTimezone();
+
   const getPriorityClass = (priority) => {
     return priority === 'urgent' ? 'priority-urgent' : 'priority-normal';
   };
@@ -281,8 +283,6 @@ function TaskCard({ task, onComplete, onEdit }) {
     const cat = CATEGORY_OPTIONS.find(c => c.value === category);
     return cat ? cat.label : category;
   };
-
-  // formatDate is provided by useTimezone hook
 
   const isOverdue = task.status === 'overdue';
   const isCompleted = task.status === 'completed';

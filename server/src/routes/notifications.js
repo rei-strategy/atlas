@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
+const { checkUrgentPaymentDeadlines, getUrgentPaymentDeadlines } = require('../services/paymentDeadlineService');
 
 const router = express.Router();
 
@@ -11,11 +12,20 @@ router.use(tenantScope);
 /**
  * GET /api/notifications
  * Get all notifications for the current user
+ * Also triggers a check for urgent payment deadlines
  */
 router.get('/', (req, res) => {
   try {
     const db = getDb();
     const { unreadOnly, limit = 50 } = req.query;
+
+    // Check for urgent payment deadlines and create notifications if needed
+    // This ensures users always see up-to-date urgent notifications
+    try {
+      checkUrgentPaymentDeadlines(48);
+    } catch (err) {
+      console.error('[WARN] Payment deadline check failed during notification fetch:', err.message);
+    }
 
     let query = `
       SELECT * FROM notifications
@@ -164,6 +174,55 @@ router.put('/:id/snooze', (req, res) => {
   } catch (error) {
     console.error('[ERROR] Snooze notification failed:', error.message);
     res.status(500).json({ error: 'Failed to snooze notification' });
+  }
+});
+
+/**
+ * GET /api/notifications/urgent-payments
+ * Get bookings with payments due within 48 hours
+ */
+router.get('/urgent-payments', (req, res) => {
+  try {
+    const { hours = 48 } = req.query;
+    const hoursThreshold = parseInt(hours, 10) || 48;
+
+    const urgentPayments = getUrgentPaymentDeadlines(req.agencyId, hoursThreshold);
+
+    res.json({
+      urgentPayments,
+      count: urgentPayments.length,
+      threshold: hoursThreshold
+    });
+  } catch (error) {
+    console.error('[ERROR] Get urgent payments failed:', error.message);
+    res.status(500).json({ error: 'Failed to get urgent payments' });
+  }
+});
+
+/**
+ * POST /api/notifications/check-payment-deadlines
+ * Trigger a check for urgent payment deadlines and generate notifications
+ * (Admin only)
+ */
+router.post('/check-payment-deadlines', (req, res) => {
+  try {
+    // Only admins can trigger the check
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { hours = 48 } = req.body;
+    const hoursThreshold = parseInt(hours, 10) || 48;
+
+    const result = checkUrgentPaymentDeadlines(hoursThreshold);
+
+    res.json({
+      message: 'Payment deadline check completed',
+      ...result
+    });
+  } catch (error) {
+    console.error('[ERROR] Check payment deadlines failed:', error.message);
+    res.status(500).json({ error: 'Failed to check payment deadlines' });
   }
 });
 
