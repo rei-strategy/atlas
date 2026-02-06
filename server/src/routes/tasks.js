@@ -486,6 +486,24 @@ router.put('/:id/assign', (req, res) => {
       existing.trip_id
     );
 
+    // Create notification for the new assignee (if different from current user)
+    if (assignedUserId !== req.user.id && assignedUserId !== previousAssignee) {
+      const eventKey = `task_assigned_${taskId}_${Date.now()}`;
+      db.prepare(`
+        INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id, event_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        assignedUserId,
+        'normal',
+        'Task Assigned to You',
+        `"${existing.title}" has been assigned to you by ${req.user.first_name} ${req.user.last_name}.`,
+        'task',
+        taskId,
+        eventKey
+      );
+    }
+
     // Fetch updated task
     const task = db.prepare(`
       SELECT t.*,

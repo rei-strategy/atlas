@@ -157,6 +157,7 @@ router.post('/', upload.single('file'), (req, res) => {
 /**
  * GET /api/trips/:tripId/documents/:id/download
  * Download a document
+ * Sensitive documents are logged in audit trail for security
  */
 router.get('/:id/download', (req, res) => {
   try {
@@ -170,6 +171,28 @@ router.get('/:id/download', (req, res) => {
 
     if (!doc) {
       return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Log access to sensitive documents in audit trail
+    if (doc.is_sensitive) {
+      db.prepare(`
+        INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.agencyId,
+        req.user.id,
+        'sensitive_document_access',
+        'document',
+        id,
+        JSON.stringify({
+          fileName: doc.file_name,
+          documentType: doc.document_type,
+          accessedBy: req.user.email,
+          accessType: 'download'
+        }),
+        tripId
+      );
+      console.log(`[AUDIT] Sensitive document accessed: ${doc.file_name} by user ${req.user.id}`);
     }
 
     // Extract the filename from the stored path

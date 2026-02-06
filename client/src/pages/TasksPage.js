@@ -363,7 +363,7 @@ function TaskCard({ task, onComplete, onEdit }) {
 }
 
 export default function TasksPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { addToast } = useToast();
   const { formatDate } = useTimezone();
   const [tasks, setTasks] = useState([]);
@@ -378,7 +378,8 @@ export default function TasksPage() {
     status: '',
     priority: '',
     category: '',
-    search: ''
+    search: '',
+    assignedTo: '' // '' = all, 'me' = current user, or specific user ID
   });
 
   const fetchTasks = useCallback(async () => {
@@ -388,6 +389,11 @@ export default function TasksPage() {
       if (filters.priority) params.set('priority', filters.priority);
       if (filters.category) params.set('category', filters.category);
       if (filters.search) params.set('search', filters.search);
+      if (filters.assignedTo) {
+        // 'me' means current user, otherwise it's a specific user ID
+        const assignedToId = filters.assignedTo === 'me' ? user?.id : filters.assignedTo;
+        if (assignedToId) params.set('assignedTo', assignedToId);
+      }
 
       const res = await fetch(`${API_BASE}/tasks?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -401,7 +407,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, filters]);
+  }, [token, filters, user]);
 
   const fetchUsers = useCallback(async () => {
     try {

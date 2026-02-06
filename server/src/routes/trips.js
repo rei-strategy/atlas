@@ -862,6 +862,47 @@ router.put('/:id/stage', (req, res) => {
       );
     }
 
+    // Create commission follow-up task when trip is completed
+    if (stage === 'completed') {
+      // Find all bookings with expected commissions that haven't been submitted/paid
+      const pendingCommissions = db.prepare(`
+        SELECT id, supplier_name, booking_type, commission_amount_expected, commission_status
+        FROM bookings
+        WHERE trip_id = ? AND status != 'canceled'
+          AND commission_status = 'expected'
+          AND commission_amount_expected > 0
+      `).all(tripId);
+
+      if (pendingCommissions.length > 0) {
+        // Build description listing each booking
+        const bookingList = pendingCommissions.map(b => {
+          const supplier = b.supplier_name || b.booking_type || 'Unknown';
+          const amount = b.commission_amount_expected ? `$${b.commission_amount_expected.toLocaleString()}` : 'TBD';
+          return `- ${supplier}: ${amount}`;
+        }).join('\n');
+
+        const totalExpected = pendingCommissions.reduce((sum, b) => sum + (b.commission_amount_expected || 0), 0);
+        const totalStr = `$${totalExpected.toLocaleString()}`;
+
+        const commissionDueDate = new Date();
+        commissionDueDate.setDate(commissionDueDate.getDate() + 7); // 7 days after trip completion
+
+        db.prepare(`
+          INSERT INTO tasks (agency_id, trip_id, assigned_user_id, title, description, due_date, status, priority, category, is_system_generated, source_event)
+          VALUES (?, ?, ?, ?, ?, ?, 'open', 'normal', 'commission', 1, 'commission_followup')
+        `).run(
+          req.agencyId,
+          tripId,
+          existing.assigned_user_id || req.user.id,
+          `Submit commissions for ${existing.name}`,
+          `Trip "${existing.name}" is complete. Submit the following commissions (total: ${totalStr}):\n\n${bookingList}\n\nMark each booking's commission as submitted once you've sent the request to the supplier.`,
+          commissionDueDate.toISOString().split('T')[0]
+        );
+
+        console.log(`[COMMISSION_TASK] Created commission follow-up task for trip ${tripId} with ${pendingCommissions.length} pending commissions`);
+      }
+    }
+
     // Queue emails based on stage-change templates
     // Map stage to trigger config values (transition targets)
     const stageToTrigger = {
