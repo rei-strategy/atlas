@@ -2036,3 +2036,63 @@
 - System-generated tasks fully working for stage, deadline, and commission events
 - Git commit: 2ed995c
 
+
+
+### Session - 2026-02-06 (Agent batch: Features #72, #97, #98)
+
+**Features Completed: #72, #97, #98 (Security & Access Control)**
+
+#### Feature #72: Commission status changes require admin approval
+- Already implemented in previous session (commit ef25884)
+- Non-admin attempting commission status change creates approval request
+- Status unchanged until admin approves
+- Admin can change status directly without approval
+- Tested with planner user: HTTP 202 returned with approval request ID
+- Approval execution updates commission_status correctly
+- Full audit trail for approval requests
+
+#### Feature #97: Document visibility control internal vs client-facing
+- Already implemented - documents have `is_client_visible` flag
+- Portal endpoint filters documents: `is_client_visible = 1 AND is_sensitive = 0`
+- Admin users can see all documents regardless of visibility
+- Test data:
+  - Internal doc: internal_contract_notes.pdf (id=5, isClientVisible=false)
+  - Client-facing doc: hawaii_itinerary.pdf (id=6, isClientVisible=true)
+- Customer portal only shows client-facing doc
+
+#### Feature #98: Sensitive documents never auto-shared
+- Sensitive flag stored in database (is_sensitive column)
+- Portal endpoint filters out sensitive docs (`is_sensitive = 0`)
+- Added audit logging for sensitive document downloads
+  - Action: 'sensitive_document_access'
+  - Details: fileName, documentType, accessedBy, accessType
+- Test data: passport_scan.pdf (id=7, isSensitive=true)
+- Customer portal hides sensitive docs even when isClientVisible=true
+- Audit log entry created on download (verified: audit_logs id=189)
+
+#### Test Data Created
+- Agency: Commission Test Agency F72 (ID: 78)
+  - Admin: commission_test_admin@atlas.com / TestPass123
+  - Planner: test_planner_f72@atlas.com / TestPass123
+- Client: Commission TestClient (ID: 150)
+- Trip: COMMISSION_TEST_TRIP_F72 (ID: 66)
+- Booking: HHV-72-001 (ID: 46)
+- Documents:
+  - ID 5: internal_contract_notes.pdf (internal)
+  - ID 6: hawaii_itinerary.pdf (client-facing)
+  - ID 7: passport_scan.pdf (sensitive)
+- Customer Portal: commission_client_portal@test.com / TestPass123
+
+#### Verification Summary
+- Commission status approval workflow fully functional
+- Document visibility filtering works correctly
+- Sensitive document audit logging implemented
+- All data persists in SQLite database
+- Frontend compiles successfully
+- Server runs without errors
+
+#### Current State
+- 134/240 features passing (~55.8%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commit: be7b52d
