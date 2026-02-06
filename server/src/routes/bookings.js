@@ -1,12 +1,16 @@
 const express = require('express');
 const { getDb } = require('../config/database');
-const { authenticate, tenantScope } = require('../middleware/auth');
+const { authenticate, tenantScope, authorize } = require('../middleware/auth');
 
 const router = express.Router({ mergeParams: true });
 
 // All booking routes require authentication and tenant scope
 router.use(authenticate);
 router.use(tenantScope);
+
+// Middleware to restrict write operations to admin/planner roles only
+// Support role can only view, not create/modify bookings
+const canModifyBookings = authorize('admin', 'planner', 'planner_advisor');
 
 const VALID_BOOKING_TYPES = ['hotel', 'cruise', 'resort', 'tour', 'insurance', 'transfer', 'other'];
 const VALID_STATUSES = ['planned', 'quoted', 'booked', 'canceled'];
@@ -88,8 +92,9 @@ router.get('/:id', (req, res) => {
 /**
  * POST /api/trips/:tripId/bookings
  * Create a new booking within a trip
+ * Restricted to admin and planner roles (support cannot create bookings)
  */
-router.post('/', (req, res) => {
+router.post('/', canModifyBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId } = req.params;
@@ -183,9 +188,10 @@ router.post('/', (req, res) => {
 /**
  * PUT /api/trips/:tripId/bookings/:id
  * Update a booking
+ * Restricted to admin and planner roles (support cannot modify bookings)
  * Restricted actions (confirm booking, mark payment, change commission) require admin or approval
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', canModifyBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;
@@ -437,8 +443,9 @@ router.put('/:id', (req, res) => {
 /**
  * PUT /api/trips/:tripId/bookings/:id/commission
  * Update commission fields on a booking
+ * Restricted to admin and planner roles
  */
-router.put('/:id/commission', (req, res) => {
+router.put('/:id/commission', canModifyBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;
@@ -507,8 +514,9 @@ router.put('/:id/commission', (req, res) => {
 /**
  * DELETE /api/trips/:tripId/bookings/:id
  * Delete a booking
+ * Restricted to admin and planner roles
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', canModifyBookings, (req, res) => {
   try {
     const db = getDb();
     const { tripId, id } = req.params;

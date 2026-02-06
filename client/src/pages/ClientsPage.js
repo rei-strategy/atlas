@@ -998,6 +998,143 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
             )}
           </div>
         )}
+
+        {activeTab === 'portal' && (
+          <div className="portal-access-section">
+            {portalLoading ? (
+              <div className="loading-screen" style={{ minHeight: '100px' }}>
+                <div className="loading-spinner" />
+                <p>Loading portal status...</p>
+              </div>
+            ) : !portalStatus?.hasPortalAccess ? (
+              <div className="detail-section">
+                <h3 className="detail-section-title">Customer Portal Access</h3>
+                <div style={{ padding: 'var(--spacing-lg)', backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--border-radius)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>🔒</div>
+                  <p style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-text-secondary)' }}>
+                    This client does not have portal access enabled.
+                  </p>
+                  <p style={{ marginBottom: 'var(--spacing-lg)', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                    Enable portal access to allow {client.firstName} to view their trips, submit traveler information, and access documents online.
+                  </p>
+                  <button className="btn btn-primary" onClick={() => {
+                    setPortalForm({ email: client.email || '', password: '' });
+                    setShowPortalModal(true);
+                  }}>
+                    Enable Portal Access
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="detail-section">
+                <h3 className="detail-section-title">Customer Portal Access</h3>
+                <div style={{ padding: 'var(--spacing-lg)', backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--border-radius)' }}>
+                  <div className="detail-grid">
+                    <div className="detail-field">
+                      <span className="detail-field-label">Status</span>
+                      <span className={`status-badge ${portalStatus.portalAccount.isActive ? 'status-success' : 'status-danger'}`}>
+                        {portalStatus.portalAccount.isActive ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <div className="detail-field">
+                      <span className="detail-field-label">Portal Email</span>
+                      <span className="detail-field-value">{portalStatus.portalAccount.email}</span>
+                    </div>
+                    <div className="detail-field">
+                      <span className="detail-field-label">Created</span>
+                      <span className="detail-field-value">
+                        {new Date(portalStatus.portalAccount.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)' }}>
+                    <p style={{ marginBottom: 'var(--spacing-md)', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                      {portalStatus.portalAccount.isActive
+                        ? 'The customer can log in to the portal at /portal/login to view their trips and documents.'
+                        : 'Portal access is currently disabled. The customer cannot log in until you re-enable access.'
+                      }
+                    </p>
+                    {portalStatus.portalAccount.isActive ? (
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => handleTogglePortalAccess(false)}
+                        disabled={portalToggling}
+                      >
+                        {portalToggling ? 'Disabling...' : 'Disable Portal Access'}
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-success"
+                        onClick={() => handleTogglePortalAccess(true)}
+                        disabled={portalToggling}
+                        style={{ backgroundColor: 'var(--color-success)', color: 'white' }}
+                      >
+                        {portalToggling ? 'Enabling...' : 'Enable Portal Access'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Portal Access Creation Modal */}
+        {showPortalModal && (
+          <div className="modal-overlay" onClick={() => setShowPortalModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="modal-title">Enable Portal Access</h2>
+                <button className="modal-close-btn" onClick={() => setShowPortalModal(false)} aria-label="Close">×</button>
+              </div>
+              <form onSubmit={handleCreatePortalAccess}>
+                <div className="modal-body">
+                  <p style={{ marginBottom: 'var(--spacing-lg)', color: 'var(--color-text-secondary)' }}>
+                    Create a portal login for <strong>{client.firstName} {client.lastName}</strong> so they can access their travel information online.
+                  </p>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="portalEmail">Portal Login Email</label>
+                    <input
+                      id="portalEmail"
+                      type="email"
+                      className="form-input"
+                      value={portalForm.email}
+                      onChange={(e) => setPortalForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder={client.email || 'Enter email address'}
+                      required
+                    />
+                    <p className="form-hint">This email will be used for portal login</p>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="portalPassword">Temporary Password *</label>
+                    <input
+                      id="portalPassword"
+                      type="text"
+                      className="form-input"
+                      value={portalForm.password}
+                      onChange={(e) => setPortalForm(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Create a temporary password"
+                      minLength={6}
+                      required
+                    />
+                    <p className="form-hint">Must be at least 6 characters. Share this with the client to get started.</p>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-outline" onClick={() => setShowPortalModal(false)} disabled={portalFormLoading}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={portalFormLoading}>
+                    {portalFormLoading ? 'Creating...' : 'Create Portal Access'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2590,6 +2590,377 @@ function DocumentsTab({ tripId, token }) {
   );
 }
 
+/* =================== TASKS TAB =================== */
+function TasksTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/tasks?tripId=${tripId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setTasks(data.tasks || []);
+        }
+      } catch (err) {
+        console.error('Failed to load tasks:', err);
+        addToast('Failed to load tasks', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [tripId, token, addToast]);
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'status-danger';
+      case 'high': return 'status-warning';
+      case 'normal': return 'status-info';
+      case 'low': return 'status-neutral';
+      default: return 'status-neutral';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return 'status-success';
+      case 'in_progress': return 'status-info';
+      case 'pending': return 'status-warning';
+      case 'canceled': return 'status-neutral';
+      default: return 'status-neutral';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '200px' }}>
+        <div className="loading-spinner" />
+        <p>Loading tasks...</p>
+      </div>
+    );
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="page-empty-state" style={{ padding: '2rem' }}>
+        <div className="empty-state-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+        </div>
+        <h3 className="empty-state-title">No tasks yet</h3>
+        <p className="empty-state-description">Tasks associated with this trip will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tasks-tab">
+      <div className="data-table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Assigned To</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tasks.map(task => (
+              <tr key={task.id}>
+                <td>
+                  <span className="table-user-name">{task.title}</span>
+                  {task.description && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                      {task.description.substring(0, 80)}{task.description.length > 80 ? '...' : ''}
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <span className={`status-badge ${getPriorityColor(task.priority)}`}>
+                    {task.priority}
+                  </span>
+                </td>
+                <td>
+                  <span className={`status-badge ${getStatusColor(task.status)}`}>
+                    {task.status.replace('_', ' ')}
+                  </span>
+                </td>
+                <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '—'}</td>
+                <td>{task.assignedUserName || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* =================== COMMUNICATIONS TAB =================== */
+function CommunicationsTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [emails, setEmails] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmails = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/email-templates/queue?tripId=${tripId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setEmails(data.queue || []);
+        }
+      } catch (err) {
+        console.error('Failed to load communications:', err);
+        addToast('Failed to load communications', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmails();
+  }, [tripId, token, addToast]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'sent': return 'status-success';
+      case 'approved': return 'status-info';
+      case 'pending_approval': return 'status-warning';
+      case 'draft': return 'status-neutral';
+      case 'failed': return 'status-danger';
+      default: return 'status-neutral';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '200px' }}>
+        <div className="loading-spinner" />
+        <p>Loading communications...</p>
+      </div>
+    );
+  }
+
+  if (emails.length === 0) {
+    return (
+      <div className="page-empty-state" style={{ padding: '2rem' }}>
+        <div className="empty-state-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        </div>
+        <h3 className="empty-state-title">No communications yet</h3>
+        <p className="empty-state-description">Email communications for this trip will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="communications-tab">
+      <div className="data-table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Template</th>
+              <th>Recipient</th>
+              <th>Status</th>
+              <th>Sent/Scheduled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {emails.map(email => (
+              <tr key={email.id}>
+                <td>
+                  <span className="table-user-name">{email.templateName || 'Custom Email'}</span>
+                </td>
+                <td>
+                  <div>
+                    {email.clientFirstName} {email.clientLastName}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                    {email.clientEmail}
+                  </div>
+                </td>
+                <td>
+                  <span className={`status-badge ${getStatusColor(email.status)}`}>
+                    {email.status.replace('_', ' ')}
+                  </span>
+                </td>
+                <td>
+                  {email.sentAt
+                    ? new Date(email.sentAt).toLocaleString()
+                    : email.scheduledFor
+                      ? `Scheduled: ${new Date(email.scheduledFor).toLocaleString()}`
+                      : '—'
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* =================== TIMELINE TAB =================== */
+function TimelineTab({ tripId, token }) {
+  const { addToast } = useToast();
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/audit-logs?tripId=${tripId}&limit=50`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setActivities(data.auditLogs || []);
+        }
+      } catch (err) {
+        console.error('Failed to load timeline:', err);
+        addToast('Failed to load timeline', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivities();
+  }, [tripId, token, addToast]);
+
+  const getActionLabel = (action) => {
+    const labels = {
+      'create_trip': 'Trip Created',
+      'update_trip': 'Trip Updated',
+      'stage_change': 'Stage Changed',
+      'create_booking': 'Booking Added',
+      'update_booking': 'Booking Updated',
+      'delete_booking': 'Booking Deleted',
+      'create_task': 'Task Created',
+      'update_task': 'Task Updated',
+      'complete_task': 'Task Completed',
+      'delete_task': 'Task Deleted',
+      'upload_document': 'Document Uploaded',
+      'delete_document': 'Document Deleted',
+      'traveler_created': 'Traveler Added',
+      'traveler_updated': 'Traveler Updated',
+      'traveler_deleted': 'Traveler Removed',
+      'locked_trip_override': 'Trip Lock Override',
+      'trip_locked': 'Trip Locked',
+      'trip_unlocked': 'Trip Unlocked',
+      'bookings_canceled': 'Bookings Canceled'
+    };
+    return labels[action] || action.replace(/_/g, ' ');
+  };
+
+  const getActionIcon = (action) => {
+    if (action.includes('create') || action.includes('add')) return '➕';
+    if (action.includes('update') || action.includes('change')) return '✏️';
+    if (action.includes('delete') || action.includes('cancel')) return '🗑️';
+    if (action.includes('complete')) return '✅';
+    if (action.includes('lock')) return '🔒';
+    if (action.includes('unlock')) return '🔓';
+    if (action.includes('upload')) return '📤';
+    return '📋';
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '200px' }}>
+        <div className="loading-spinner" />
+        <p>Loading timeline...</p>
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="page-empty-state" style={{ padding: '2rem' }}>
+        <div className="empty-state-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <h3 className="empty-state-title">No activity yet</h3>
+        <p className="empty-state-description">Activity and changes for this trip will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="timeline-tab">
+      <div className="timeline-list" style={{ padding: '0.5rem 0' }}>
+        {activities.map((activity, index) => (
+          <div
+            key={activity.id}
+            className="timeline-item"
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              padding: '0.75rem 0',
+              borderBottom: index < activities.length - 1 ? '1px solid var(--color-border)' : 'none'
+            }}
+          >
+            <div
+              className="timeline-icon"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'var(--color-bg-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '0.875rem'
+              }}
+            >
+              {getActionIcon(activity.action)}
+            </div>
+            <div className="timeline-content" style={{ flex: 1 }}>
+              <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>
+                {getActionLabel(activity.action)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                {activity.userFirstName} {activity.userLastName} • {new Date(activity.createdAt).toLocaleString()}
+              </div>
+              {activity.details && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-secondary)',
+                  marginTop: '0.25rem',
+                  background: 'var(--color-bg-secondary)',
+                  padding: '0.5rem',
+                  borderRadius: '4px'
+                }}>
+                  {typeof activity.details === 'string'
+                    ? activity.details
+                    : JSON.stringify(activity.details, null, 2).substring(0, 200)
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* =================== TRIP DETAIL =================== */
 function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -2644,8 +3015,11 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
     { id: 'overview', label: 'Overview' },
     { id: 'travelers', label: 'Travelers' },
     { id: 'bookings', label: 'Bookings' },
+    { id: 'tasks', label: 'Tasks' },
     { id: 'documents', label: 'Documents' },
-    { id: 'commissions', label: 'Commissions' }
+    { id: 'communications', label: 'Communications' },
+    { id: 'commissions', label: 'Commissions' },
+    { id: 'timeline', label: 'Timeline' }
   ];
 
   const breadcrumbItems = [
@@ -2859,12 +3233,24 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
           <BookingsTab tripId={trip.id} token={token} />
         )}
 
+        {activeTab === 'tasks' && (
+          <TasksTab tripId={trip.id} token={token} />
+        )}
+
         {activeTab === 'documents' && (
           <DocumentsTab tripId={trip.id} token={token} />
         )}
 
+        {activeTab === 'communications' && (
+          <CommunicationsTab tripId={trip.id} token={token} />
+        )}
+
         {activeTab === 'commissions' && (
           <CommissionsTab tripId={trip.id} token={token} />
+        )}
+
+        {activeTab === 'timeline' && (
+          <TimelineTab tripId={trip.id} token={token} />
         )}
       </div>
 

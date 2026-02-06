@@ -22,6 +22,7 @@ router.get('/', (req, res) => {
       entityType,
       entityId,
       userId,
+      tripId,
       startDate,
       endDate,
       limit = 50,
@@ -69,6 +70,12 @@ router.get('/', (req, res) => {
     if (entityId) {
       query += ' AND al.entity_id = ?';
       params.push(entityId);
+    }
+
+    // Filter by trip ID
+    if (tripId) {
+      query += ' AND al.trip_id = ?';
+      params.push(tripId);
     }
 
     // Filter by user who performed the action (admin only)
