@@ -81,10 +81,21 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
           if (value.length > FIELD_LIMITS.phone) {
             return `Phone must be ${FIELD_LIMITS.phone} characters or less`;
           }
-          // Allow various phone formats but require at least 7 digits
+          // Extract digits for validation
           const digits = value.replace(/\D/g, '');
+          // Check for letters (a-z, A-Z) - phone numbers shouldn't have letters
+          const hasLetters = /[a-zA-Z]/.test(value);
+          if (hasLetters) {
+            return 'Phone number should only contain digits and formatting characters';
+          }
+          // Require minimum 7 digits for valid phone number
+          // Accepts: (555) 123-4567, 555-123-4567, +1-555-123-4567, +44 20 7946 0958
           if (digits.length < 7) {
-            return 'Please enter a valid phone number';
+            return 'Phone number must have at least 7 digits';
+          }
+          // Maximum 15 digits (E.164 international standard)
+          if (digits.length > 15) {
+            return 'Phone number cannot exceed 15 digits';
           }
         }
         return '';

@@ -37,6 +37,38 @@ const FIELD_LIMITS = {
 };
 
 /**
+ * Validate phone number format
+ * Accepts various formats: (555) 123-4567, 555-123-4567, +1-555-123-4567, +44 20 7946 0958
+ * @param {string} phone - Phone number to validate
+ * @returns {{ valid: boolean, error?: string }}
+ */
+function validatePhoneFormat(phone) {
+  if (!phone || !phone.trim()) {
+    return { valid: true }; // Empty is valid (optional field)
+  }
+
+  // Check for letters - phone numbers shouldn't have letters
+  if (/[a-zA-Z]/.test(phone)) {
+    return { valid: false, error: 'Phone number should only contain digits and formatting characters' };
+  }
+
+  // Extract just the digits
+  const digits = phone.replace(/\D/g, '');
+
+  // Require minimum 7 digits for valid phone number
+  if (digits.length < 7) {
+    return { valid: false, error: 'Phone number must have at least 7 digits' };
+  }
+
+  // Maximum 15 digits (E.164 international standard)
+  if (digits.length > 15) {
+    return { valid: false, error: 'Phone number cannot exceed 15 digits' };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Validate field lengths and return errors
  * @param {Object} data - Object with field values
  * @param {Object} fieldConfig - Object mapping field names to { maxLength, displayName }
@@ -64,7 +96,7 @@ function validateFieldLengths(data, fieldConfig) {
  * @returns {Array} Array of error objects { field, message }
  */
 function validateClientFields(data) {
-  return validateFieldLengths(data, {
+  const errors = validateFieldLengths(data, {
     firstName: { maxLength: FIELD_LIMITS.name, displayName: 'First name' },
     lastName: { maxLength: FIELD_LIMITS.name, displayName: 'Last name' },
     email: { maxLength: FIELD_LIMITS.email, displayName: 'Email' },
@@ -74,6 +106,16 @@ function validateClientFields(data) {
     country: { maxLength: FIELD_LIMITS.country, displayName: 'Country' },
     notes: { maxLength: FIELD_LIMITS.notes, displayName: 'Notes' }
   });
+
+  // Additional phone format validation
+  if (data.phone) {
+    const phoneResult = validatePhoneFormat(data.phone);
+    if (!phoneResult.valid) {
+      errors.push({ field: 'phone', message: phoneResult.error });
+    }
+  }
+
+  return errors;
 }
 
 /**
@@ -147,6 +189,7 @@ function formatValidationErrors(errors) {
 module.exports = {
   FIELD_LIMITS,
   validateFieldLengths,
+  validatePhoneFormat,
   validateClientFields,
   validateTripFields,
   validateBookingFields,
