@@ -130,6 +130,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
           <div className="modal-body">
             {error && <div className="auth-error">{error}</div>}
 
+            <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
             <h3 className="form-section-title">Personal Information</h3>
             <div className="form-row">
               <div className="form-group">
@@ -306,10 +307,11 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                 <span>Contact consent (allow general contact)</span>
               </label>
             </div>
+            </fieldset>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Saving...' : (client ? 'Save Changes' : 'Create Client')}
             </button>

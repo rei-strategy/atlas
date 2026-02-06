@@ -142,7 +142,7 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <div className="auth-error">{error}</div>}
-
+            <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
             <div className="form-group">
               <label className="form-label" htmlFor="title">Title *</label>
               <input
@@ -249,10 +249,11 @@ function TaskFormModal({ isOpen, onClose, onSaved, task, token, users, trips }) 
                 ))}
               </select>
             </div>
+            </fieldset>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Saving...' : (task ? 'Save Changes' : 'Create Task')}
             </button>

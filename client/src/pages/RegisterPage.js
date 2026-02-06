@@ -76,6 +76,7 @@ export default function RegisterPage() {
             </div>
           )}
 
+          <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
           <div className="form-group">
             <label htmlFor="agencyName" className="form-label">Agency name</label>
             <input
@@ -173,6 +174,7 @@ export default function RegisterPage() {
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
+          </fieldset>
 
           <p className="auth-footer-text">
             Already have an account?{' '}

@@ -17,7 +17,7 @@ router.use(tenantScope);
 router.get('/', authorize('admin', 'planner'), (req, res) => {
   try {
     const db = getDb();
-    const { status, startDate, endDate, bookingId } = req.query;
+    const { status, startDate, endDate, bookingId, supplier } = req.query;
 
     let query = `
       SELECT
@@ -55,6 +55,12 @@ router.get('/', authorize('admin', 'planner'), (req, res) => {
     if (endDate) {
       query += ' AND b.created_at <= ?';
       params.push(endDate);
+    }
+
+    // Filter by supplier name
+    if (supplier) {
+      query += ' AND b.supplier_name = ?';
+      params.push(supplier);
     }
 
     query += ' ORDER BY b.created_at DESC';
@@ -99,6 +105,30 @@ router.get('/', authorize('admin', 'planner'), (req, res) => {
   } catch (error) {
     console.error('[ERROR] List commissions failed:', error.message);
     res.status(500).json({ error: 'Failed to list commissions' });
+  }
+});
+
+/**
+ * GET /api/commissions/suppliers
+ * Get unique supplier names for filtering
+ * Accessible to admin and planner roles only
+ */
+router.get('/suppliers', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const suppliers = db.prepare(`
+      SELECT DISTINCT supplier_name
+      FROM bookings
+      WHERE agency_id = ? AND supplier_name IS NOT NULL AND supplier_name != ''
+      ORDER BY supplier_name
+    `).all(req.agencyId);
+
+    res.json({
+      suppliers: suppliers.map(s => s.supplier_name)
+    });
+  } catch (error) {
+    console.error('[ERROR] Get suppliers failed:', error.message);
+    res.status(500).json({ error: 'Failed to get suppliers' });
   }
 });
 

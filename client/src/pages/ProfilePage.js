@@ -160,6 +160,7 @@ export default function ProfilePage() {
 
             {isEditing ? (
               <form onSubmit={handleSubmit} className="profile-form">
+                <fieldset disabled={saving} style={{ border: 'none', padding: 0, margin: 0 }}>
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="firstName">First Name *</label>
@@ -207,6 +208,7 @@ export default function ProfilePage() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={handleCancel}
+                    disabled={saving}
                   >
                     Cancel
                   </button>
@@ -218,6 +220,7 @@ export default function ProfilePage() {
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
+                </fieldset>
               </form>
             ) : (
               <div className="profile-view">

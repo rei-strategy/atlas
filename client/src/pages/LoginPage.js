@@ -68,6 +68,7 @@ export default function LoginPage() {
             </div>
           )}
 
+          <fieldset disabled={loading} style={{ border: 'none', padding: 0, margin: 0 }}>
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email address</label>
             <input
@@ -104,6 +105,7 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+          </fieldset>
 
           <p className="auth-footer-text">
             Don't have an account?{' '}

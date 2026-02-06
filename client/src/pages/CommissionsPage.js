@@ -32,6 +32,9 @@ export default function CommissionsPage() {
     endDate: ''
   });
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' });
+  const [supplierFilter, setSupplierFilter] = useState('');
+  const [suppliers, setSuppliers] = useState([]);
 
   const fetchVarianceReport = useCallback(async () => {
     try {
@@ -62,6 +65,9 @@ export default function CommissionsPage() {
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
+      if (dateFilter.startDate) params.append('startDate', dateFilter.startDate);
+      if (dateFilter.endDate) params.append('endDate', dateFilter.endDate);
+      if (supplierFilter) params.append('supplier', supplierFilter);
 
       const url = `${API_BASE}/commissions${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url, {
@@ -79,16 +85,31 @@ export default function CommissionsPage() {
       console.error('Failed to fetch commissions:', err);
       addToast('Failed to load commissions', 'error');
     }
-  }, [token, statusFilter, addToast]);
+  }, [token, statusFilter, dateFilter, supplierFilter, addToast]);
+
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/commissions/suppliers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSuppliers(data.suppliers || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch suppliers:', err);
+    }
+  }, [token]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchVarianceReport(), fetchAllCommissions()]);
+      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchVarianceReport, fetchAllCommissions]);
+  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -376,7 +397,7 @@ export default function CommissionsPage() {
 
       {activeTab === 'all' && (
         <div>
-          {/* Status Filter */}
+          {/* Multiple Filters */}
           <div style={{
             display: 'flex',
             gap: '1rem',
@@ -398,13 +419,51 @@ export default function CommissionsPage() {
                 <option value="paid">Paid</option>
               </select>
             </div>
-            {statusFilter && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Start Date</label>
+              <input
+                type="date"
+                name="startDate"
+                className="form-input"
+                value={dateFilter.startDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                className="form-input"
+                value={dateFilter.endDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Supplier</label>
+              <select
+                name="supplierFilter"
+                className="form-input"
+                value={supplierFilter}
+                onChange={(e) => setSupplierFilter(e.target.value)}
+              >
+                <option value="">All Suppliers</option>
+                {suppliers.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            {(statusFilter || dateFilter.startDate || dateFilter.endDate || supplierFilter) && (
               <button
                 className="btn btn-outline"
-                onClick={() => setStatusFilter('')}
+                onClick={() => {
+                  setStatusFilter('');
+                  setDateFilter({ startDate: '', endDate: '' });
+                  setSupplierFilter('');
+                }}
                 style={{ height: '38px' }}
               >
-                Clear Filter
+                Clear All Filters
               </button>
             )}
           </div>
