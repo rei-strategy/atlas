@@ -763,7 +763,8 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to invite user');
+        // Use detailed message for permission errors, otherwise use error field
+        throw new Error(data.message || data.error || 'Failed to invite user');
       }
 
       setResult(data);

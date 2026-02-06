@@ -57,7 +57,13 @@ router.get('/', (req, res) => {
       params.push(stage);
     } else if (showInactive !== 'true') {
       // By default, exclude canceled and archived trips unless explicitly requested
-      baseQuery += ` AND t.stage NOT IN ('canceled', 'archived')`;
+      // EXCEPTION: When searching, include archived trips (they should remain searchable)
+      // but still exclude canceled trips from search results
+      if (search) {
+        baseQuery += ` AND t.stage != 'canceled'`;
+      } else {
+        baseQuery += ` AND t.stage NOT IN ('canceled', 'archived')`;
+      }
     }
 
     if (clientId) {

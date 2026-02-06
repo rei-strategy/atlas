@@ -38,7 +38,22 @@ function authorize(...roles) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Permission denied. Required role: ' + roles.join(' or ') });
+      // User-friendly permission denied message
+      const roleNames = roles.map(r => {
+        switch (r) {
+          case 'admin': return 'Administrator';
+          case 'planner': return 'Planner';
+          case 'support': return 'Support';
+          case 'marketing': return 'Marketing';
+          default: return r;
+        }
+      });
+      return res.status(403).json({
+        error: 'Permission denied',
+        message: `You don't have permission to perform this action. This action requires ${roleNames.join(' or ')} access.`,
+        requiredRoles: roles,
+        currentRole: req.user.role
+      });
     }
     next();
   };

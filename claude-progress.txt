@@ -1623,3 +1623,51 @@
 - No mock data patterns in production code
 - Build compiles successfully
 - Git commits: 8adb871, 5a3e832, 6d6a513
+
+
+### Session - 2026-02-06 (Agent batch: Features #18, #20, #21)
+
+**Features Completed: #18, #20, #21 (Security - Role-Based Access)**
+
+#### Feature #18: Role-based sidebar shows role-appropriate items
+- Sidebar.js already has role-based filtering via navItems.roles arrays
+- Admin: All 8 items (Dashboard, Clients, Trips, Tasks, Commissions, Reports, Email Templates, Settings)
+- Planner: 7 items (no Settings)
+- Support: 4 items (Dashboard, Clients, Trips, Tasks only)
+- Marketing: 2 items (Dashboard, Clients only)
+- filteredItems correctly filters based on user.role
+
+#### Feature #20: Support role has read-only access to sensitive data
+- Added canModifyBookings middleware to bookings routes
+- POST /api/trips/:id/bookings now returns 403 for support role
+- PUT /api/trips/:id/bookings/:id now returns 403 for support role
+- DELETE /api/trips/:id/bookings/:id now returns 403 for support role
+- GET routes still work for support (read-only access)
+- Verified: Support can read clients/trips, cannot create/modify bookings
+- Verified: PUT /api/approvals/:id/approve returns 403 for support
+- Verified: GET /api/commissions returns 403 for support
+
+#### Feature #21: Marketing role cannot access financial data
+- Added canViewBookings middleware to restrict GET bookings for marketing
+- GET /api/trips/:id/bookings returns 403 for marketing role
+- GET /api/commissions already returns 403 (authorize admin, planner only)
+- GET /api/reports/revenue already returns 403 (authorize admin, planner only)
+- Marketing can still access clients per spec (with consent flags respected)
+
+#### Key Implementation Details
+- server/src/routes/bookings.js:
+  - Added canModifyBookings = authorize('admin', 'planner', 'planner_advisor')
+  - Added canViewBookings = authorize('admin', 'planner', 'planner_advisor', 'support', 'support_assistant')
+  - Applied canViewBookings to GET /, GET /:id routes
+  - Applied canModifyBookings to POST, PUT, DELETE routes
+
+#### Test Data Created
+- Test Agency 55 users used: access_test_support@test.com, access_test_marketing@test.com
+- Trip: Support Role Test Trip (ID: 56) in agency 55
+- Client: Test Client55 (ID: 143) in agency 55
+
+#### Current State
+- 107/240 features passing (~44.6%)
+- Backend on port 3001, Frontend on port 3000
+- Role-based access controls fully enforced
+- Build compiles successfully
