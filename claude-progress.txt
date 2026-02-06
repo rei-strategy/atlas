@@ -2444,3 +2444,48 @@
 - Git commits: 9795eaa, 0a5f920, 5bb4441
 
 ---
+
+
+### Session - 2026-02-06 (Agent batch: Features #111, #112, #113)
+
+**Features Completed: #111, #112, #113 (Dashboard Widgets)**
+
+#### Feature #111: Dashboard - at-risk payments
+- Extended paymentDeadlineService with getAtRiskPayments() function
+- Added GET /api/dashboard/at-risk-payments endpoint
+- Returns overdue payments (past due date) and near-due payments (within 7 days)
+- Dashboard widget shows overdue in red/urgent styling, urgent (2 days) in yellow
+- Test data: 3 at-risk bookings (1 overdue 6 days, 1 urgent 2 days, 1 near-due 6 days)
+- Paid-in-full bookings correctly excluded from at-risk list
+
+#### Feature #112: Dashboard - commission pipeline
+- Added GET /api/dashboard/commission-pipeline endpoint
+- Groups commissions by status: expected, submitted, paid
+- Shows booking counts and amounts for each status
+- Summary shows: total expected, received, and outstanding amounts
+- Pipeline flow visualization with clickable stage cards
+- Test data: 4 bookings ($600 expected, $960 submitted, $450 paid)
+
+#### Feature #113: Dashboard - recent activity feed
+- Added GET /api/dashboard/recent-activity endpoint
+- Queries audit_logs with user/trip/client joins
+- formatActivityDescription() creates human-readable descriptions
+- Activities shown chronologically (most recent first)
+- Each entry has: action icon, description, user name, relative timestamp
+- Relative timestamps: 'Just now', 'Xm ago', 'Xh ago', 'Xd ago'
+
+#### Test Data Created
+- Agency: AtRisk Test Agency (ID: 90)
+- User: atrisk_test@atlas.com / TestPass123
+- Client: AtRisk Client111 (ID: 158)
+- Trip: AT_RISK_TEST_TRIP_F111 (ID: 79)
+- Bookings with various payment states and commission statuses
+
+#### Current State
+- 161/240 features passing (~67.1%)
+- Progress from previous: 151 -> 161 (+10 features, including other agents)
+- All three dashboard widgets working with real database data
+- Data persists across server restarts
+- Frontend compiles without errors
+- Git commits: ecd8ae0 (#111), 45fe731 (#112), c626925 (#113)
+
