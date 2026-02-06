@@ -834,3 +834,58 @@
 - Backend on port 3001, Frontend on port 3000
 - No mock data patterns in production code
 - All data persists across server restarts
+
+### Session - 2026-02-06 (Agent: Features #129, #229, #133)
+
+**Features Completed: #129, #229, #133 (Audit Log Features)**
+
+#### Feature #129: Audit log records all approvals
+- Built server/src/routes/auditLogs.js with full read endpoints:
+  - GET /api/audit-logs - list all audit logs with filtering
+  - GET /api/audit-logs/approvals - convenience endpoint for approval-related logs
+  - GET /api/audit-logs/:id - get single audit log entry
+  - GET /api/audit-logs/actions/list - get distinct action types
+- Added Audit Logs tab to Settings page with AuditLogsTable component
+- Table displays: Timestamp, User, Action, Entity, Details
+- Filters: Show approvals only (checkbox), Action Type, Entity Type
+- Pagination with Previous/Next buttons
+- Verified approval actions logged: create_approval_request, approve_request, deny_request
+- All logs include context: actionType, entityType, entityId, reason/responseNote
+
+#### Feature #229: Accurate timestamps on audit logs
+- Verified timestamps match current server time (within seconds)
+- Timestamps stored in UTC format in database
+- Frontend uses useTimezone hook for timezone-aware display
+- Chronological ordering verified (newest first via ORDER BY created_at DESC)
+
+#### Feature #133: Audit logs are read-only
+- No edit or delete buttons in UI (table is read-only display)
+- Added explicit handlers for DELETE, PUT, PATCH, POST that return 403 Forbidden
+- Error messages explain audit logs are immutable for compliance/security
+- Verified DELETE /api/audit-logs/:id returns 403: "Audit logs cannot be deleted"
+- Verified PUT/PATCH return 403: "Audit logs cannot be modified"
+- Verified POST returns 403: "Audit logs cannot be manually created"
+- Logs remain intact after attempted modification
+
+#### Key Implementation Details
+- server/src/routes/auditLogs.js: Full read-only API with security handlers
+- server/src/index.js: Enabled /api/audit-logs route
+- client/src/pages/SettingsPage.js: Added AuditLogsTable component with filters
+- client/src/styles/index.css: Added audit log styles (filters, badges, pagination)
+
+#### Test Data Created
+- Agency: Audit Log Test Agency (ID: 52)
+- User: auditlog_test@agency.com / TestPass123 (admin)
+- Client: Approval TestClient (ID: 89)
+- Trip: APPROVAL_AUDIT_TEST_TRIP (ID: 26)
+- Booking: AUDIT-TEST-123 (Bali Resort Hotel, ID: 15)
+- Approval Requests: IDs 2, 3, 4 (confirm_booking, mark_payment_received, change_commission_status)
+- Audit Logs: IDs 66-74 (approval-related entries)
+
+#### Current State
+- 57/240 features passing (~23.8%)
+- Backend on port 3001, Frontend on port 3000
+- Audit log system fully implemented with read-only enforcement
+- Zero console errors
+- Git commit: 5e1a796
+
