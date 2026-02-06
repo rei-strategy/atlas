@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
 import NotificationBell from './NotificationBell';
@@ -27,10 +28,10 @@ export default function TopBar({ onMenuToggle }) {
 
       <div className="topbar-right">
         <NotificationBell />
-        <span className="topbar-user-info">
+        <Link to="/profile" className="topbar-user-info" title="View Profile">
           <span className="topbar-user-name">{user?.firstName} {user?.lastName}</span>
           <span className="topbar-role-badge">{user?.role}</span>
-        </span>
+        </Link>
         <button className="btn btn-outline btn-sm" onClick={logout}>
           Sign out
         </button>
