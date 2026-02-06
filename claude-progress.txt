@@ -3249,3 +3249,51 @@
 - Backend on port 3001, Frontend on port 3000
 - All three features verified and marked passing
 
+---
+
+### Session - 2026-02-06 (Agent: Feature #199)
+
+**Feature Verified: #199 - Malformed URL parameters handled**
+
+#### Feature #199: Malformed URL parameters handled
+- Description: Invalid URL parameters don't crash the app
+
+#### Verification Steps Completed:
+1. **Navigate to /clients/abc (non-numeric ID)**
+   - Backend API returns: `{"error":"Client not found"}` (404)
+   - Frontend detects `!res.ok` and sets `notFound=true`
+   - User sees "Client Not Found" view with back button
+
+2. **Navigate to /trips/-1 (negative ID)**
+   - Backend API returns: `{"error":"Trip not found"}` (404)
+   - Frontend detects `!res.ok` and sets `tripNotFound=true`
+   - User sees "Trip Not Found" view with back button
+
+3. **Navigate to /trips/0 (zero ID)**
+   - Backend API returns: `{"error":"Trip not found"}` (404)
+   - Frontend handles gracefully with "Trip Not Found" view
+
+#### Implementation Details
+- Backend (clients.js, trips.js): Uses `req.params.id` in SQL query with WHERE clause
+- SQLite handles non-numeric/invalid IDs by returning no rows → 404 response
+- Frontend (ClientsPage.js lines 1861-1886): Catches non-OK response, sets notFound state
+- Frontend (TripsPage.js lines 4128-4153): Catches non-OK response, sets tripNotFound state
+- Not Found views (ClientsPage.js lines 1961-1986, TripsPage.js lines 4308-4333):
+  - Display user-friendly "Not Found" message
+  - Provide "Back to [entity]" navigation button
+
+#### Test Data Created
+- User: malformed_test@test.com (Agency: Malformed Test Agency F199, ID: 108)
+
+#### Verification Summary
+- No code changes needed - feature was already fully implemented
+- Backend returns proper 404 for all malformed IDs (abc, -1, 0)
+- Frontend handles errors gracefully with user-friendly Not Found views
+- Frontend build compiles without errors
+- No mock data patterns detected
+
+#### Current State
+- 209/240 features passing (87.1%)
+- Backend on port 3001, Frontend on port 3000
+- Feature verified working via API testing
+
