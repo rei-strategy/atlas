@@ -34,6 +34,22 @@ export default function PortalTripDetailPage() {
   const [docMessage, setDocMessage] = useState('');
   const fileInputRef = React.useRef();
 
+  // Feedback state
+  const [feedback, setFeedback] = useState(null);
+  const [canSubmitFeedback, setCanSubmitFeedback] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({
+    overallRating: 0,
+    serviceRating: 0,
+    destinationRating: 0,
+    accommodationsRating: 0,
+    wouldRecommend: false,
+    highlights: '',
+    improvements: '',
+    comments: ''
+  });
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Helper to check if a payment is overdue
   const isPaymentOverdue = (booking) => {
     if (!booking.finalPaymentDueDate) return false;
@@ -44,7 +60,24 @@ export default function PortalTripDetailPage() {
 
   useEffect(() => {
     fetchTripDetails();
+    fetchFeedback();
   }, [id]);
+
+  const fetchFeedback = async () => {
+    try {
+      const res = await fetch(`/api/portal/trips/${id}/feedback`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setCanSubmitFeedback(data.canSubmitFeedback);
+      if (data.feedback) {
+        setFeedback(data.feedback);
+      }
+    } catch (err) {
+      console.error('Failed to fetch feedback:', err);
+    }
+  };
 
   const fetchTripDetails = async () => {
     try {
@@ -165,6 +198,57 @@ export default function PortalTripDetailPage() {
     return labels[status] || status;
   };
 
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (feedbackForm.overallRating < 1) {
+      setFeedbackMessage('Error: Please provide an overall rating');
+      return;
+    }
+    setFeedbackSubmitting(true);
+    setFeedbackMessage('');
+
+    try {
+      const res = await fetch(`/api/portal/trips/${id}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(feedbackForm)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit feedback');
+
+      setFeedback(data.feedback);
+      setFeedbackMessage('Thank you for your feedback!');
+    } catch (err) {
+      setFeedbackMessage('Error: ' + err.message);
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
+  // Star Rating Component
+  const StarRating = ({ value, onChange, label, required }) => (
+    <div className="portal-star-rating">
+      <label className="portal-rating-label">{label}{required && ' *'}</label>
+      <div className="portal-stars">
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            type="button"
+            className={`portal-star ${star <= value ? 'filled' : ''}`}
+            onClick={() => onChange(star)}
+            aria-label={`Rate ${star} out of 5`}
+          >
+            {star <= value ? '★' : '☆'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="portal-page">
@@ -189,7 +273,8 @@ export default function PortalTripDetailPage() {
     { id: 'overview', label: 'Overview' },
     { id: 'travelers', label: `Travelers (${travelers.length})` },
     { id: 'bookings', label: `Bookings (${bookings.length})` },
-    { id: 'documents', label: `Documents (${documents.length})` }
+    { id: 'documents', label: `Documents (${documents.length})` },
+    { id: 'feedback', label: feedback ? '✓ Feedback' : 'Feedback' }
   ];
 
   return (
@@ -562,6 +647,175 @@ export default function PortalTripDetailPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Feedback Tab */}
+      {activeTab === 'feedback' && (
+        <div className="portal-tab-content" role="tabpanel">
+          {feedbackMessage && (
+            <div className={`portal-message ${feedbackMessage.startsWith('Error') ? 'error' : 'success'}`}>
+              {feedbackMessage}
+            </div>
+          )}
+
+          <h2>Trip Feedback</h2>
+
+          {!canSubmitFeedback && !feedback && (
+            <div className="portal-feedback-notice">
+              <p>Feedback can be submitted once your trip is completed.</p>
+              <p className="portal-feedback-status">Current trip status: <strong>{trip?.stage}</strong></p>
+            </div>
+          )}
+
+          {feedback ? (
+            <div className="portal-feedback-submitted">
+              <div className="portal-feedback-header">
+                <span className="portal-feedback-checkmark">✓</span>
+                <h3>Thank you for your feedback!</h3>
+              </div>
+              <p className="portal-feedback-date">Submitted on {formatDate(feedback.createdAt)}</p>
+
+              <div className="portal-feedback-summary">
+                <div className="portal-feedback-rating-display">
+                  <span className="portal-rating-label">Overall Rating</span>
+                  <span className="portal-rating-stars">
+                    {'★'.repeat(feedback.overallRating)}{'☆'.repeat(5 - feedback.overallRating)}
+                  </span>
+                </div>
+                {feedback.serviceRating > 0 && (
+                  <div className="portal-feedback-rating-display">
+                    <span className="portal-rating-label">Service</span>
+                    <span className="portal-rating-stars">
+                      {'★'.repeat(feedback.serviceRating)}{'☆'.repeat(5 - feedback.serviceRating)}
+                    </span>
+                  </div>
+                )}
+                {feedback.destinationRating > 0 && (
+                  <div className="portal-feedback-rating-display">
+                    <span className="portal-rating-label">Destination</span>
+                    <span className="portal-rating-stars">
+                      {'★'.repeat(feedback.destinationRating)}{'☆'.repeat(5 - feedback.destinationRating)}
+                    </span>
+                  </div>
+                )}
+                {feedback.accommodationsRating > 0 && (
+                  <div className="portal-feedback-rating-display">
+                    <span className="portal-rating-label">Accommodations</span>
+                    <span className="portal-rating-stars">
+                      {'★'.repeat(feedback.accommodationsRating)}{'☆'.repeat(5 - feedback.accommodationsRating)}
+                    </span>
+                  </div>
+                )}
+                {feedback.wouldRecommend && (
+                  <p className="portal-feedback-recommend">👍 You would recommend us to friends!</p>
+                )}
+                {feedback.highlights && (
+                  <div className="portal-feedback-text">
+                    <strong>Highlights:</strong>
+                    <p>{feedback.highlights}</p>
+                  </div>
+                )}
+                {feedback.improvements && (
+                  <div className="portal-feedback-text">
+                    <strong>Suggestions:</strong>
+                    <p>{feedback.improvements}</p>
+                  </div>
+                )}
+                {feedback.comments && (
+                  <div className="portal-feedback-text">
+                    <strong>Additional Comments:</strong>
+                    <p>{feedback.comments}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : canSubmitFeedback && (
+            <form onSubmit={handleFeedbackSubmit} className="portal-feedback-form">
+              <p className="portal-feedback-intro">
+                We'd love to hear about your trip! Your feedback helps us improve our services.
+              </p>
+
+              <StarRating
+                label="Overall Experience"
+                value={feedbackForm.overallRating}
+                onChange={(val) => setFeedbackForm({ ...feedbackForm, overallRating: val })}
+                required
+              />
+
+              <StarRating
+                label="Service Quality"
+                value={feedbackForm.serviceRating}
+                onChange={(val) => setFeedbackForm({ ...feedbackForm, serviceRating: val })}
+              />
+
+              <StarRating
+                label="Destination"
+                value={feedbackForm.destinationRating}
+                onChange={(val) => setFeedbackForm({ ...feedbackForm, destinationRating: val })}
+              />
+
+              <StarRating
+                label="Accommodations"
+                value={feedbackForm.accommodationsRating}
+                onChange={(val) => setFeedbackForm({ ...feedbackForm, accommodationsRating: val })}
+              />
+
+              <div className="portal-form-group">
+                <label className="portal-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={feedbackForm.wouldRecommend}
+                    onChange={(e) => setFeedbackForm({ ...feedbackForm, wouldRecommend: e.target.checked })}
+                  />
+                  I would recommend this service to friends and family
+                </label>
+              </div>
+
+              <div className="portal-form-group">
+                <label htmlFor="highlights">What were the highlights of your trip?</label>
+                <textarea
+                  id="highlights"
+                  value={feedbackForm.highlights}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, highlights: e.target.value })}
+                  placeholder="Tell us what you loved most..."
+                  rows="3"
+                />
+              </div>
+
+              <div className="portal-form-group">
+                <label htmlFor="improvements">Is there anything we could improve?</label>
+                <textarea
+                  id="improvements"
+                  value={feedbackForm.improvements}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, improvements: e.target.value })}
+                  placeholder="Your suggestions help us serve you better..."
+                  rows="3"
+                />
+              </div>
+
+              <div className="portal-form-group">
+                <label htmlFor="comments">Additional Comments</label>
+                <textarea
+                  id="comments"
+                  value={feedbackForm.comments}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, comments: e.target.value })}
+                  placeholder="Any other thoughts you'd like to share..."
+                  rows="3"
+                />
+              </div>
+
+              <div className="portal-form-actions">
+                <button
+                  type="submit"
+                  className="portal-submit-btn"
+                  disabled={feedbackSubmitting || feedbackForm.overallRating < 1}
+                >
+                  {feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
