@@ -1093,6 +1093,9 @@ function BookingsTab({ tripId, token }) {
   const [editBooking, setEditBooking] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -1120,10 +1123,16 @@ function BookingsTab({ tripId, token }) {
     setSelectedBooking(null);
   };
 
-  const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) return;
+  const handleDeleteBookingClick = (booking) => {
+    setBookingToDelete(booking);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteBookingConfirm = async () => {
+    if (!bookingToDelete) return;
+    setDeleteLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings/${bookingId}`, {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/bookings/${bookingToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1132,10 +1141,14 @@ function BookingsTab({ tripId, token }) {
         throw new Error(data.error || 'Failed to delete booking');
       }
       addToast('Booking deleted successfully', 'success');
+      setShowDeleteConfirm(false);
+      setBookingToDelete(null);
       fetchBookings();
       setSelectedBooking(null);
     } catch (err) {
       addToast(err.message, 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1162,7 +1175,7 @@ function BookingsTab({ tripId, token }) {
               Edit
             </button>
             <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
-              onClick={() => handleDeleteBooking(b.id)}>
+              onClick={() => handleDeleteBookingClick(b)}>
               Delete
             </button>
           </div>

@@ -25,6 +25,7 @@ router.get('/', (req, res) => {
       assignedTo,
       dateFrom,
       dateTo,
+      showInactive, // If 'true', include canceled and archived trips; otherwise exclude by default
       sortBy = 'created_at',
       sortOrder = 'desc',
       page = '1',
@@ -51,8 +52,12 @@ router.get('/', (req, res) => {
     }
 
     if (stage) {
+      // When stage is explicitly set, filter to that stage
       baseQuery += ` AND t.stage = ?`;
       params.push(stage);
+    } else if (showInactive !== 'true') {
+      // By default, exclude canceled and archived trips unless explicitly requested
+      baseQuery += ` AND t.stage NOT IN ('canceled', 'archived')`;
     }
 
     if (clientId) {
