@@ -616,7 +616,7 @@ export default function DashboardPage() {
         </div>
 
         {/* At-Risk Payments Card */}
-        <div className="dashboard-card">
+        <div className="dashboard-card dashboard-card-wide">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {atRiskPayments.totalAtRisk > 0 && (
@@ -744,52 +744,6 @@ export default function DashboardPage() {
                 <button className="btn btn-link" onClick={() => navigate('/commissions')}>
                   View all commissions
                 </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Activity Card */}
-        <div className="dashboard-card">
-          <div className="dashboard-card-header">
-            <div className="dashboard-card-title-row">
-              {recentActivity.count > 0 && (
-                <span className="dashboard-card-count">{recentActivity.count}</span>
-              )}
-              <h3>Recent Activity</h3>
-            </div>
-          </div>
-          <div className="dashboard-card-body">
-            {recentActivity.activities.length === 0 ? (
-              <p className="dashboard-empty-state">No recent activity. Activity will appear as you manage clients, trips, and bookings.</p>
-            ) : (
-              <div className="recent-activity-list">
-                {recentActivity.activities.slice(0, 8).map(activity => (
-                  <div
-                    key={activity.id}
-                    className="recent-activity-item"
-                    onClick={() => {
-                      if (activity.tripId) navigate(`/trips`);
-                      else if (activity.clientId) navigate(`/clients`);
-                    }}
-                  >
-                    <div className={`activity-icon activity-icon-${activity.action}`}>
-                      {activity.action === 'create' ? '+' : activity.action === 'update' ? '✎' : activity.action === 'delete' ? '×' : '•'}
-                    </div>
-                    <div className="activity-info">
-                      <div className="activity-description">{activity.description}</div>
-                      <div className="activity-meta">
-                        <span className="activity-user">{activity.userName}</span>
-                        <span className="activity-time">{formatActivityTime(activity.timestamp)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {recentActivity.count > 8 && (
-                  <button className="btn btn-link" onClick={() => navigate('/settings')}>
-                    View all activity
-                  </button>
-                )}
               </div>
             )}
           </div>

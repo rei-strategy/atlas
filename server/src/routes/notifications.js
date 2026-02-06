@@ -3,6 +3,7 @@ const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
 const { checkUrgentPaymentDeadlines, getUrgentPaymentDeadlines } = require('../services/paymentDeadlineService');
 const { checkImminentTravelReadiness, getImminentTripsWithIssues } = require('../services/travelReadinessService');
+const { checkAllFollowUps, getFollowUpItems } = require('../services/followUpReminderService');
 
 const router = express.Router();
 
@@ -33,6 +34,13 @@ router.get('/', (req, res) => {
       checkImminentTravelReadiness(48);
     } catch (err) {
       console.error('[WARN] Travel readiness check failed during notification fetch:', err.message);
+    }
+
+    // Check for normal-priority follow-up reminders
+    try {
+      checkAllFollowUps();
+    } catch (err) {
+      console.error('[WARN] Follow-up check failed during notification fetch:', err.message);
     }
 
     let query = `
@@ -280,6 +288,106 @@ router.post('/check-travel-readiness', (req, res) => {
   } catch (error) {
     console.error('[ERROR] Check travel readiness failed:', error.message);
     res.status(500).json({ error: 'Failed to check travel readiness' });
+  }
+});
+
+/**
+ * GET /api/notifications/follow-ups
+ * Get follow-up items for the agency (quotes, tasks, feedback, commissions)
+ */
+router.get('/follow-ups', (req, res) => {
+  try {
+    const followUpItems = getFollowUpItems(req.agencyId);
+
+    res.json({
+      ...followUpItems
+    });
+  } catch (error) {
+    console.error('[ERROR] Get follow-up items failed:', error.message);
+    res.status(500).json({ error: 'Failed to get follow-up items' });
+  }
+});
+
+/**
+ * POST /api/notifications/check-follow-ups
+ * Trigger a check for follow-up reminders and generate notifications
+ * (Admin only)
+ */
+router.post('/check-follow-ups', (req, res) => {
+  try {
+    // Only admins can trigger the check
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = checkAllFollowUps();
+
+    res.json({
+      message: 'Follow-up check completed',
+      ...result
+    });
+  } catch (error) {
+    console.error('[ERROR] Check follow-ups failed:', error.message);
+    res.status(500).json({ error: 'Failed to check follow-ups' });
+  }
+});
+
+/**
+ * GET /api/notifications/grouped
+ * Get notifications grouped by type (urgent vs normal)
+ */
+router.get('/grouped', (req, res) => {
+  try {
+    const db = getDb();
+    const { limit = 50 } = req.query;
+
+    // Get urgent notifications
+    const urgentNotifications = db.prepare(`
+      SELECT * FROM notifications
+      WHERE agency_id = ? AND user_id = ? AND is_dismissed = 0 AND type = 'urgent'
+        AND (snoozed_until IS NULL OR snoozed_until <= datetime('now'))
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).all(req.agencyId, req.user.id, parseInt(limit, 10));
+
+    // Get normal notifications
+    const normalNotifications = db.prepare(`
+      SELECT * FROM notifications
+      WHERE agency_id = ? AND user_id = ? AND is_dismissed = 0 AND type = 'normal'
+        AND (snoozed_until IS NULL OR snoozed_until <= datetime('now'))
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).all(req.agencyId, req.user.id, parseInt(limit, 10));
+
+    // Get counts
+    const urgentUnreadCount = db.prepare(`
+      SELECT COUNT(*) as count FROM notifications
+      WHERE agency_id = ? AND user_id = ? AND is_read = 0 AND is_dismissed = 0 AND type = 'urgent'
+        AND (snoozed_until IS NULL OR snoozed_until <= datetime('now'))
+    `).get(req.agencyId, req.user.id).count;
+
+    const normalUnreadCount = db.prepare(`
+      SELECT COUNT(*) as count FROM notifications
+      WHERE agency_id = ? AND user_id = ? AND is_read = 0 AND is_dismissed = 0 AND type = 'normal'
+        AND (snoozed_until IS NULL OR snoozed_until <= datetime('now'))
+    `).get(req.agencyId, req.user.id).count;
+
+    res.json({
+      urgent: {
+        notifications: urgentNotifications.map(n => formatNotification(n)),
+        count: urgentNotifications.length,
+        unreadCount: urgentUnreadCount
+      },
+      normal: {
+        notifications: normalNotifications.map(n => formatNotification(n)),
+        count: normalNotifications.length,
+        unreadCount: normalUnreadCount
+      },
+      totalUnread: urgentUnreadCount + normalUnreadCount
+    });
+  } catch (error) {
+    console.error('[ERROR] Get grouped notifications failed:', error.message);
+    res.status(500).json({ error: 'Failed to get grouped notifications' });
   }
 });
 

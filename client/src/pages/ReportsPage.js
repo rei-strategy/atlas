@@ -107,6 +107,29 @@ export default function ReportsPage() {
     }
   }, [token, dateRange, addToast]);
 
+  const fetchConversionReport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+
+      const res = await fetch(`${API_BASE}/reports/conversion?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReportData(data);
+      } else {
+        const error = await res.json();
+        addToast(error.error || 'Failed to load conversion report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversion report:', err);
+      addToast('Failed to load conversion report', 'error');
+    }
+  }, [token, dateRange, addToast]);
+
   useEffect(() => {
     const loadReport = async () => {
       setLoading(true);
@@ -116,11 +139,13 @@ export default function ReportsPage() {
         await fetchRevenueReport();
       } else if (activeReport === 'trips') {
         await fetchTripsReport();
+      } else if (activeReport === 'conversion') {
+        await fetchConversionReport();
       }
       setLoading(false);
     };
     loadReport();
-  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport]);
+  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport, fetchConversionReport]);
 
   const handleDateChange = (field, value) => {
     setDateRange(prev => ({ ...prev, [field]: value }));
@@ -222,6 +247,13 @@ export default function ReportsPage() {
             style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
           >
             Trips Report
+          </button>
+          <button
+            className={`btn ${activeReport === 'conversion' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveReport('conversion')}
+            style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          >
+            Conversion Report
           </button>
           <Link
             to="/commissions"
@@ -587,6 +619,218 @@ export default function ReportsPage() {
                   <h3 className="empty-state-title">No trips in this date range</h3>
                   <p className="empty-state-description">
                     Try adjusting your date range to see trip data.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Conversion Report */}
+          {activeReport === 'conversion' && reportData && (
+            <div>
+              {/* Summary Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Total Trips
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {reportData.summary?.totalTrips || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Converted (Booked)
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                      {reportData.summary?.converted || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      In Progress
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning)' }}>
+                      {reportData.summary?.inProgress || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Not Converted
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-error)' }}>
+                      {reportData.summary?.notConverted || 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversion Rate Highlight */}
+              <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                <div className="dashboard-card-body" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Inquiry to Booked Conversion Rate
+                  </div>
+                  <div style={{
+                    fontSize: '3rem',
+                    fontWeight: 700,
+                    color: reportData.summary?.conversionRate >= 70 ? 'var(--color-success)' :
+                           reportData.summary?.conversionRate >= 50 ? 'var(--color-warning)' :
+                           'var(--color-error)'
+                  }}>
+                    {reportData.summary?.conversionRate !== null
+                      ? `${reportData.summary.conversionRate}%`
+                      : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                    Based on {reportData.summary?.closedTrips || 0} closed trips (converted + canceled)
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversion by Month */}
+              {reportData.byMonth && reportData.byMonth.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">Conversion by Month</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Month</th>
+                            <th>Total</th>
+                            <th>Converted</th>
+                            <th>In Progress</th>
+                            <th>Not Converted</th>
+                            <th>Conversion Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.byMonth.map(item => (
+                            <tr key={item.month}>
+                              <td>{item.month}</td>
+                              <td>{item.total}</td>
+                              <td style={{ color: 'var(--color-success)' }}>{item.converted}</td>
+                              <td style={{ color: 'var(--color-warning)' }}>{item.inProgress}</td>
+                              <td style={{ color: 'var(--color-error)' }}>{item.notConverted}</td>
+                              <td>
+                                <span style={{
+                                  fontWeight: 600,
+                                  color: item.conversionRate >= 70 ? 'var(--color-success)' :
+                                         item.conversionRate >= 50 ? 'var(--color-warning)' :
+                                         'var(--color-error)'
+                                }}>
+                                  {item.conversionRate !== null ? `${item.conversionRate}%` : 'N/A'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Trips by Stage */}
+              {reportData.byStage && reportData.byStage.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">Trips by Current Stage</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Stage</th>
+                            <th>Count</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.byStage.map(item => (
+                            <tr key={item.stage}>
+                              <td style={{ textTransform: 'capitalize' }}>{item.stage.replace('_', ' ')}</td>
+                              <td>{item.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Trips List */}
+              {reportData.trips && reportData.trips.length > 0 && (
+                <div className="dashboard-card">
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">All Trips ({reportData.trips.length})</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Created</th>
+                            <th>Trip Name</th>
+                            <th>Client</th>
+                            <th>Destination</th>
+                            <th>Stage</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.trips.map(trip => (
+                            <tr key={trip.id}>
+                              <td>{formatDate(trip.createdAt)}</td>
+                              <td>
+                                <Link to={`/trips?id=${trip.id}`} style={{ color: 'var(--color-primary)' }}>
+                                  {trip.name}
+                                </Link>
+                              </td>
+                              <td>{trip.clientName}</td>
+                              <td>{trip.destination}</td>
+                              <td style={{ textTransform: 'capitalize' }}>{trip.stage.replace('_', ' ')}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  trip.status === 'converted' ? 'status-success' :
+                                  trip.status === 'not_converted' ? 'status-error' :
+                                  'status-warning'
+                                }`}>
+                                  {trip.status === 'converted' ? 'Converted' :
+                                   trip.status === 'not_converted' ? 'Not Converted' :
+                                   'In Progress'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(!reportData.trips || reportData.trips.length === 0) && (
+                <div className="page-empty-state" style={{ padding: '2rem' }}>
+                  <h3 className="empty-state-title">No trips in this date range</h3>
+                  <p className="empty-state-description">
+                    Try adjusting your date range to see conversion data.
                   </p>
                 </div>
               )}

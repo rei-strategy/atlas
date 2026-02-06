@@ -3692,6 +3692,7 @@ html, body {
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
   border: 1px solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-border-subtle);
   border-radius: var(--border-radius);
   background: var(--color-bg);
   cursor: pointer;
@@ -3705,13 +3706,13 @@ html, body {
 }
 
 .dashboard-atrisk-item.atrisk-overdue {
-  border-left: 3px solid var(--color-danger);
+  border-left: 3px solid var(--color-error);
   background: rgba(239, 68, 68, 0.05);
 }
 
 .dashboard-atrisk-item.atrisk-overdue:hover {
   background: rgba(239, 68, 68, 0.1);
-  border-color: var(--color-danger);
+  border-color: var(--color-error);
 }
 
 .dashboard-atrisk-item.atrisk-urgent {
@@ -3738,7 +3739,7 @@ html, body {
 
 .atrisk-icon-overdue {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
+  color: var(--color-error);
 }
 
 .atrisk-icon-urgent {
@@ -3794,7 +3795,7 @@ html, body {
 }
 
 .atrisk-due.text-danger {
-  color: var(--color-danger);
+  color: var(--color-error);
   font-weight: 500;
 }
 

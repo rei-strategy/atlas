@@ -248,4 +248,138 @@ router.get('/trips', authorize('admin', 'planner'), (req, res) => {
   }
 });
 
+/**
+ * GET /api/reports/conversion
+ * Trip conversion report - inquiry to booked conversion rates
+ * Shows which trips converted from inquiry to booked stage vs stayed inquiry/canceled
+ * Accessible to admin and planner roles only
+ */
+router.get('/conversion', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const { startDate, endDate } = req.query;
+
+    // Get all trips created in the date range
+    // Consider a trip "converted" if it has reached booked, final_payment_pending, traveling, or completed stages
+    // Consider a trip "not converted" if it's still in inquiry, quoting, pending_approval, or was canceled
+    let tripsQuery = `
+      SELECT
+        t.id, t.name, t.destination, t.stage, t.created_at, t.updated_at,
+        c.first_name as client_first_name, c.last_name as client_last_name,
+        strftime('%Y-%m', t.created_at) as month
+      FROM trips t
+      JOIN clients c ON t.client_id = c.id
+      WHERE t.agency_id = ?
+    `;
+    const params = [req.agencyId];
+
+    if (startDate) {
+      tripsQuery += ' AND t.created_at >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      tripsQuery += ' AND t.created_at <= ?';
+      params.push(endDate + ' 23:59:59');
+    }
+
+    tripsQuery += ' ORDER BY t.created_at DESC';
+
+    const trips = db.prepare(tripsQuery).all(...params);
+
+    // Define which stages count as "converted" (reached booking)
+    const convertedStages = ['booked', 'final_payment_pending', 'traveling', 'completed'];
+    // Stages that are still in progress (may still convert)
+    const inProgressStages = ['inquiry', 'quoting', 'pending_approval', 'quoted'];
+    // Stages that are closed without converting
+    const notConvertedStages = ['canceled', 'archived'];
+
+    // Categorize trips
+    const convertedTrips = trips.filter(t => convertedStages.includes(t.stage));
+    const inProgressTrips = trips.filter(t => inProgressStages.includes(t.stage));
+    const notConvertedTrips = trips.filter(t => notConvertedStages.includes(t.stage));
+
+    // Calculate conversion rate (converted / (converted + not converted))
+    // In-progress trips are excluded from the rate calculation since they haven't finalized
+    const closedTrips = convertedTrips.length + notConvertedTrips.length;
+    const conversionRate = closedTrips > 0
+      ? ((convertedTrips.length / closedTrips) * 100).toFixed(1)
+      : null;
+
+    // Summary
+    const summary = {
+      totalTrips: trips.length,
+      converted: convertedTrips.length,
+      inProgress: inProgressTrips.length,
+      notConverted: notConvertedTrips.length,
+      conversionRate: conversionRate !== null ? parseFloat(conversionRate) : null,
+      closedTrips
+    };
+
+    // Group by month for trend analysis
+    const byMonthMap = {};
+    trips.forEach(t => {
+      if (!byMonthMap[t.month]) {
+        byMonthMap[t.month] = {
+          month: t.month,
+          total: 0,
+          converted: 0,
+          inProgress: 0,
+          notConverted: 0
+        };
+      }
+      byMonthMap[t.month].total++;
+      if (convertedStages.includes(t.stage)) {
+        byMonthMap[t.month].converted++;
+      } else if (inProgressStages.includes(t.stage)) {
+        byMonthMap[t.month].inProgress++;
+      } else {
+        byMonthMap[t.month].notConverted++;
+      }
+    });
+
+    // Calculate conversion rate per month and sort
+    const byMonth = Object.values(byMonthMap)
+      .map(m => {
+        const closed = m.converted + m.notConverted;
+        return {
+          ...m,
+          conversionRate: closed > 0
+            ? parseFloat(((m.converted / closed) * 100).toFixed(1))
+            : null
+        };
+      })
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    // Break down by stage
+    const byStage = {};
+    trips.forEach(t => {
+      if (!byStage[t.stage]) {
+        byStage[t.stage] = { stage: t.stage, count: 0 };
+      }
+      byStage[t.stage].count++;
+    });
+
+    res.json({
+      summary,
+      byMonth,
+      byStage: Object.values(byStage),
+      trips: trips.map(t => ({
+        id: t.id,
+        name: t.name,
+        destination: t.destination,
+        stage: t.stage,
+        status: convertedStages.includes(t.stage) ? 'converted' :
+                inProgressStages.includes(t.stage) ? 'in_progress' : 'not_converted',
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+        clientName: `${t.client_first_name} ${t.client_last_name}`
+      })),
+      dateRange: { startDate, endDate }
+    });
+  } catch (error) {
+    console.error('[ERROR] Conversion report failed:', error.message);
+    res.status(500).json({ error: 'Failed to generate conversion report' });
+  }
+});
+
 module.exports = router;
