@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb } = require('../config/database');
 const { authenticate, tenantScope } = require('../middleware/auth');
+const { createNotificationsForUsers, generateEventKey } = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -172,24 +173,24 @@ router.post('/', (req, res) => {
     `).get(tripId, req.agencyId);
 
     // NEW INQUIRY: Create urgent notification for all agency users (admins and planners)
+    // Uses deduplication to prevent duplicate notifications for the same inquiry
     const clientName = trip.client_first_name ? `${trip.client_first_name} ${trip.client_last_name}` : 'Unknown Client';
     const agencyUsers = db.prepare(`
       SELECT id FROM users WHERE agency_id = ? AND is_active = 1 AND role IN ('admin', 'planner')
     `).all(req.agencyId);
 
-    for (const targetUser of agencyUsers) {
-      db.prepare(`
-        INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
-        VALUES (?, ?, 'urgent', ?, ?, 'trip', ?)
-      `).run(
-        req.agencyId,
-        targetUser.id,
-        'New Inquiry',
-        `New inquiry "${trip.name}" for ${clientName}${destination ? ` to ${destination}` : ''}`,
-        tripId
-      );
-    }
-    console.log(`[NOTIFICATION] Created urgent notification for new inquiry trip ${tripId}`);
+    const eventKeyPrefix = generateEventKey('new_inquiry', 'trip', tripId);
+    const notifResult = createNotificationsForUsers({
+      agencyId: req.agencyId,
+      userIds: agencyUsers.map(u => u.id),
+      type: 'urgent',
+      title: 'New Inquiry',
+      message: `New inquiry "${trip.name}" for ${clientName}${destination ? ` to ${destination}` : ''}`,
+      entityType: 'trip',
+      entityId: tripId,
+      eventKeyPrefix
+    });
+    console.log(`[NOTIFICATION] New inquiry trip ${tripId}: ${notifResult.created} created, ${notifResult.duplicates} duplicates prevented`);
 
     res.status(201).json({
       message: 'Trip created successfully',

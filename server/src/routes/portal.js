@@ -200,7 +200,7 @@ router.get('/me', authenticateCustomer, (req, res) => {
 
     // Get agency info
     const agency = db.prepare(
-      'SELECT id, name, logo_url, primary_color FROM agencies WHERE id = ?'
+      'SELECT id, name, logo_url, primary_color, timezone FROM agencies WHERE id = ?'
     ).get(customer.agency_id);
 
     res.json({
@@ -215,7 +215,8 @@ router.get('/me', authenticateCustomer, (req, res) => {
         id: agency.id,
         name: agency.name,
         logoUrl: agency.logo_url,
-        primaryColor: agency.primary_color
+        primaryColor: agency.primary_color,
+        timezone: agency.timezone
       } : null
     });
   } catch (error) {

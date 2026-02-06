@@ -457,11 +457,11 @@ function TemplateDetail({ template, onBack, onEdit, onPreview, onToggleActive, t
             <div className="detail-grid">
               <div className="detail-field">
                 <span className="detail-field-label">Created</span>
-                <span className="detail-field-value">{new Date(template.createdAt).toLocaleString()}</span>
+                <span className="detail-field-value">{formatDateTime(template.createdAt)}</span>
               </div>
               <div className="detail-field">
                 <span className="detail-field-label">Last Updated</span>
-                <span className="detail-field-value">{new Date(template.updatedAt).toLocaleString()}</span>
+                <span className="detail-field-value">{formatDateTime(template.updatedAt)}</span>
               </div>
             </div>
           </div>
@@ -606,6 +606,7 @@ export default function EmailTemplatesPage() {
           onPreview={handlePreviewTemplate}
           onToggleActive={handleToggleActive}
           token={token}
+          formatDateTime={formatDateTime}
         />
         <TemplateFormModal
           isOpen={showModal}

@@ -175,6 +175,7 @@ function formatNotification(n) {
     message: n.message,
     entityType: n.entity_type,
     entityId: n.entity_id,
+    eventKey: n.event_key,
     isRead: !!n.is_read,
     isDismissed: !!n.is_dismissed,
     snoozedUntil: n.snoozed_until,

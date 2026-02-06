@@ -264,6 +264,7 @@ function initializeDatabase() {
       message TEXT,
       entity_type TEXT,
       entity_id INTEGER,
+      event_key TEXT,
       is_read INTEGER DEFAULT 0,
       is_dismissed INTEGER DEFAULT 0,
       snoozed_until TEXT,
@@ -306,6 +307,7 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_event_key ON notifications(user_id, event_key) WHERE event_key IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_email_queue_agency ON email_queue(agency_id);
     CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status);
     CREATE INDEX IF NOT EXISTS idx_customers_agency ON customers(agency_id);
