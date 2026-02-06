@@ -1969,32 +1969,63 @@ export default function ClientsPage() {
   }, [search, plannerFilter]);
 
   // Handle URL parameter for direct navigation to a client
+  // Also handles rapid navigation between different clients by checking if URL differs from selected
   useEffect(() => {
-    if (urlClientId && token && !selectedClient && !notFound) {
-      // Fetch the specific client by ID
-      fetch(`${API_BASE}/clients/${urlClientId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => {
-          if (!res.ok) {
-            setNotFound(true);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data && data.client) {
-            setSelectedClient(data.client);
-          } else if (data === null) {
-            setNotFound(true);
-          }
-        })
-        .catch(err => {
-          console.error('Failed to load client:', err);
-          setNotFound(true);
-        });
+    // If no URL client ID, clear selection when navigating back to list
+    if (!urlClientId) {
+      if (selectedClient) {
+        setSelectedClient(null);
+      }
+      return;
     }
-  }, [urlClientId, token, selectedClient, notFound]);
+
+    // If we already have the correct client loaded, do nothing
+    if (selectedClient && String(selectedClient.id) === String(urlClientId)) {
+      return;
+    }
+
+    // Reset notFound when navigating to a different client
+    if (notFound) {
+      setNotFound(false);
+    }
+
+    // Create abort controller to handle rapid navigation
+    const controller = new AbortController();
+
+    // Fetch the specific client by ID
+    fetch(`${API_BASE}/clients/${urlClientId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal
+    })
+      .then(res => {
+        if (!res.ok) {
+          setNotFound(true);
+          setSelectedClient(null);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.client) {
+          setSelectedClient(data.client);
+        } else if (data === null) {
+          setNotFound(true);
+          setSelectedClient(null);
+        }
+      })
+      .catch(err => {
+        // Ignore abort errors from rapid navigation
+        if (err.name === 'AbortError') {
+          return;
+        }
+        console.error('Failed to load client:', err);
+        setNotFound(true);
+        setSelectedClient(null);
+      });
+
+    // Cleanup: abort fetch if URL changes before response arrives
+    return () => controller.abort();
+  }, [urlClientId, token]);
 
   const handleClientSaved = (savedClient) => {
     // For new clients, refresh the list to get accurate pagination

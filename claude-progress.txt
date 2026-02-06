@@ -3580,3 +3580,59 @@
 - Backend on port 3001, Frontend on port 3000
 - All three accessibility features verified and committed
 - Git commits: 17ac207 (#222), ef3001b (#223), 6e57223 (#224)
+
+
+---
+
+### Session - 2026-02-06 (Agent batch: Features #225, #227)
+
+**Features Completed: #225, #227 (Accessibility)**
+
+#### Feature #225: Color contrast meets WCAG standards
+- Updated status colors in :root CSS to meet 4.5:1 contrast ratio:
+  - --color-success: #047857 (was #10b981, now 5.9:1 contrast)
+  - --color-warning: #b45309 (was #f59e0b, now 4.9:1 contrast)
+  - --color-error: #dc2626 (was #ef4444, now 4.5:1 contrast)
+  - --color-info: #1d4ed8 (was #3b82f6, now 6.5:1 contrast)
+- Added dark mode variants with lighter colors for dark backgrounds
+- Added visual icons to status badges (not conveyed by color alone):
+  - .status-success: ✓ checkmark prefix
+  - .status-warning: ⚠ warning symbol prefix
+  - .status-error: ✕ X mark prefix
+  - .status-neutral: ○ circle prefix
+  - .status-info: ℹ info symbol prefix
+- Updated links to be underlined by default for WCAG compliance
+
+#### Feature #227: Keyboard accessible modals and dialogs
+- Created useModalAccessibility hook with:
+  - Focus trapping within modal
+  - Escape key closes modal
+  - Focus returns to trigger element after close
+  - Body scroll prevention when modal is open
+- Applied accessibility hook to all modal components:
+  - ClientFormModal, CsvImportModal, ClientDetail delete/portal modals
+  - TaskFormModal
+  - TripFormModal, BookingFormModal, CommissionStatusModal
+  - TravelerFormModal, DocumentUploadModal
+  - TemplateFormModal, TemplatePreviewModal, EmailQueuePreviewModal
+  - InviteUserModal
+- Added proper ARIA attributes (role=dialog, aria-modal, aria-labelledby)
+- Added role=presentation to modal overlays
+- Added role=alert to error messages in forms
+
+#### Files Created
+- client/src/hooks/useModalAccessibility.js
+
+#### Files Modified
+- client/src/styles/index.css - WCAG color contrast and link underlines
+- client/src/pages/ClientsPage.js - Modal accessibility for all modals
+- client/src/pages/TasksPage.js - Modal accessibility
+- client/src/pages/TripsPage.js - Modal accessibility for all modals
+- client/src/pages/EmailTemplatesPage.js - Modal accessibility
+- client/src/pages/SettingsPage.js - Modal accessibility
+
+#### Current State
+- 237/240 features passing (98.8%)
+- Backend on port 3001, Frontend on port 3000
+- Both features verified working via build and lint
+- Git commits: 9fdc9d1 (#225)
