@@ -100,6 +100,150 @@ router.get('/commission-pipeline', authorize('admin', 'planner', 'planner_adviso
 });
 
 /**
+ * GET /api/dashboard/recent-activity
+ * Get recent actions across the agency from audit logs
+ * Returns chronologically ordered activity feed
+ * Accessible to admin and planner roles only
+ */
+router.get('/recent-activity', authorize('admin', 'planner', 'planner_advisor'), (req, res) => {
+  try {
+    const db = getDb();
+    const limit = Math.min(50, parseInt(req.query.limit) || 20);
+
+    // Get recent audit log entries with user info
+    const activities = db.prepare(`
+      SELECT
+        a.id,
+        a.action,
+        a.entity_type,
+        a.entity_id,
+        a.details,
+        a.client_id,
+        a.trip_id,
+        a.booking_id,
+        a.created_at,
+        u.first_name as user_first_name,
+        u.last_name as user_last_name,
+        u.email as user_email,
+        c.first_name as client_first_name,
+        c.last_name as client_last_name,
+        t.name as trip_name
+      FROM audit_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      LEFT JOIN clients c ON a.client_id = c.id
+      LEFT JOIN trips t ON a.trip_id = t.id
+      WHERE a.agency_id = ?
+      ORDER BY a.created_at DESC
+      LIMIT ?
+    `).all(req.agencyId, limit);
+
+    // Format activities with human-readable descriptions
+    const formattedActivities = activities.map(activity => {
+      let details = {};
+      try {
+        details = JSON.parse(activity.details || '{}');
+      } catch (e) {
+        details = {};
+      }
+
+      // Build human-readable description
+      let description = formatActivityDescription(activity.action, activity.entity_type, details, {
+        clientName: activity.client_first_name && activity.client_last_name
+          ? `${activity.client_first_name} ${activity.client_last_name}`
+          : null,
+        tripName: activity.trip_name
+      });
+
+      return {
+        id: activity.id,
+        action: activity.action,
+        entityType: activity.entity_type,
+        entityId: activity.entity_id,
+        description,
+        userName: activity.user_first_name && activity.user_last_name
+          ? `${activity.user_first_name} ${activity.user_last_name}`
+          : activity.user_email || 'System',
+        clientId: activity.client_id,
+        clientName: activity.client_first_name && activity.client_last_name
+          ? `${activity.client_first_name} ${activity.client_last_name}`
+          : null,
+        tripId: activity.trip_id,
+        tripName: activity.trip_name,
+        bookingId: activity.booking_id,
+        timestamp: activity.created_at,
+        details
+      };
+    });
+
+    res.json({
+      activities: formattedActivities,
+      count: formattedActivities.length
+    });
+  } catch (error) {
+    console.error('[ERROR] Get recent activity failed:', error.message);
+    res.status(500).json({ error: 'Failed to get recent activity' });
+  }
+});
+
+// Helper function to format activity descriptions
+function formatActivityDescription(action, entityType, details, context) {
+  const actionLabels = {
+    create: 'Created',
+    update: 'Updated',
+    delete: 'Deleted',
+    stage_change: 'Changed stage',
+    commission_status_change: 'Updated commission status',
+    payment_status_change: 'Updated payment status',
+    document_upload: 'Uploaded document',
+    email_sent: 'Sent email',
+    email_queued: 'Queued email',
+    task_completed: 'Completed task',
+    login: 'Logged in',
+    trip_duplicated: 'Duplicated trip',
+    trip_reopened: 'Reopened trip'
+  };
+
+  const entityLabels = {
+    client: 'client',
+    trip: 'trip',
+    booking: 'booking',
+    document: 'document',
+    task: 'task',
+    traveler: 'traveler',
+    email_template: 'email template',
+    user: 'user'
+  };
+
+  const actionLabel = actionLabels[action] || action;
+  const entityLabel = entityLabels[entityType] || entityType;
+
+  // Build description based on action and entity type
+  let desc = `${actionLabel} ${entityLabel}`;
+
+  if (entityType === 'client' && context.clientName) {
+    desc = `${actionLabel} client "${context.clientName}"`;
+  } else if (entityType === 'trip' && context.tripName) {
+    desc = `${actionLabel} trip "${context.tripName}"`;
+  } else if (entityType === 'booking' && details.supplierName) {
+    desc = `${actionLabel} booking for ${details.supplierName}`;
+    if (context.tripName) {
+      desc += ` on trip "${context.tripName}"`;
+    }
+  } else if (action === 'stage_change' && details.oldStage && details.newStage) {
+    desc = `Changed trip "${context.tripName || 'trip'}" stage from ${details.oldStage} to ${details.newStage}`;
+  } else if (action === 'commission_status_change' && details.newStatus) {
+    desc = `Updated commission status to ${details.newStatus}`;
+    if (details.supplierName) {
+      desc += ` for ${details.supplierName}`;
+    }
+  } else if (entityType === 'document' && details.fileName) {
+    desc = `${actionLabel} document "${details.fileName}"`;
+  }
+
+  return desc;
+}
+
+/**
  * GET /api/dashboard/recent-items
  * Get recently accessed/updated clients and trips for quick access
  * Returns most recently updated items for quick navigation

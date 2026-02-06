@@ -70,6 +70,7 @@ export default function DashboardPage() {
     summary: { totalBookings: 0, totalExpected: 0, totalReceived: 0, outstanding: 0 }
   });
   const [plannerPerformance, setPlannerPerformance] = useState({ planners: [], totals: {} });
+  const [recentActivity, setRecentActivity] = useState({ activities: [], count: 0 });
   const [loading, setLoading] = useState(true);
 
   const isAdmin = user?.role === 'admin';
@@ -224,10 +225,28 @@ export default function DashboardPage() {
     }
   }, [token, checkTokenExpiration, isAdmin]);
 
+  const fetchRecentActivity = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/recent-activity?limit=10`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        setRecentActivity(data);
+      }
+    } catch (err) {
+      console.error('Failed to load recent activity:', err);
+    }
+  }, [token, checkTokenExpiration]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const promises = [fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline()];
+      const promises = [fetchTasks(), fetchTrips(), fetchAtRiskPayments(), fetchRecentItems(), fetchCommissionPipeline(), fetchRecentActivity()];
       if (isAdmin) {
         promises.push(fetchPlannerPerformance());
       }
@@ -235,7 +254,7 @@ export default function DashboardPage() {
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems, fetchCommissionPipeline, fetchPlannerPerformance, isAdmin]);
+  }, [fetchTasks, fetchTrips, fetchAtRiskPayments, fetchRecentItems, fetchCommissionPipeline, fetchRecentActivity, fetchPlannerPerformance, isAdmin]);
 
   const handleCompleteTask = async (taskId) => {
     try {
@@ -352,7 +371,7 @@ export default function DashboardPage() {
 
       <div className="dashboard-grid">
         {/* Active Trips Card */}
-        <div className="dashboard-card">
+        <div className="dashboard-card dashboard-card-wide">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {trips.length > 0 && (
