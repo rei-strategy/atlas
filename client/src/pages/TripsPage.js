@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import Modal from '../components/Modal';
 
 const API_BASE = '/api';
 
@@ -2873,89 +2874,82 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && deletePreview && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
-                Delete Trip
-              </h2>
-              <button
-                className="modal-close-btn"
-                onClick={() => setShowDeleteModal(false)}
-                aria-label="Close"
-              >
-                ×
-              </button>
+      {/* Delete Confirmation Modal - Keyboard Accessible */}
+      <Modal
+        isOpen={showDeleteModal && !!deletePreview}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Trip"
+      >
+        <Modal.Header onClose={() => setShowDeleteModal(false)}>
+          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+            Delete Trip
+          </h2>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{
+            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+            border: '1px solid var(--color-error, #dc2626)',
+            borderRadius: '8px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+              <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
             </div>
-            <div className="modal-body">
-              <div style={{
-                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                border: '1px solid var(--color-error, #dc2626)',
-                borderRadius: '8px',
-                padding: '1rem 1.25rem',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-                  <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
-                  You are about to permanently delete <strong>"{deletePreview.tripName}"</strong> and all its related data.
-                </p>
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                  The following related data will be deleted:
-                </h4>
-                <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  {deletePreview.relatedData.bookings > 0 && (
-                    <li><strong>{deletePreview.relatedData.bookings}</strong> booking(s)</li>
-                  )}
-                  {deletePreview.relatedData.travelers > 0 && (
-                    <li><strong>{deletePreview.relatedData.travelers}</strong> traveler(s)</li>
-                  )}
-                  {deletePreview.relatedData.documents > 0 && (
-                    <li><strong>{deletePreview.relatedData.documents}</strong> document(s)</li>
-                  )}
-                  {deletePreview.relatedData.tasks > 0 && (
-                    <li><strong>{deletePreview.relatedData.tasks}</strong> task(s) will be unlinked</li>
-                  )}
-                  {deletePreview.relatedData.bookings === 0 &&
-                   deletePreview.relatedData.travelers === 0 &&
-                   deletePreview.relatedData.documents === 0 &&
-                   deletePreview.relatedData.tasks === 0 && (
-                    <li>No related data found</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleteLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn"
-                style={{
-                  background: 'var(--color-error, #dc2626)',
-                  color: '#fff',
-                  border: 'none'
-                }}
-                onClick={handleConfirmDelete}
-                disabled={deleteLoading}
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete Trip'}
-              </button>
-            </div>
+            <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+              You are about to permanently delete <strong>"{deletePreview?.tripName}"</strong> and all its related data.
+            </p>
           </div>
-        </div>
-      )}
+
+          <div style={{ marginBottom: '1rem' }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              The following related data will be deleted:
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              {deletePreview?.relatedData?.bookings > 0 && (
+                <li><strong>{deletePreview.relatedData.bookings}</strong> booking(s)</li>
+              )}
+              {deletePreview?.relatedData?.travelers > 0 && (
+                <li><strong>{deletePreview.relatedData.travelers}</strong> traveler(s)</li>
+              )}
+              {deletePreview?.relatedData?.documents > 0 && (
+                <li><strong>{deletePreview.relatedData.documents}</strong> document(s)</li>
+              )}
+              {deletePreview?.relatedData?.tasks > 0 && (
+                <li><strong>{deletePreview.relatedData.tasks}</strong> task(s) will be unlinked</li>
+              )}
+              {deletePreview?.relatedData?.bookings === 0 &&
+               deletePreview?.relatedData?.travelers === 0 &&
+               deletePreview?.relatedData?.documents === 0 &&
+               deletePreview?.relatedData?.tasks === 0 && (
+                <li>No related data found</li>
+              )}
+            </ul>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            className="btn btn-outline"
+            onClick={() => setShowDeleteModal(false)}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn"
+            style={{
+              background: 'var(--color-error, #dc2626)',
+              color: '#fff',
+              border: 'none'
+            }}
+            onClick={handleConfirmDelete}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete Trip'}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
