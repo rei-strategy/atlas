@@ -1343,3 +1343,46 @@
 - Zero console errors
 - Git commits: bed9d05, ff8dc37, 25f4163
 
+
+### Session - 2026-02-06 (Agent batch: Features #152, #153, #211)
+
+**Features Completed: #152, #153, #211 (Default and Reset - Theme and Form Defaults)**
+
+#### Feature #152: Light mode is default
+- CSS :root contains light theme colors as default
+- ThemeContext defaults to 'light' unless user has saved 'dark' preference
+- No dark theme applied on fresh app load
+- White background (#ffffff) with dark text (#111827) verified
+
+#### Feature #153: Dark mode toggle
+- Created ThemeContext.js with theme state management
+- Toggle button added to TopBar with sun (light mode) / moon (dark mode) icons
+- Theme preference saved to localStorage
+- Comprehensive dark mode styles for all components:
+  - Inputs, selects, textareas use dark backgrounds
+  - Dashboard cards, modals, sidebar, topbar styled for dark mode
+  - Tables with proper borders and hover states
+  - Form hints, errors, status badges adapted
+  - Navigation links with dark mode active states
+
+#### Feature #211: Form defaults are sensible
+- Trip form: Stage defaults to 'inquiry' (backend line 193 in trips.js)
+- Task form: Priority defaults to 'normal' (frontend lines 36/61, backend line 153)
+- Booking form: Status defaults to 'planned' (frontend lines 369/413, backend line 117)
+- All defaults align with spec requirements
+
+#### Key Implementation Details
+- client/src/context/ThemeContext.js: New theme context with toggleTheme function
+- client/src/App.js: ThemeProvider wrapping app
+- client/src/components/TopBar.js: Theme toggle button with icons
+- client/src/styles/index.css:
+  - .theme-toggle-btn styles
+  - [data-theme="dark"] overrides for all components
+
+#### Current State
+- 97/240 features passing (~40.4%)
+- Backend on port 3001, Frontend on port 3000
+- Theme toggle fully functional
+- Form defaults verified in frontend and backend
+- Build compiles successfully
+
