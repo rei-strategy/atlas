@@ -3374,3 +3374,45 @@
 - All three idempotency features verified working
 - Git commits: 0916500 (#200), 4282b7c (#201), 0f3895b (includes #202)
 
+---
+
+### Session - 2026-02-06 (Agent batch: Features #203, #204)
+
+**Features Completed: #203, #204 (Double-Action & Idempotency)**
+
+#### Feature #203: Button disabled during processing
+- LoadingButton component already implemented in 0916500 (#200)
+- Verified all major forms use LoadingButton:
+  - ClientFormModal, TripFormModal, BookingFormModal, TaskFormModal
+  - TravelerFormModal, DocumentUploadModal, EmailTemplateFormModal
+  - SettingsPage invite form, ProfilePage edit form
+  - LoginPage, RegisterPage
+  - Portal: TravelerForm, DocumentUpload
+- CSS classes btn-spinner and btn-spinner-light provide visual loading indicator
+- Button shows spinner + loadingText during API calls
+- Button is disabled when loading=true
+- aria-busy attribute for accessibility
+
+#### Feature #204: Concurrent approval submissions
+- Updated server/src/routes/approvals.js with atomic update pattern
+- PUT /api/approvals/:id/approve:
+  - Uses UPDATE WHERE status = 'pending' instead of separate check-then-update
+  - Returns 409 ALREADY_APPROVED if request was already approved
+  - Returns 409 ALREADY_DENIED if request was already denied
+- PUT /api/approvals/:id/deny:
+  - Same atomic pattern for deny endpoint
+- Verified via API testing:
+  - First approval succeeds with 200
+  - Second approval returns 409 with error code and message
+  - Cross-action (approve then deny) properly rejected
+
+#### Test Data
+- concurrent_test_admin@atlas.com / TestPass123 (Agency 110)
+- Approval requests 11, 12, 13 used for testing
+
+#### Current State
+- 221/240 features passing (~92.1%)
+- Backend on port 3001, Frontend on port 3000
+- Both features verified working
+- Changes included in commit 0f3895b
+
