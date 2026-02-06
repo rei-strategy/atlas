@@ -3123,7 +3123,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
         {/* Tab Navigation */}
         <div className="trip-tabs" style={{
           display: 'flex',
-          borderBottom: '2px solid var(--border-color)',
+          borderBottom: '2px solid var(--color-border)',
           marginBottom: '1.25rem',
           gap: '0'
         }}>

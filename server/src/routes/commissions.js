@@ -133,6 +133,86 @@ router.get('/suppliers', authorize('admin', 'planner'), (req, res) => {
 });
 
 /**
+ * GET /api/commissions/by-supplier
+ * Group commission data by supplier with totals per supplier
+ * Accessible to admin and planner roles only
+ */
+router.get('/by-supplier', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const { startDate, endDate, status } = req.query;
+
+    let whereClause = 'WHERE b.agency_id = ? AND b.supplier_name IS NOT NULL AND b.supplier_name != \'\'';
+    const params = [req.agencyId];
+
+    // Optional date range filter
+    if (startDate) {
+      whereClause += ' AND b.created_at >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      whereClause += ' AND b.created_at <= ?';
+      params.push(endDate);
+    }
+
+    // Optional status filter
+    if (status) {
+      whereClause += ' AND b.commission_status = ?';
+      params.push(status);
+    }
+
+    // Get commission data grouped by supplier
+    const supplierGroups = db.prepare(`
+      SELECT
+        b.supplier_name,
+        COUNT(*) as booking_count,
+        SUM(b.commission_amount_expected) as total_expected,
+        SUM(b.commission_amount_received) as total_received,
+        SUM(CASE WHEN b.commission_status = 'expected' OR b.commission_status IS NULL THEN 1 ELSE 0 END) as expected_count,
+        SUM(CASE WHEN b.commission_status = 'submitted' THEN 1 ELSE 0 END) as submitted_count,
+        SUM(CASE WHEN b.commission_status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+        AVG(b.commission_rate) as avg_commission_rate
+      FROM bookings b
+      ${whereClause}
+      GROUP BY b.supplier_name
+      ORDER BY SUM(b.commission_amount_expected) DESC
+    `).all(...params);
+
+    // Calculate overall totals
+    const totals = supplierGroups.reduce((acc, s) => {
+      acc.totalExpected += s.total_expected || 0;
+      acc.totalReceived += s.total_received || 0;
+      acc.totalBookings += s.booking_count || 0;
+      return acc;
+    }, { totalExpected: 0, totalReceived: 0, totalBookings: 0 });
+
+    res.json({
+      suppliers: supplierGroups.map(s => ({
+        supplierName: s.supplier_name,
+        bookingCount: s.booking_count,
+        totalExpected: s.total_expected || 0,
+        totalReceived: s.total_received || 0,
+        outstanding: (s.total_expected || 0) - (s.total_received || 0),
+        expectedCount: s.expected_count,
+        submittedCount: s.submitted_count,
+        paidCount: s.paid_count,
+        avgCommissionRate: s.avg_commission_rate ? parseFloat(s.avg_commission_rate.toFixed(2)) : null
+      })),
+      totals: {
+        totalExpected: totals.totalExpected,
+        totalReceived: totals.totalReceived,
+        outstanding: totals.totalExpected - totals.totalReceived,
+        totalBookings: totals.totalBookings,
+        supplierCount: supplierGroups.length
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Get commissions by supplier failed:', error.message);
+    res.status(500).json({ error: 'Failed to get commissions by supplier' });
+  }
+});
+
+/**
  * GET /api/commissions/summary
  * Get commission summary statistics
  * Accessible to admin and planner roles only

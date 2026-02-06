@@ -200,7 +200,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Type Tabs */}
-      <div style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+      <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className={`btn ${activeReport === 'bookings' ? 'btn-primary' : 'btn-outline'}`}

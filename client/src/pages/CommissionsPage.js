@@ -35,6 +35,13 @@ export default function CommissionsPage() {
   const [dateFilter, setDateFilter] = useState({ startDate: '', endDate: '' });
   const [supplierFilter, setSupplierFilter] = useState('');
   const [suppliers, setSuppliers] = useState([]);
+  const [bySupplierData, setBySupplierData] = useState({ suppliers: [], totals: {} });
+  const [bySupplierFilters, setBySupplierFilters] = useState({
+    startDate: '',
+    endDate: '',
+    status: ''
+  });
+  const [expandedSupplier, setExpandedSupplier] = useState(null);
 
   const fetchVarianceReport = useCallback(async () => {
     try {
@@ -102,14 +109,39 @@ export default function CommissionsPage() {
     }
   }, [token]);
 
+  const fetchBySupplier = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (bySupplierFilters.startDate) params.append('startDate', bySupplierFilters.startDate);
+      if (bySupplierFilters.endDate) params.append('endDate', bySupplierFilters.endDate);
+      if (bySupplierFilters.status) params.append('status', bySupplierFilters.status);
+
+      const url = `${API_BASE}/commissions/by-supplier${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBySupplierData(data);
+      } else {
+        const error = await res.json();
+        addToast(error.error || 'Failed to load supplier report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch by-supplier report:', err);
+      addToast('Failed to load supplier report', 'error');
+    }
+  }, [token, bySupplierFilters, addToast]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers()]);
+      await Promise.all([fetchVarianceReport(), fetchAllCommissions(), fetchSuppliers(), fetchBySupplier()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers]);
+  }, [fetchVarianceReport, fetchAllCommissions, fetchSuppliers, fetchBySupplier]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -184,7 +216,7 @@ export default function CommissionsPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+      <div style={{ borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className={`btn ${activeTab === 'variance' ? 'btn-primary' : 'btn-outline'}`}
@@ -199,6 +231,13 @@ export default function CommissionsPage() {
             style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
           >
             All Commissions
+          </button>
+          <button
+            className={`btn ${activeTab === 'bySupplier' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('bySupplier')}
+            style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          >
+            By Supplier
           </button>
         </div>
       </div>
@@ -585,6 +624,198 @@ export default function CommissionsPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'bySupplier' && (
+        <div>
+          {/* Filters */}
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            alignItems: 'flex-end'
+          }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Start Date</label>
+              <input
+                type="date"
+                name="startDate"
+                className="form-input"
+                value={bySupplierFilters.startDate}
+                onChange={(e) => setBySupplierFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                className="form-input"
+                value={bySupplierFilters.endDate}
+                onChange={(e) => setBySupplierFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: '180px' }}>
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Commission Status</label>
+              <select
+                name="status"
+                className="form-input"
+                value={bySupplierFilters.status}
+                onChange={(e) => setBySupplierFilters(prev => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="">All Statuses</option>
+                <option value="expected">Expected</option>
+                <option value="submitted">Submitted</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            {(bySupplierFilters.startDate || bySupplierFilters.endDate || bySupplierFilters.status) && (
+              <button
+                className="btn btn-outline"
+                onClick={() => setBySupplierFilters({ startDate: '', endDate: '', status: '' })}
+                style={{ height: '38px' }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '0.75rem',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Suppliers
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                {bySupplierData.totals?.supplierCount || 0}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Expected
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+                {formatCurrency(bySupplierData.totals?.totalExpected || 0)}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Total Received
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+                {formatCurrency(bySupplierData.totals?.totalReceived || 0)}
+              </div>
+            </div>
+            <div style={{
+              padding: '1rem',
+              background: 'var(--bg-secondary, #f8f9fa)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Outstanding
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+                {formatCurrency(bySupplierData.totals?.outstanding || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Supplier Table */}
+          {bySupplierData.suppliers.length === 0 ? (
+            <div className="page-empty-state" style={{ padding: '2rem' }}>
+              <h3 className="empty-state-title">No supplier data</h3>
+              <p className="empty-state-description">
+                Commission data grouped by supplier will appear here as bookings with supplier names are created.
+              </p>
+            </div>
+          ) : (
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Supplier</th>
+                    <th>Bookings</th>
+                    <th>Avg Rate</th>
+                    <th>Expected</th>
+                    <th>Received</th>
+                    <th>Outstanding</th>
+                    <th>Status Breakdown</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bySupplierData.suppliers.map(s => (
+                    <tr
+                      key={s.supplierName}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setSupplierFilter(s.supplierName);
+                        setActiveTab('all');
+                      }}
+                    >
+                      <td>
+                        <div className="table-user-name">{s.supplierName}</div>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{s.bookingCount}</td>
+                      <td>{s.avgCommissionRate ? `${s.avgCommissionRate}%` : '—'}</td>
+                      <td style={{ fontWeight: 600 }}>{formatCurrency(s.totalExpected)}</td>
+                      <td style={{ fontWeight: 600, color: s.totalReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                        {s.totalReceived > 0 ? formatCurrency(s.totalReceived) : '—'}
+                      </td>
+                      <td style={{ fontWeight: 600, color: s.outstanding > 0 ? 'var(--color-warning, #f59e0b)' : 'inherit' }}>
+                        {s.outstanding > 0 ? formatCurrency(s.outstanding) : '—'}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {s.expectedCount > 0 && (
+                            <span className="status-badge status-warning" style={{ fontSize: '0.6875rem' }}>
+                              {s.expectedCount} Expected
+                            </span>
+                          )}
+                          {s.submittedCount > 0 && (
+                            <span className="status-badge status-info" style={{ fontSize: '0.6875rem' }}>
+                              {s.submittedCount} Submitted
+                            </span>
+                          )}
+                          {s.paidCount > 0 && (
+                            <span className="status-badge status-success" style={{ fontSize: '0.6875rem' }}>
+                              {s.paidCount} Paid
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            💡 Click on a supplier row to view all their commissions in the "All Commissions" tab.
+          </div>
         </div>
       )}
     </div>
