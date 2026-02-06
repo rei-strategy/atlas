@@ -184,6 +184,24 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
               </div>
             </div>
 
+            <div className="form-group">
+              <label className="form-label" htmlFor="assignedUserId">Assigned Planner</label>
+              <select
+                id="assignedUserId"
+                name="assignedUserId"
+                className="form-input"
+                value={form.assignedUserId}
+                onChange={handleChange}
+              >
+                <option value="">Select planner (defaults to you)</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} ({user.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <h3 className="form-section-title">Location</h3>
             <div className="form-row-3">
               <div className="form-group">
@@ -983,6 +1001,7 @@ export default function ClientsPage() {
           onSaved={handleClientSaved}
           client={editClient}
           token={token}
+          users={users}
         />
       </div>
     );
@@ -1166,6 +1185,7 @@ export default function ClientsPage() {
         onSaved={handleClientSaved}
         client={editClient}
         token={token}
+        users={users}
       />
       <CsvImportModal
         isOpen={showImportModal}

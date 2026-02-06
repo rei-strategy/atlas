@@ -237,6 +237,43 @@ router.post('/', (req, res) => {
   }
 });
 
+// Core fields that are locked when trip is locked (cannot be edited)
+const LOCKED_FIELDS = ['destination', 'travelStartDate', 'travelEndDate', 'finalPaymentDeadline', 'insuranceCutoffDate', 'checkinDate'];
+
+/**
+ * Helper: Check if trip should be auto-locked
+ * Trip should be locked when stage is 'booked' or beyond, and all bookings are paid_in_full
+ */
+function shouldTripBeLocked(db, tripId, stage) {
+  // Only lock after booked stage (including final_payment_pending, traveling, completed)
+  const lockableStages = ['booked', 'final_payment_pending', 'traveling', 'completed'];
+  if (!lockableStages.includes(stage)) {
+    return { locked: false, reason: null };
+  }
+
+  // Check if all bookings have payment_status = 'paid_in_full'
+  const bookings = db.prepare(`
+    SELECT id, payment_status FROM bookings
+    WHERE trip_id = ? AND status != 'canceled'
+  `).all(tripId);
+
+  // If no bookings, don't lock
+  if (bookings.length === 0) {
+    return { locked: false, reason: null };
+  }
+
+  const allPaid = bookings.every(b => b.payment_status === 'paid_in_full');
+
+  if (allPaid) {
+    return {
+      locked: true,
+      reason: 'Trip is booked with all payments complete. Core fields are locked to protect confirmed arrangements.'
+    };
+  }
+
+  return { locked: false, reason: null };
+}
+
 /**
  * PUT /api/trips/:id
  * Update a trip
@@ -257,6 +294,38 @@ router.put('/:id', (req, res) => {
       finalPaymentDeadline, insuranceCutoffDate, checkinDate,
       assignedUserId
     } = req.body;
+
+    // Check if trip is locked and user is trying to edit locked fields
+    if (existing.is_locked) {
+      const attemptedLockedFieldChanges = [];
+      if (destination !== undefined && destination !== existing.destination) {
+        attemptedLockedFieldChanges.push('destination');
+      }
+      if (travelStartDate !== undefined && travelStartDate !== existing.travel_start_date) {
+        attemptedLockedFieldChanges.push('travel start date');
+      }
+      if (travelEndDate !== undefined && travelEndDate !== existing.travel_end_date) {
+        attemptedLockedFieldChanges.push('travel end date');
+      }
+      if (finalPaymentDeadline !== undefined && finalPaymentDeadline !== existing.final_payment_deadline) {
+        attemptedLockedFieldChanges.push('final payment deadline');
+      }
+      if (insuranceCutoffDate !== undefined && insuranceCutoffDate !== existing.insurance_cutoff_date) {
+        attemptedLockedFieldChanges.push('insurance cutoff date');
+      }
+      if (checkinDate !== undefined && checkinDate !== existing.checkin_date) {
+        attemptedLockedFieldChanges.push('check-in date');
+      }
+
+      if (attemptedLockedFieldChanges.length > 0) {
+        return res.status(403).json({
+          error: 'Trip is locked',
+          message: `Cannot modify locked fields: ${attemptedLockedFieldChanges.join(', ')}. ${existing.lock_reason || 'Trip is booked with payments complete.'}`,
+          lockedFields: attemptedLockedFieldChanges,
+          lockReason: existing.lock_reason
+        });
+      }
+    }
 
     db.prepare(`
       UPDATE trips SET
@@ -328,9 +397,20 @@ router.put('/:id/stage', (req, res) => {
 
     const oldStage = existing.stage;
 
-    db.prepare(`
-      UPDATE trips SET stage = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND agency_id = ?
-    `).run(stage, tripId, req.agencyId);
+    // Check if trip should be auto-locked after stage transition
+    const lockCheck = shouldTripBeLocked(db, tripId, stage);
+
+    // Update stage and potentially lock the trip
+    if (lockCheck.locked) {
+      db.prepare(`
+        UPDATE trips SET stage = ?, is_locked = 1, lock_reason = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND agency_id = ?
+      `).run(stage, lockCheck.reason, tripId, req.agencyId);
+    } else {
+      db.prepare(`
+        UPDATE trips SET stage = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND agency_id = ?
+      `).run(stage, tripId, req.agencyId);
+    }
 
     // Log the stage transition in audit_logs
     db.prepare(`
@@ -480,6 +560,128 @@ router.put('/:id/stage', (req, res) => {
   } catch (error) {
     console.error('[ERROR] Update trip stage failed:', error.message);
     res.status(500).json({ error: 'Failed to update trip stage' });
+  }
+});
+
+/**
+ * PUT /api/trips/:id/lock
+ * Check and update trip lock status (recalculate based on current bookings)
+ * Called when booking payment status changes
+ */
+router.put('/:id/lock', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    const existing = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Check if trip should be locked
+    const lockCheck = shouldTripBeLocked(db, tripId, existing.stage);
+
+    // Update lock status
+    db.prepare(`
+      UPDATE trips SET is_locked = ?, lock_reason = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND agency_id = ?
+    `).run(
+      lockCheck.locked ? 1 : 0,
+      lockCheck.reason,
+      tripId,
+      req.agencyId
+    );
+
+    // Fetch updated trip
+    const trip = db.prepare(`
+      SELECT t.*,
+        c.first_name as client_first_name, c.last_name as client_last_name,
+        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      FROM trips t
+      LEFT JOIN clients c ON t.client_id = c.id
+      LEFT JOIN users u ON t.assigned_user_id = u.id
+      WHERE t.id = ? AND t.agency_id = ?
+    `).get(tripId, req.agencyId);
+
+    res.json({
+      message: lockCheck.locked ? 'Trip is now locked' : 'Trip is unlocked',
+      trip: formatTrip(trip),
+      lockStatus: {
+        isLocked: lockCheck.locked,
+        reason: lockCheck.reason
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Update trip lock status failed:', error.message);
+    res.status(500).json({ error: 'Failed to update trip lock status' });
+  }
+});
+
+/**
+ * PUT /api/trips/:id/unlock
+ * Admin only - unlock a trip with reason logged
+ */
+router.put('/:id/unlock', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+    const { reason } = req.body;
+
+    // Only admins can force-unlock trips
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Only admins can unlock trips',
+        message: 'Please contact an administrator to unlock this trip.'
+      });
+    }
+
+    const existing = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    if (!existing.is_locked) {
+      return res.status(400).json({ error: 'Trip is not locked' });
+    }
+
+    // Unlock the trip
+    db.prepare(`
+      UPDATE trips SET is_locked = 0, lock_reason = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND agency_id = ?
+    `).run(tripId, req.agencyId);
+
+    // Log the unlock action in audit_logs
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'trip_unlocked',
+      'trip',
+      tripId,
+      JSON.stringify({ reason: reason || 'No reason provided', previousLockReason: existing.lock_reason }),
+      tripId
+    );
+
+    // Fetch updated trip
+    const trip = db.prepare(`
+      SELECT t.*,
+        c.first_name as client_first_name, c.last_name as client_last_name,
+        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      FROM trips t
+      LEFT JOIN clients c ON t.client_id = c.id
+      LEFT JOIN users u ON t.assigned_user_id = u.id
+      WHERE t.id = ? AND t.agency_id = ?
+    `).get(tripId, req.agencyId);
+
+    res.json({
+      message: 'Trip unlocked successfully',
+      trip: formatTrip(trip)
+    });
+  } catch (error) {
+    console.error('[ERROR] Unlock trip failed:', error.message);
+    res.status(500).json({ error: 'Failed to unlock trip' });
   }
 });
 

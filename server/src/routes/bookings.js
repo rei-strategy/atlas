@@ -393,6 +393,37 @@ router.put('/:id', (req, res) => {
 
     const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
 
+    // Check if we need to update trip lock status (when payment status changes)
+    if (paymentStatus && paymentStatus !== existing.payment_status) {
+      // Recalculate trip lock status
+      const trip = db.prepare('SELECT * FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+      if (trip) {
+        const lockableStages = ['booked', 'final_payment_pending', 'traveling', 'completed'];
+        if (lockableStages.includes(trip.stage)) {
+          // Check if all bookings are now paid in full
+          const allBookings = db.prepare(`
+            SELECT id, payment_status FROM bookings
+            WHERE trip_id = ? AND status != 'canceled'
+          `).all(tripId);
+
+          const allPaid = allBookings.every(b => b.payment_status === 'paid_in_full');
+
+          if (allPaid && !trip.is_locked) {
+            // Lock the trip
+            db.prepare(`
+              UPDATE trips SET is_locked = 1, lock_reason = ?, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ? AND agency_id = ?
+            `).run(
+              'Trip is booked with all payments complete. Core fields are locked to protect confirmed arrangements.',
+              tripId,
+              req.agencyId
+            );
+            console.log(`[LOCK] Trip ${tripId} auto-locked after all bookings paid in full`);
+          }
+        }
+      }
+    }
+
     res.json({
       message: 'Booking updated successfully',
       booking: formatBooking(booking)

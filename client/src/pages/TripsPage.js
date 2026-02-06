@@ -182,7 +182,11 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to save trip');
+        // Handle locked trip error with more detail
+        if (res.status === 403 && data.lockedFields) {
+          throw new Error(`Trip is locked. Cannot modify: ${data.lockedFields.join(', ')}. ${data.lockReason || ''}`);
+        }
+        throw new Error(data.error || data.message || 'Failed to save trip');
       }
 
       addToast(isEdit ? 'Trip updated successfully' : 'Trip created successfully', 'success');
@@ -2380,19 +2384,66 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
         <button className="btn btn-outline btn-sm" onClick={onBack}>
           ← Back to Trips
         </button>
-        <button className="btn btn-primary btn-sm" onClick={() => onEdit(trip)}>
-          Edit Trip
-        </button>
+        {trip.isLocked ? (
+          <button
+            className="btn btn-sm"
+            disabled
+            style={{
+              background: 'var(--color-warning, #f59e0b)',
+              color: '#fff',
+              border: 'none',
+              opacity: 0.8,
+              cursor: 'not-allowed'
+            }}
+            title={trip.lockReason || 'Trip is locked'}
+          >
+            🔒 Trip Locked
+          </button>
+        ) : (
+          <button className="btn btn-primary btn-sm" onClick={() => onEdit(trip)}>
+            Edit Trip
+          </button>
+        )}
       </div>
+
+      {/* Locked Trip Banner */}
+      {trip.isLocked && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+          border: '1px solid var(--color-warning, #f59e0b)',
+          borderRadius: '8px',
+          padding: '1rem 1.25rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.75rem'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>🔒</span>
+          <div>
+            <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '0.25rem' }}>
+              Trip is Locked
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#a16207' }}>
+              {trip.lockReason || 'Core fields (dates, destination, pricing) cannot be edited because this trip is booked with complete payments. Contact an admin to unlock if changes are required.'}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="detail-card">
         <div className="detail-card-header">
           <div>
-            <h2 className="detail-name">{trip.name}</h2>
+            <h2 className="detail-name">
+              {trip.isLocked && <span style={{ marginRight: '0.5rem' }}>🔒</span>}
+              {trip.name}
+            </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
               <span className={`status-badge ${STAGE_COLORS[trip.stage]}`}>
                 {STAGE_LABELS[trip.stage]}
               </span>
+              {trip.isLocked && (
+                <span className="status-badge status-warning">Locked</span>
+              )}
               {trip.clientName && (
                 <span className="detail-meta">Client: {trip.clientName}</span>
               )}
