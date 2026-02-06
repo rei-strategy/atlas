@@ -375,15 +375,16 @@ router.post('/', (req, res) => {
 /**
  * PUT /api/clients/:id
  * Update an existing client
+ * Supports optimistic concurrency control via updatedAt field
  */
 router.put('/:id', (req, res) => {
   try {
     const db = getDb();
     const clientId = req.params.id;
 
-    // Verify client exists and belongs to agency
+    // Verify client exists and belongs to agency - include updated_at for conflict detection
     const existing = db.prepare(
-      'SELECT id FROM clients WHERE id = ? AND agency_id = ?'
+      'SELECT id, updated_at FROM clients WHERE id = ? AND agency_id = ?'
     ).get(clientId, req.agencyId);
 
     if (!existing) {
@@ -395,8 +396,20 @@ router.put('/:id', (req, res) => {
       city, state, country,
       preferredCommunication, travelPreferences,
       notes, marketingOptIn, contactConsent,
-      assignedUserId
+      assignedUserId,
+      updatedAt // Client sends the updatedAt from when they loaded the record
     } = req.body;
+
+    // Optimistic concurrency control: check if record was modified since client loaded it
+    if (updatedAt && existing.updated_at !== updatedAt) {
+      console.log(`[WARN] Concurrent edit conflict for client ${clientId}: client has ${updatedAt}, server has ${existing.updated_at}`);
+      return res.status(409).json({
+        error: 'This record has been modified by another user. Please refresh and try again.',
+        code: 'CONCURRENT_EDIT_CONFLICT',
+        serverUpdatedAt: existing.updated_at,
+        clientUpdatedAt: updatedAt
+      });
+    }
 
     // Check email uniqueness if email changed
     if (email) {

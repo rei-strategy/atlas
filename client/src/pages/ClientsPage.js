@@ -23,6 +23,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loadingElapsed, setLoadingElapsed] = useState(0);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictData, setConflictData] = useState(null);
   const abortControllerRef = useRef(null);
   const loadingStartRef = useRef(null);
   const [form, setForm] = useState({
@@ -33,7 +35,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     notes: '',
     marketingOptIn: false,
     contactConsent: true,
-    assignedUserId: ''
+    assignedUserId: '',
+    updatedAt: null // For optimistic locking
   });
 
   // Validation function for individual fields
@@ -105,7 +108,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         notes: client.notes || '',
         marketingOptIn: !!client.marketingOptIn,
         contactConsent: client.contactConsent !== false,
-        assignedUserId: client.assignedUserId || ''
+        assignedUserId: client.assignedUserId || '',
+        updatedAt: client.updatedAt || null // Store for optimistic locking
       });
     } else {
       setForm({
@@ -116,12 +120,15 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         notes: '',
         marketingOptIn: false,
         contactConsent: true,
-        assignedUserId: ''
+        assignedUserId: '',
+        updatedAt: null
       });
     }
     setError('');
     setFieldErrors({});
     setTouched({});
+    setShowConflictModal(false);
+    setConflictData(null);
   }, [client, isOpen]);
 
   const handleChange = (e) => {
@@ -229,18 +236,34 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       const url = isEdit ? `${API_BASE}/clients/${client.id}` : `${API_BASE}/clients`;
       const method = isEdit ? 'PUT' : 'POST';
 
+      // Include updatedAt for optimistic locking on edits
+      const requestBody = isEdit ? { ...form } : { ...form, updatedAt: undefined };
+
       const res = await fetchWithTimeout(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(requestBody),
         timeout: REQUEST_TIMEOUT,
         signal: controller.signal
       });
 
       const data = await res.json();
+
+      // Handle concurrent edit conflict
+      if (res.status === 409 && data.code === 'CONCURRENT_EDIT_CONFLICT') {
+        setConflictData({
+          message: data.error,
+          serverUpdatedAt: data.serverUpdatedAt,
+          clientUpdatedAt: data.clientUpdatedAt
+        });
+        setShowConflictModal(true);
+        setLoading(false);
+        abortControllerRef.current = null;
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to save client');
@@ -268,6 +291,36 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       setLoading(false);
       abortControllerRef.current = null;
     }
+  };
+
+  // Handle conflict resolution - reload and retry
+  const handleRefreshAndRetry = async () => {
+    try {
+      // Fetch the latest version of the client
+      const res = await fetch(`${API_BASE}/clients/${client.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (res.ok && data.client) {
+        // Update the form with the latest data from server
+        setForm(prev => ({
+          ...prev,
+          updatedAt: data.client.updatedAt
+        }));
+        setShowConflictModal(false);
+        setConflictData(null);
+        addToast('Refreshed with latest data. Your other changes are preserved - review and save again.', 'info');
+      }
+    } catch (err) {
+      addToast('Failed to refresh data', 'error');
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowConflictModal(false);
+    setConflictData(null);
+    onClose();
   };
 
   const showSlowWarning = loading && loadingElapsed >= 10000;

@@ -400,54 +400,56 @@ router.post('/generate', (req, res) => {
 });
 
 /**
- * Multer error handling middleware
- * Handles file upload errors with user-friendly messages
+ * Wrap multer middleware to handle errors properly
+ * This catches multer errors and returns user-friendly messages
  */
-const handleUploadError = (err, req, res, next) => {
-  if (err) {
-    if (err instanceof multer.MulterError) {
-      // Multer-specific errors
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({
-          error: 'File too large. Maximum file size is 10MB.',
-          code: 'FILE_TOO_LARGE',
-          maxSize: '10MB'
-        });
-      }
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+const uploadWithErrorHandling = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        // Multer-specific errors
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({
+            error: 'File too large. Maximum file size is 10MB.',
+            code: 'FILE_TOO_LARGE',
+            maxSize: '10MB'
+          });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({
+            error: 'Unexpected file field. Please use "file" as the field name.',
+            code: 'INVALID_FIELD'
+          });
+        }
+        // Generic multer error
         return res.status(400).json({
-          error: 'Unexpected file field. Please use "file" as the field name.',
-          code: 'INVALID_FIELD'
+          error: `Upload error: ${err.message}`,
+          code: 'UPLOAD_ERROR'
         });
       }
-      // Generic multer error
-      return res.status(400).json({
-        error: `Upload error: ${err.message}`,
-        code: 'UPLOAD_ERROR'
+      // Custom errors (e.g., from fileFilter)
+      if (err.message && err.message.includes('Invalid file type')) {
+        return res.status(415).json({
+          error: 'Invalid file type. Allowed types: PDF, JPEG, PNG, GIF, Word (.doc, .docx), Excel (.xls, .xlsx), Text (.txt), and CSV files.',
+          code: 'INVALID_FILE_TYPE',
+          allowedTypes: ['pdf', 'jpeg', 'png', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv']
+        });
+      }
+      // Other errors
+      return res.status(500).json({
+        error: err.message || 'Failed to upload file',
+        code: 'UPLOAD_FAILED'
       });
     }
-    // Custom errors (e.g., from fileFilter)
-    if (err.message && err.message.includes('Invalid file type')) {
-      return res.status(415).json({
-        error: 'Invalid file type. Allowed types: PDF, JPEG, PNG, GIF, Word (.doc, .docx), Excel (.xls, .xlsx), Text (.txt), and CSV files.',
-        code: 'INVALID_FILE_TYPE',
-        allowedTypes: ['pdf', 'jpeg', 'png', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv']
-      });
-    }
-    // Other errors
-    return res.status(500).json({
-      error: err.message || 'Failed to upload file',
-      code: 'UPLOAD_FAILED'
-    });
-  }
-  next();
+    next();
+  });
 };
 
 /**
  * POST /api/trips/:tripId/documents
  * Upload a document to a trip (planner side)
  */
-router.post('/', upload.single('file'), handleUploadError, (req, res) => {
+router.post('/', uploadWithErrorHandling, (req, res) => {
   try {
     const db = getDb();
     const { tripId } = req.params;
