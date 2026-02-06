@@ -148,6 +148,10 @@ export default function DashboardPage() {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
       const data = await res.json();
       if (res.ok) {
         setTasks(prev => prev.filter(t => t.id !== taskId));
