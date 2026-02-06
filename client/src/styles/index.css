@@ -6575,3 +6575,33 @@ html, body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* Unsaved Changes Dialog */
+.unsaved-changes-dialog {
+  max-width: 420px;
+}
+
+.unsaved-warning-icon {
+  color: var(--color-warning);
+  font-size: 1.25em;
+}
+
+.unsaved-changes-dialog .modal-body p {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.unsaved-changes-dialog .modal-footer {
+  gap: var(--spacing-md);
+}
+
+.unsaved-changes-dialog .btn-danger {
+  background-color: transparent;
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.unsaved-changes-dialog .btn-danger:hover {
+  background-color: var(--color-error);
+  color: white;
+}

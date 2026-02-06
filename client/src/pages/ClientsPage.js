@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
@@ -7,6 +7,7 @@ import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessag
 import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit } from '../utils/validation';
 import { useFormDraft } from '../hooks/useFormDraft';
 import Breadcrumb from '../components/Breadcrumb';
+import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 
 const API_BASE = '/api';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
@@ -18,7 +19,7 @@ const TRAVEL_PREFERENCE_OPTIONS = [
   'Europe', 'Caribbean', 'Asia', 'Domestic'
 ];
 
-function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }) {
+function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], onDirtyChange }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +28,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   const [loadingElapsed, setLoadingElapsed] = useState(0);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictData, setConflictData] = useState(null);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const abortControllerRef = useRef(null);
   const loadingStartRef = useRef(null);
   const [draftChecked, setDraftChecked] = useState(false);
@@ -152,6 +154,13 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     enabled: isOpen, // Only enable when modal is open
     contentFields: ['firstName', 'lastName', 'email', 'phone', 'city', 'state', 'country', 'notes']
   });
+
+  // Notify parent of dirty state changes for navigation blocking
+  useEffect(() => {
+    if (onDirtyChange) {
+      onDirtyChange(isDirty && isOpen);
+    }
+  }, [isDirty, isOpen, onDirtyChange]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -298,6 +307,27 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     }
   };
 
+  // Handle attempting to close modal - show warning if unsaved changes
+  const handleAttemptClose = () => {
+    if (isDirty) {
+      setShowUnsavedWarning(true);
+    } else {
+      onClose();
+    }
+  };
+
+  // Confirm leaving with unsaved changes
+  const handleConfirmLeave = () => {
+    setShowUnsavedWarning(false);
+    clearFormDraft();
+    onClose();
+  };
+
+  // Stay on form (cancel leaving)
+  const handleCancelLeave = () => {
+    setShowUnsavedWarning(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -428,7 +458,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleAttemptClose}>
       <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{client ? 'Edit Client' : 'Create Client'}</h2>
@@ -709,7 +739,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                   Cancel Request
                 </button>
               ) : (
-                <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
+                <button type="button" className="btn btn-outline" onClick={handleAttemptClose} disabled={loading}>
                   Cancel
                 </button>
               )}
@@ -717,6 +747,11 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                 {loading ? 'Saving...' : (client ? 'Save Changes' : 'Create Client')}
               </button>
             </div>
+            {isDirty && (
+              <div className="form-dirty-indicator-text" style={{ marginTop: 'var(--spacing-xs)', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                <span style={{ color: 'var(--color-warning)' }}>*</span> You have unsaved changes
+              </div>
+            )}
           </div>
         </form>
 
@@ -751,6 +786,42 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
                 </button>
                 <button type="button" className="btn btn-primary" onClick={handleRefreshAndRetry}>
                   Refresh & Review
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unsaved Changes Warning Modal */}
+        {showUnsavedWarning && (
+          <div className="modal-overlay" onClick={handleCancelLeave} style={{ zIndex: 1002 }}>
+            <div className="modal-content unsaved-changes-dialog" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="modal-title">
+                  <span className="unsaved-warning-icon">&#9888;</span>
+                  {' '}Unsaved Changes
+                </h2>
+              </div>
+              <div className="modal-body">
+                <p style={{ margin: 0 }}>
+                  You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleCancelLeave}
+                  autoFocus
+                >
+                  Stay on Page
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-danger"
+                  onClick={handleConfirmLeave}
+                >
+                  Leave Page
                 </button>
               </div>
             </div>
@@ -1711,6 +1782,27 @@ export default function ClientsPage() {
   const [totalClients, setTotalClients] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [pageSize] = useState(10);
+  // Track form dirty state for navigation blocking
+  const [formIsDirty, setFormIsDirty] = useState(false);
+
+  // Block navigation when form has unsaved changes
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      formIsDirty && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle navigation confirmation
+  const handleConfirmNavigation = () => {
+    if (blocker.state === 'blocked') {
+      blocker.proceed();
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    if (blocker.state === 'blocked') {
+      blocker.reset();
+    }
+  };
 
   // Fetch users for planner filter dropdown
   useEffect(() => {
@@ -1912,6 +2004,13 @@ export default function ClientsPage() {
           client={editClient}
           token={token}
           users={users}
+          onDirtyChange={setFormIsDirty}
+        />
+        {/* Navigation blocker dialog for unsaved changes */}
+        <UnsavedChangesDialog
+          isOpen={blocker.state === 'blocked'}
+          onStay={handleCancelNavigation}
+          onLeave={handleConfirmNavigation}
         />
       </div>
     );
@@ -2120,12 +2219,19 @@ export default function ClientsPage() {
         client={editClient}
         token={token}
         users={users}
+        onDirtyChange={setFormIsDirty}
       />
       <CsvImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImported={handleImportComplete}
         token={token}
+      />
+      {/* Navigation blocker dialog for unsaved changes */}
+      <UnsavedChangesDialog
+        isOpen={blocker.state === 'blocked'}
+        onStay={handleCancelNavigation}
+        onLeave={handleConfirmNavigation}
       />
     </div>
   );
