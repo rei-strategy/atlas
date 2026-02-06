@@ -4412,3 +4412,32 @@ html, body {
   color: var(--color-primary);
   background-color: rgba(26, 86, 219, 0.1);
 }
+
+/* Workflow Settings Form */
+.workflow-settings-form {
+  max-width: 600px;
+}
+
+.settings-description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.input-with-suffix input {
+  width: 80px;
+  text-align: center;
+}
+
+.input-suffix {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}

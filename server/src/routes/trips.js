@@ -317,13 +317,29 @@ router.put('/:id/stage', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(tripId, req.user.id, 'stage', oldStage, stage);
 
-    // Generate system tasks based on stage transitions
+    // Fetch agency workflow timing settings
+    const agencySettings = db.prepare(`
+      SELECT quote_followup_days, booking_confirmation_days, final_payment_reminder_days,
+             travel_reminder_days, feedback_request_days
+      FROM agencies WHERE id = ?
+    `).get(req.agencyId);
+
+    // Use agency settings or defaults
+    const timingSettings = {
+      quoteFollowupDays: agencySettings?.quote_followup_days ?? 3,
+      bookingConfirmationDays: agencySettings?.booking_confirmation_days ?? 1,
+      finalPaymentReminderDays: agencySettings?.final_payment_reminder_days ?? 7,
+      travelReminderDays: agencySettings?.travel_reminder_days ?? 0,
+      feedbackRequestDays: agencySettings?.feedback_request_days ?? 3
+    };
+
+    // Generate system tasks based on stage transitions using agency timing settings
     const tasksByStage = {
-      quoted: { title: 'Follow up on quote', description: 'Follow up with client on the trip quote', category: 'follow_up', daysOut: 3 },
-      booked: { title: 'Confirm booking details', description: 'Verify all booking confirmations received', category: 'internal', daysOut: 1 },
-      final_payment_pending: { title: 'Collect final payment', description: 'Final payment is due - follow up with client', category: 'payment', daysOut: 7 },
-      traveling: { title: 'Send bon voyage message', description: 'Send trip documents and bon voyage message to client', category: 'client_request', daysOut: 0 },
-      completed: { title: 'Request trip feedback', description: 'Send feedback request to client and follow up on commission', category: 'follow_up', daysOut: 3 }
+      quoted: { title: 'Follow up on quote', description: 'Follow up with client on the trip quote', category: 'follow_up', daysOut: timingSettings.quoteFollowupDays },
+      booked: { title: 'Confirm booking details', description: 'Verify all booking confirmations received', category: 'internal', daysOut: timingSettings.bookingConfirmationDays },
+      final_payment_pending: { title: 'Collect final payment', description: 'Final payment is due - follow up with client', category: 'payment', daysOut: timingSettings.finalPaymentReminderDays },
+      traveling: { title: 'Send bon voyage message', description: 'Send trip documents and bon voyage message to client', category: 'client_request', daysOut: timingSettings.travelReminderDays },
+      completed: { title: 'Request trip feedback', description: 'Send feedback request to client and follow up on commission', category: 'follow_up', daysOut: timingSettings.feedbackRequestDays }
     };
 
     if (tasksByStage[stage]) {

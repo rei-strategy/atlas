@@ -44,6 +44,274 @@ const BRAND_COLORS = [
   '#374151', // Gray
 ];
 
+// Workflow Timing Settings Form Component
+function WorkflowSettingsForm({ token, isAdmin }) {
+  const { showToast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    deadlineReminderDays: 7,
+    quoteFollowupDays: 3,
+    bookingConfirmationDays: 1,
+    finalPaymentReminderDays: 7,
+    travelReminderDays: 0,
+    feedbackRequestDays: 3
+  });
+  const [error, setError] = useState('');
+
+  // Fetch current workflow settings
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/settings/agency`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.agency) {
+        setFormData({
+          deadlineReminderDays: data.agency.deadlineReminderDays ?? 7,
+          quoteFollowupDays: data.agency.quoteFollowupDays ?? 3,
+          bookingConfirmationDays: data.agency.bookingConfirmationDays ?? 1,
+          finalPaymentReminderDays: data.agency.finalPaymentReminderDays ?? 7,
+          travelReminderDays: data.agency.travelReminderDays ?? 0,
+          feedbackRequestDays: data.agency.feedbackRequestDays ?? 3
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load workflow settings:', err);
+      setError('Failed to load workflow settings');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAdmin) {
+      setError('Only administrators can update workflow settings');
+      return;
+    }
+
+    setError('');
+    setSaving(true);
+
+    try {
+      // First get the current full settings
+      const getRes = await fetch(`${API_BASE}/settings/agency`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const current = await getRes.json();
+
+      // Merge workflow settings with existing settings
+      const res = await fetch(`${API_BASE}/settings/agency`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: current.agency.name,
+          logoUrl: current.agency.logoUrl,
+          primaryColor: current.agency.primaryColor,
+          emailSignature: current.agency.emailSignature,
+          defaultCommissionRate: current.agency.defaultCommissionRate,
+          timezone: current.agency.timezone,
+          deadlineReminderDays: parseInt(formData.deadlineReminderDays, 10),
+          quoteFollowupDays: parseInt(formData.quoteFollowupDays, 10),
+          bookingConfirmationDays: parseInt(formData.bookingConfirmationDays, 10),
+          finalPaymentReminderDays: parseInt(formData.finalPaymentReminderDays, 10),
+          travelReminderDays: parseInt(formData.travelReminderDays, 10),
+          feedbackRequestDays: parseInt(formData.feedbackRequestDays, 10)
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save workflow settings');
+      }
+
+      showToast('Workflow settings saved successfully!', 'success');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-card">
+        <div className="dashboard-card-body">
+          <p className="dashboard-empty-state">Loading workflow settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-card">
+      <div className="dashboard-card-header">
+        <h3>Task & Reminder Timing</h3>
+      </div>
+      <div className="dashboard-card-body">
+        {error && <div className="form-error">{error}</div>}
+
+        <p className="settings-description">
+          Configure when automatic tasks and reminders are generated during the trip lifecycle.
+          These settings apply to all new trips created in your agency.
+        </p>
+
+        <form onSubmit={handleSubmit} className="workflow-settings-form">
+          {/* Quote Follow-up Days */}
+          <div className="form-group">
+            <label htmlFor="quoteFollowupDays">Quote Follow-up Reminder</label>
+            <div className="input-with-suffix">
+              <input
+                id="quoteFollowupDays"
+                type="number"
+                name="quoteFollowupDays"
+                value={formData.quoteFollowupDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days after quote sent</span>
+            </div>
+            <span className="form-hint">When to remind planners to follow up on sent quotes.</span>
+          </div>
+
+          {/* Booking Confirmation Days */}
+          <div className="form-group">
+            <label htmlFor="bookingConfirmationDays">Booking Confirmation Task</label>
+            <div className="input-with-suffix">
+              <input
+                id="bookingConfirmationDays"
+                type="number"
+                name="bookingConfirmationDays"
+                value={formData.bookingConfirmationDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days after booking confirmed</span>
+            </div>
+            <span className="form-hint">When to verify booking confirmations are received.</span>
+          </div>
+
+          {/* Final Payment Reminder Days */}
+          <div className="form-group">
+            <label htmlFor="finalPaymentReminderDays">Final Payment Reminder</label>
+            <div className="input-with-suffix">
+              <input
+                id="finalPaymentReminderDays"
+                type="number"
+                name="finalPaymentReminderDays"
+                value={formData.finalPaymentReminderDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days to collect payment</span>
+            </div>
+            <span className="form-hint">Days given to collect final payment after stage change.</span>
+          </div>
+
+          {/* Travel Reminder Days */}
+          <div className="form-group">
+            <label htmlFor="travelReminderDays">Bon Voyage Message</label>
+            <div className="input-with-suffix">
+              <input
+                id="travelReminderDays"
+                type="number"
+                name="travelReminderDays"
+                value={formData.travelReminderDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days after travel starts</span>
+            </div>
+            <span className="form-hint">When to send bon voyage message. Use 0 for same day.</span>
+          </div>
+
+          {/* Feedback Request Days */}
+          <div className="form-group">
+            <label htmlFor="feedbackRequestDays">Feedback Request</label>
+            <div className="input-with-suffix">
+              <input
+                id="feedbackRequestDays"
+                type="number"
+                name="feedbackRequestDays"
+                value={formData.feedbackRequestDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days after trip completed</span>
+            </div>
+            <span className="form-hint">When to request post-trip feedback from clients.</span>
+          </div>
+
+          {/* Deadline Reminder Days */}
+          <div className="form-group">
+            <label htmlFor="deadlineReminderDays">General Deadline Reminders</label>
+            <div className="input-with-suffix">
+              <input
+                id="deadlineReminderDays"
+                type="number"
+                name="deadlineReminderDays"
+                value={formData.deadlineReminderDays}
+                onChange={handleChange}
+                min="0"
+                max="365"
+                disabled={!isAdmin}
+              />
+              <span className="input-suffix">days before deadline</span>
+            </div>
+            <span className="form-hint">Default reminder for approaching deadlines (insurance, check-in, etc.).</span>
+          </div>
+
+          {/* Save Button */}
+          {isAdmin && (
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Workflow Settings'}
+              </button>
+            </div>
+          )}
+
+          {!isAdmin && (
+            <div className="form-info-box">
+              <span className="info-icon">ℹ️</span>
+              <span>Only administrators can modify workflow settings.</span>
+            </div>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function AgencySettingsForm({ token, isAdmin }) {
   const { showToast } = useToast();
   const fileInputRef = useRef(null);
@@ -672,6 +940,12 @@ export default function SettingsPage() {
         >
           Agency Settings
         </button>
+        <button
+          className={`settings-tab ${activeTab === 'workflow' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workflow')}
+        >
+          Workflow Timing
+        </button>
       </div>
 
       {activeTab === 'team' && (
@@ -736,6 +1010,10 @@ export default function SettingsPage() {
 
       {activeTab === 'agency' && (
         <AgencySettingsForm token={token} isAdmin={isAdmin} />
+      )}
+
+      {activeTab === 'workflow' && (
+        <WorkflowSettingsForm token={token} isAdmin={isAdmin} />
       )}
 
       <InviteUserModal
