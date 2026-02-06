@@ -553,6 +553,21 @@ export default function TasksPage() {
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
+        <select
+          name="assignedTo"
+          className="form-input"
+          value={filters.assignedTo}
+          onChange={handleFilterChange}
+          style={{ width: '180px' }}
+        >
+          <option value="">All Assignees</option>
+          <option value="me">Assigned to Me</option>
+          {users.map(u => (
+            <option key={u.id} value={u.id}>
+              {u.firstName} {u.lastName}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
