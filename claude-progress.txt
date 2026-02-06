@@ -375,3 +375,53 @@
 - Client list search and filter fully functional
 - Zero console errors throughout testing
 
+### Session - 2026-02-06 (Agent: Feature #116)
+
+**Feature Completed: #116 (Feedback & Notification - Urgent notification for new inquiry)**
+
+#### Feature #116: Urgent notification - new inquiry
+- Created server/src/routes/notifications.js with full CRUD:
+  - GET /api/notifications - list notifications with unread/urgent counts
+  - PUT /api/notifications/:id/read - mark notification as read
+  - PUT /api/notifications/read-all - mark all as read
+  - PUT /api/notifications/:id/dismiss - dismiss notification
+  - PUT /api/notifications/:id/snooze - snooze until specified time
+- Modified server/src/routes/trips.js POST endpoint to create urgent notification when trip created
+  - Notification created for all admin/planner users in agency
+  - Type set to 'urgent' with title "New Inquiry"
+  - Message includes trip name, client name, and destination
+- Created client/src/components/NotificationBell.js:
+  - Bell icon with badge showing unread count (red for urgent)
+  - Dropdown menu with notification list
+  - Click notification navigates to related entity (trip, client, etc.)
+  - Mark as read, mark all read, dismiss functionality
+  - Auto-refresh every 30 seconds
+- Added NotificationBell to TopBar (topbar-right section)
+- Added comprehensive CSS styles for bell icon, badge, dropdown, and notification items
+- Verified:
+  - Creating trip in inquiry stage creates urgent notification
+  - Notification appears in API response with correct type, title, message
+  - Mark as read updates unread/urgent counts correctly
+  - Data persists after server restart
+  - Frontend compiles successfully with no errors
+
+#### Key Implementation Details
+- server/src/routes/notifications.js: Full notification management API
+- server/src/routes/trips.js: Added notification creation on trip POST
+- client/src/components/NotificationBell.js: UI component with dropdown
+- client/src/components/TopBar.js: Integrated NotificationBell
+- client/src/styles/index.css: Added notification-related styles
+
+#### Test Data Created
+- Agency: Notification Test Agency (ID: 40)
+- User: notiftest@example.com / TestPass123
+- Client: John InquiryClient (ID: 69)
+- Trips: TEST_INQUIRY_116 (Hawaii), Second Inquiry Test (Maldives)
+
+#### Current State
+- 44/240 features passing (~18.3%)
+- Backend on port 3001, Frontend on port 3000
+- Notification system fully functional
+- Zero console errors
+- Git commit: 739ee61
+
