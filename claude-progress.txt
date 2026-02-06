@@ -2188,3 +2188,47 @@
 - Progress from previous: 139 → 146 (+7 features this session batch)
 
 ---
+
+### Session - 2026-02-06 (Agent batch: Features #101, #109, #110)
+
+**Features Completed: #101, #109, #110 (Real Data Verification - Portal & Dashboard)**
+
+#### Feature #101: Customer portal - view documents
+- Added GET /api/portal/trips/:tripId/documents/:docId/download endpoint
+- Security: only allows client-visible, non-sensitive documents
+- Blocks internal docs (is_client_visible=0) with clear error message
+- Blocks sensitive docs (is_sensitive=1) with clear error message
+- Audit logging for all portal document downloads
+- Test data: Trip 66 with 3 docs (1 client-facing, 1 internal, 1 sensitive)
+
+#### Feature #109: Dashboard - active trips by stage
+- Already fully implemented in DashboardPage.js
+- Stage breakdown counts for: inquiry, quoted, booked, payment pending, traveling
+- Each stage shows count of trips in that stage
+- Clickable badges navigate to /trips?stage={stage}
+- Only shows stages with at least 1 trip
+
+#### Feature #110: Dashboard - upcoming deadlines
+- Already fully implemented in DashboardPage.js
+- getUpcomingDeadlines() filters trips with dates within 7 days
+- Shows both payment deadlines (finalPaymentDeadline) and travel dates (travelStartDate)
+- Sorted by date (most urgent first)
+- Icons: $ for payment deadlines, ✈ for travel dates
+- Test data: Trip01 (payment 2/8, travel 2/9), Trip02 (payment 2/10, travel 2/12)
+
+#### API Endpoints Verified
+- POST /api/portal/auth/login - customer login
+- GET /api/portal/trips/:id/documents - list client-facing documents
+- GET /api/portal/trips/:tripId/documents/:docId/download - download with security checks
+- GET /api/trips - returns trips with deadline fields
+
+#### Security Verification
+- Internal document (id=5): 403 "This document is not available in the customer portal"
+- Sensitive document (id=7): 403 "Sensitive documents cannot be downloaded through the portal"
+- Client-facing document (id=6): 200 download successful
+
+#### Current State
+- 151/240 features passing (~62.9%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commits: 98749ac, 7b08f89, ddaea4e
