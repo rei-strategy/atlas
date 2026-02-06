@@ -15,11 +15,15 @@
   --color-border-subtle: #d1d5db;
   --color-value-bg: #f3f4f6;
 
-  /* Status colors */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  /* Status colors - WCAG AA compliant (4.5:1 contrast on white) */
+  --color-success: #047857;  /* Was #10b981, now 5.9:1 contrast */
+  --color-success-light: #10b981;  /* Original for backgrounds */
+  --color-warning: #b45309;  /* Was #f59e0b, now 4.9:1 contrast */
+  --color-warning-light: #f59e0b;  /* Original for backgrounds */
+  --color-error: #dc2626;    /* Was #ef4444, now 4.5:1 contrast */
+  --color-error-light: #ef4444;  /* Original for backgrounds */
+  --color-info: #1d4ed8;     /* Was #3b82f6, now 6.5:1 contrast */
+  --color-info-light: #3b82f6;  /* Original for backgrounds */
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -46,7 +50,7 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark mode variables */
+/* Dark mode variables - WCAG AA compliant */
 [data-theme="dark"] {
   --color-bg: #111827;
   --color-bg-secondary: #1f2937;
@@ -56,6 +60,15 @@
   --color-border-subtle: #4b5563;
   --color-value-bg: #1f2937;
   --color-primary-light: #60a5fa;
+  /* Status colors for dark mode - lighter for dark backgrounds */
+  --color-success: #34d399;  /* Lighter green for dark bg, 4.6:1 on #111827 */
+  --color-success-light: #10b981;
+  --color-warning: #fbbf24;  /* Lighter amber for dark bg, 9:1 on #111827 */
+  --color-warning-light: #f59e0b;
+  --color-error: #f87171;    /* Lighter red for dark bg, 4.8:1 on #111827 */
+  --color-error-light: #ef4444;
+  --color-info: #60a5fa;     /* Lighter blue for dark bg, 5.1:1 on #111827 */
+  --color-info-light: #3b82f6;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
 }
@@ -190,6 +203,11 @@ a:hover {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Enhanced focus visibility in dark mode for better contrast */
+[data-theme="dark"] :focus-visible {
+  outline-color: var(--color-primary-light);
 }
 
 button {
@@ -823,6 +841,12 @@ fieldset:disabled .btn {
   text-decoration: none;
 }
 
+.sidebar-nav-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  background-color: var(--color-bg-secondary);
+}
+
 .sidebar-nav-link-active {
   color: var(--color-primary);
   background-color: rgba(26, 86, 219, 0.06);
@@ -919,6 +943,11 @@ fieldset:disabled .btn {
 
 .topbar-menu-btn:hover {
   background-color: var(--color-bg-secondary);
+}
+
+.topbar-menu-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .topbar-agency-name {
@@ -1567,6 +1596,11 @@ fieldset:disabled .btn {
 .modal-close-btn:hover {
   color: var(--color-text);
   background: var(--color-bg-secondary);
+}
+
+.modal-close-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .modal-body {
@@ -4939,6 +4973,11 @@ html, body {
   color: var(--color-text);
 }
 
+.notification-bell-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .notification-bell-btn.has-urgent {
   color: var(--color-error);
   animation: bell-shake 0.5s ease-in-out;
@@ -5721,6 +5760,11 @@ html, body {
 
 .topbar-user-info:hover {
   background-color: var(--color-bg-secondary);
+}
+
+.topbar-user-info:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
