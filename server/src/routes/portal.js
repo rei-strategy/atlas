@@ -565,6 +565,98 @@ router.get('/trips/:id/documents', authenticateCustomer, (req, res) => {
 });
 
 /**
+ * GET /api/portal/trips/:tripId/documents/:docId/download
+ * Download a document (only client-facing, non-sensitive)
+ */
+router.get('/trips/:tripId/documents/:docId/download', authenticateCustomer, (req, res) => {
+  try {
+    const db = getDb();
+    const { tripId, docId } = req.params;
+
+    // Verify trip belongs to this customer
+    const trip = db.prepare(
+      'SELECT id FROM trips WHERE id = ? AND client_id = ? AND agency_id = ?'
+    ).get(tripId, req.customer.client_id, req.customer.agency_id);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Get document - must be client visible AND not sensitive
+    const doc = db.prepare(`
+      SELECT id, document_type, file_name, file_path, is_sensitive, is_client_visible
+      FROM documents
+      WHERE id = ? AND trip_id = ? AND agency_id = ?
+    `).get(docId, tripId, req.customer.agency_id);
+
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Security check: customers can only download client-visible, non-sensitive docs
+    if (!doc.is_client_visible) {
+      return res.status(403).json({ error: 'This document is not available in the customer portal' });
+    }
+
+    if (doc.is_sensitive) {
+      return res.status(403).json({ error: 'Sensitive documents cannot be downloaded through the portal' });
+    }
+
+    // Log the download for audit purposes
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.customer.agency_id,
+      null, // no user_id for customer downloads
+      'portal_document_download',
+      'document',
+      doc.id,
+      JSON.stringify({
+        fileName: doc.file_name,
+        documentType: doc.document_type,
+        downloadedBy: req.customer.email,
+        customerId: req.customer.id,
+        clientId: req.customer.client_id
+      }),
+      tripId
+    );
+
+    // Try to serve the actual file
+    const path = require('path');
+    const fs = require('fs');
+    const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+
+    // Handle different file path formats
+    let filePath;
+    if (doc.file_path.startsWith('/generated/')) {
+      filePath = path.join(UPLOAD_DIR, doc.file_path.replace('/generated/', 'generated/'));
+    } else {
+      const storedFileName = doc.file_path.replace('/uploads/', '');
+      filePath = path.join(UPLOAD_DIR, storedFileName);
+    }
+
+    // Check if file exists on disk
+    if (fs.existsSync(filePath)) {
+      res.download(filePath, doc.file_name);
+    } else {
+      // File doesn't exist on disk - return metadata (for testing/demo)
+      res.json({
+        message: 'Download initiated',
+        document: {
+          id: doc.id,
+          documentType: doc.document_type,
+          fileName: doc.file_name
+        }
+      });
+    }
+  } catch (error) {
+    console.error('[ERROR] Portal document download failed:', error.message);
+    res.status(500).json({ error: 'Failed to download document' });
+  }
+});
+
+/**
  * POST /api/portal/trips/:id/feedback
  * Customer submits post-trip feedback
  */

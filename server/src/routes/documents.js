@@ -927,6 +927,156 @@ function generateItineraryHtml(trip, bookings, travelers, agency, itineraryNumbe
 </html>`;
 }
 
+/**
+ * Generate card authorization form HTML content
+ */
+function generateAuthorizationFormHtml(trip, client, totals, agency, authNumber, generatedDate) {
+  const formatCurrency = (amount) => {
+    return '$' + (amount || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const clientName = client ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : '';
+  const clientEmail = client ? client.email || '' : '';
+  const clientPhone = client ? client.phone || '' : '';
+  const clientAddress = client ? [client.address_line_1, client.address_line_2, client.city, client.state, client.postal_code, client.country].filter(Boolean).join(', ') : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credit Card Authorization Form - ${authNumber}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 40px; color: #1F2937; line-height: 1.6; }
+    .auth-container { max-width: 700px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #E5E7EB; }
+    .company-name { font-size: 24px; font-weight: 700; color: #1F2937; margin-bottom: 8px; }
+    .form-title { font-size: 20px; font-weight: 600; color: #4B5563; }
+    .form-number { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 14px; font-weight: 600; color: #4B5563; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #E5E7EB; }
+    .field-group { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+    .field { flex: 1; min-width: 200px; }
+    .field-label { font-size: 12px; font-weight: 500; color: #6B7280; margin-bottom: 4px; }
+    .field-value { padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 4px; background: #F9FAFB; min-height: 20px; font-size: 14px; }
+    .field-input { padding: 12px; border: 1px solid #D1D5DB; border-radius: 4px; background: white; min-height: 20px; font-size: 14px; }
+    .field-blank { border-bottom: 1px solid #374151; display: inline-block; min-width: 200px; }
+    .amount-box { background: #EFF6FF; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; }
+    .amount-label { font-size: 14px; color: #1E40AF; margin-bottom: 8px; }
+    .amount-value { font-size: 32px; font-weight: 700; color: #1E40AF; }
+    .disclaimer { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 24px 0; font-size: 12px; color: #92400E; }
+    .signature-section { margin-top: 40px; padding-top: 24px; border-top: 2px solid #E5E7EB; }
+    .signature-line { border-bottom: 1px solid #374151; width: 100%; margin-bottom: 8px; height: 40px; }
+    .signature-label { font-size: 12px; color: #6B7280; }
+    .date-line { display: inline-block; border-bottom: 1px solid #374151; width: 150px; margin-left: 40px; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #9CA3AF; text-align: center; }
+    .trip-info { background: #F3F4F6; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+    .trip-name { font-weight: 600; color: #1F2937; }
+    .trip-detail { font-size: 14px; color: #6B7280; margin-top: 4px; }
+    @media print { body { padding: 20px; } .field-input { border: 1px solid #9CA3AF; } }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="header">
+      <div class="company-name">${agency ? agency.name : 'Travel Agency'}</div>
+      <div class="form-title">Credit Card Authorization Form</div>
+      <div class="form-number">${authNumber}</div>
+    </div>
+
+    <div class="trip-info">
+      <div class="trip-name">${trip.name}</div>
+      ${trip.destination ? `<div class="trip-detail">Destination: ${trip.destination}</div>` : ''}
+      ${trip.travel_start_date ? `<div class="trip-detail">Travel Dates: ${formatDate(trip.travel_start_date)}${trip.travel_end_date ? ` - ${formatDate(trip.travel_end_date)}` : ''}</div>` : ''}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cardholder Information</div>
+      <div class="field-group">
+        <div class="field">
+          <div class="field-label">Cardholder Name (as it appears on card)</div>
+          <div class="field-value">${clientName || ''}</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <div class="field-label">Email</div>
+          <div class="field-value">${clientEmail || ''}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Phone</div>
+          <div class="field-value">${clientPhone || ''}</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field" style="flex: 2;">
+          <div class="field-label">Billing Address</div>
+          <div class="field-value">${clientAddress || ''}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Credit Card Information</div>
+      <div class="field-group">
+        <div class="field" style="flex: 2;">
+          <div class="field-label">Card Number</div>
+          <div class="field-input">&nbsp;</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <div class="field-label">Expiration Date (MM/YY)</div>
+          <div class="field-input">&nbsp;</div>
+        </div>
+        <div class="field">
+          <div class="field-label">CVV/Security Code</div>
+          <div class="field-input">&nbsp;</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Card Type</div>
+          <div class="field-input">☐ Visa  ☐ MC  ☐ Amex  ☐ Discover</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="amount-box">
+      <div class="amount-label">Amount to be Charged</div>
+      <div class="amount-value">${formatCurrency(totals.totalDue)}</div>
+    </div>
+
+    <div class="disclaimer">
+      <strong>Authorization Agreement:</strong> I authorize ${agency ? agency.name : 'the travel agency'} to charge the credit card indicated above for the amount shown. I understand that this authorization will remain in effect until I cancel it in writing, and I agree to notify the agency in writing of any changes in my account information. I certify that I am an authorized user of this credit card and that I will not dispute this transaction with my credit card company, so long as the transaction corresponds to the terms indicated in this form.
+    </div>
+
+    <div class="signature-section">
+      <div class="field-group">
+        <div class="field" style="flex: 2;">
+          <div class="signature-line"></div>
+          <div class="signature-label">Cardholder Signature</div>
+        </div>
+        <div class="field">
+          <div class="signature-line"></div>
+          <div class="signature-label">Date</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>This authorization form is valid for the specified amount only.</p>
+      <p>Form generated on ${formatDate(generatedDate)} | ${authNumber}</p>
+      <p>Please return the completed form via secure email or fax.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 function formatDocument(d) {
   return {
     id: d.id,

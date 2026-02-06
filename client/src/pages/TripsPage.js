@@ -2408,6 +2408,7 @@ function DocumentsTab({ tripId, token }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [generatingItinerary, setGeneratingItinerary] = useState(false);
+  const [generatingAuthForm, setGeneratingAuthForm] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -2594,6 +2595,33 @@ function DocumentsTab({ tripId, token }) {
     }
   };
 
+  const handleGenerateAuthForm = async () => {
+    setGeneratingAuthForm(true);
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ type: 'authorization' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate authorization form');
+      }
+
+      addToast(`Authorization form ${data.authorization.authNumber} generated successfully`, 'success');
+      setDocuments(prev => [data.document, ...prev]);
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setGeneratingAuthForm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-screen" style={{ minHeight: '120px' }}>
@@ -2623,6 +2651,14 @@ function DocumentsTab({ tripId, token }) {
             title="Generate an invoice from trip financial data"
           >
             {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleGenerateAuthForm}
+            disabled={generatingAuthForm}
+            title="Generate a credit card authorization form"
+          >
+            {generatingAuthForm ? 'Generating...' : '🔒 Auth Form'}
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>
             + Upload Document

@@ -21,7 +21,18 @@ export default function TopBar({ onMenuToggle }) {
             <path d="M3 5H17M3 10H17M3 15H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </button>
-        {agency && <span className="topbar-agency-name">{agency.name}</span>}
+        {agency && (
+          <div className="topbar-agency">
+            {agency.logoUrl && (
+              <img
+                src={agency.logoUrl}
+                alt={`${agency.name} logo`}
+                className="topbar-agency-logo"
+              />
+            )}
+            <span className="topbar-agency-name">{agency.name}</span>
+          </div>
+        )}
       </div>
 
       <div className="topbar-center">
