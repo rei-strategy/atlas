@@ -2549,6 +2549,7 @@ export default function TripsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [tripNotFound, setTripNotFound] = useState(false);
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
 
@@ -2612,20 +2613,31 @@ export default function TripsPage() {
 
   // Handle URL parameter for direct navigation to a trip
   useEffect(() => {
-    if (urlTripId && token && !selectedTrip) {
+    if (urlTripId && token && !selectedTrip && !tripNotFound) {
       // Fetch the specific trip by ID
       fetch(`${API_BASE}/trips/${urlTripId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            setTripNotFound(true);
+            return null;
+          }
+          return res.json();
+        })
         .then(data => {
-          if (data.trip) {
+          if (data && data.trip) {
             setSelectedTrip(data.trip);
+          } else if (data === null) {
+            setTripNotFound(true);
           }
         })
-        .catch(err => console.error('Failed to load trip:', err));
+        .catch(err => {
+          console.error('Failed to load trip:', err);
+          setTripNotFound(true);
+        });
     }
-  }, [urlTripId, token, selectedTrip]);
+  }, [urlTripId, token, selectedTrip, tripNotFound]);
 
   const handleTripSaved = (savedTrip) => {
     setTrips(prev => {
@@ -2678,6 +2690,34 @@ export default function TripsPage() {
     setSelectedTrip(trip);
     navigate(`/trips/${trip.id}`);
   };
+
+  // Trip not found view
+  if (tripNotFound) {
+    return (
+      <div className="page-container">
+        <div className="page-empty-state">
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4" />
+              <circle cx="12" cy="16" r="1" fill="currentColor" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">Trip Not Found</h3>
+          <p className="empty-state-description">
+            This trip may have been deleted or you don't have permission to view it.
+          </p>
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: 'var(--spacing-md)' }}
+            onClick={() => { setTripNotFound(false); navigate('/trips'); }}
+          >
+            ← Back to Trips
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Detail view
   if (selectedTrip) {

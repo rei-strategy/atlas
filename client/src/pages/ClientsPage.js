@@ -299,7 +299,47 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token }) {
   );
 }
 
-function ClientDetail({ client, onBack, onEdit, token }) {
+function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [tripCount, setTripCount] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const { addToast } = useToast();
+
+  // Fetch associated trips count when delete modal opens
+  useEffect(() => {
+    if (showDeleteConfirm && client) {
+      fetch(`/api/trips?clientId=${client.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setTripCount(data.trips ? data.trips.length : 0);
+        })
+        .catch(() => setTripCount(0));
+    }
+  }, [showDeleteConfirm, client, token]);
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete client');
+      }
+      addToast('Client deleted successfully', 'success');
+      onDelete(client.id);
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (!client) return null;
 
   return (
@@ -308,10 +348,52 @@ function ClientDetail({ client, onBack, onEdit, token }) {
         <button className="btn btn-outline btn-sm" onClick={onBack}>
           ← Back to Clients
         </button>
-        <button className="btn btn-primary btn-sm" onClick={() => onEdit(client)}>
-          Edit Client
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+          <button className="btn btn-primary btn-sm" onClick={() => onEdit(client)}>
+            Edit Client
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => setShowDeleteConfirm(true)}>
+            Delete Client
+          </button>
+        </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Delete Client</h2>
+              <button className="modal-close-btn" onClick={() => setShowDeleteConfirm(false)} aria-label="Close">×</button>
+            </div>
+            <div className="modal-body">
+              <div className="delete-warning">
+                <p style={{ marginBottom: 'var(--spacing-md)', fontWeight: '500' }}>
+                  Are you sure you want to delete <strong>{client.firstName} {client.lastName}</strong>?
+                </p>
+                {tripCount > 0 && (
+                  <div className="warning-box" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-md)' }}>
+                    <p style={{ color: 'var(--color-warning-text, #92400e)', margin: 0 }}>
+                      ⚠️ This client has <strong>{tripCount} associated trip{tripCount !== 1 ? 's' : ''}</strong>.
+                      Deleting this client may affect related trip records.
+                    </p>
+                  </div>
+                )}
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={handleDeleteConfirm} disabled={deleting}>
+                {deleting ? 'Deleting...' : 'Delete Client'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="detail-card">
         <div className="detail-card-header">
@@ -419,6 +501,7 @@ export default function ClientsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editClient, setEditClient] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [notFound, setNotFound] = useState(false);
 
   // Fetch users for planner filter dropdown
   useEffect(() => {
@@ -466,20 +549,31 @@ export default function ClientsPage() {
 
   // Handle URL parameter for direct navigation to a client
   useEffect(() => {
-    if (urlClientId && token && !selectedClient) {
+    if (urlClientId && token && !selectedClient && !notFound) {
       // Fetch the specific client by ID
       fetch(`${API_BASE}/clients/${urlClientId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            setNotFound(true);
+            return null;
+          }
+          return res.json();
+        })
         .then(data => {
-          if (data.client) {
+          if (data && data.client) {
             setSelectedClient(data.client);
+          } else if (data === null) {
+            setNotFound(true);
           }
         })
-        .catch(err => console.error('Failed to load client:', err));
+        .catch(err => {
+          console.error('Failed to load client:', err);
+          setNotFound(true);
+        });
     }
-  }, [urlClientId, token, selectedClient]);
+  }, [urlClientId, token, selectedClient, notFound]);
 
   const handleClientSaved = (savedClient) => {
     setClients(prev => {
@@ -515,6 +609,12 @@ export default function ClientsPage() {
     setPlannerFilter('');
   };
 
+  const handleDeleteClient = (deletedId) => {
+    setClients(prev => prev.filter(c => c.id !== deletedId));
+    setSelectedClient(null);
+    navigate('/clients');
+  };
+
   const hasActiveFilters = search !== '' || plannerFilter !== '';
 
   // Handle column header click for sorting
@@ -541,6 +641,34 @@ export default function ClientsPage() {
     );
   };
 
+  // Not found view
+  if (notFound) {
+    return (
+      <div className="page-container">
+        <div className="page-empty-state">
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4" />
+              <circle cx="12" cy="16" r="1" fill="currentColor" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">Client Not Found</h3>
+          <p className="empty-state-description">
+            This client may have been deleted or you don't have permission to view it.
+          </p>
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: 'var(--spacing-md)' }}
+            onClick={() => { setNotFound(false); navigate('/clients'); }}
+          >
+            ← Back to Clients
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Detail view
   if (selectedClient) {
     return (
@@ -549,6 +677,7 @@ export default function ClientsPage() {
           client={selectedClient}
           onBack={() => { setSelectedClient(null); navigate('/clients'); }}
           onEdit={handleEditClient}
+          onDelete={handleDeleteClient}
           token={token}
         />
         <ClientFormModal

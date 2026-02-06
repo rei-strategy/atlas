@@ -475,22 +475,21 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    db.prepare('DELETE FROM bookings WHERE id = ? AND trip_id = ? AND agency_id = ?').run(id, tripId, req.agencyId);
-
-    // Audit log
+    // Audit log BEFORE delete (to capture booking_id reference)
     db.prepare(`
       INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id, booking_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
     `).run(
       req.agencyId,
       req.user.id,
       'delete',
       'booking',
       id,
-      JSON.stringify({ bookingType: existing.booking_type, supplierName: existing.supplier_name }),
-      tripId,
-      id
+      JSON.stringify({ bookingType: existing.booking_type, supplierName: existing.supplier_name, bookingId: id }),
+      tripId
     );
+
+    db.prepare('DELETE FROM bookings WHERE id = ? AND trip_id = ? AND agency_id = ?').run(id, tripId, req.agencyId);
 
     res.json({ message: 'Booking deleted successfully', deletedId: Number(id) });
   } catch (error) {
