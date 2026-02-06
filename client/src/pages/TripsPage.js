@@ -2407,6 +2407,7 @@ function DocumentsTab({ tripId, token }) {
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [generatingItinerary, setGeneratingItinerary] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -2566,6 +2567,33 @@ function DocumentsTab({ tripId, token }) {
     }
   };
 
+  const handleGenerateItinerary = async () => {
+    setGeneratingItinerary(true);
+    try {
+      const res = await fetch(`${API_BASE}/trips/${tripId}/documents/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ type: 'itinerary' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate itinerary');
+      }
+
+      addToast(`Itinerary ${data.itinerary.itineraryNumber} generated successfully`, 'success');
+      setDocuments(prev => [data.document, ...prev]);
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setGeneratingItinerary(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-screen" style={{ minHeight: '120px' }}>
@@ -2580,6 +2608,14 @@ function DocumentsTab({ tripId, token }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ margin: 0 }}>Documents ({documents.length})</h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={handleGenerateItinerary}
+            disabled={generatingItinerary}
+            title="Generate an itinerary from trip data"
+          >
+            {generatingItinerary ? 'Generating...' : '🗺️ Generate Itinerary'}
+          </button>
           <button
             className="btn btn-outline btn-sm"
             onClick={handleGenerateInvoice}
@@ -2606,7 +2642,10 @@ function DocumentsTab({ tripId, token }) {
           </div>
           <h3 className="empty-state-title">No documents yet</h3>
           <p className="empty-state-description">Upload contracts, invoices, itineraries, and other trip documents.</p>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'var(--spacing-md)', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-outline" onClick={handleGenerateItinerary} disabled={generatingItinerary}>
+              {generatingItinerary ? 'Generating...' : '🗺️ Generate Itinerary'}
+            </button>
             <button className="btn btn-outline" onClick={handleGenerateInvoice} disabled={generatingInvoice}>
               {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
             </button>

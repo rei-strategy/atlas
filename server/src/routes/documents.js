@@ -689,6 +689,153 @@ function generateInvoiceHtml(trip, bookings, totals, agency, invoiceNumber, gene
 </html>`;
 }
 
+/**
+ * Generate itinerary HTML content
+ */
+function generateItineraryHtml(trip, bookings, travelers, agency, itineraryNumber, generatedDate) {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const clientName = `${trip.client_first_name || ''} ${trip.client_last_name || ''}`.trim() || 'Guest';
+
+  const bookingTypeIcons = {
+    hotel: '🏨',
+    cruise: '🚢',
+    resort: '🏝️',
+    tour: '🎫',
+    insurance: '🛡️',
+    transfer: '🚐',
+    other: '📋'
+  };
+
+  // Build bookings section - sorted chronologically by travel date
+  const bookingRows = bookings.map(b => {
+    const icon = bookingTypeIcons[b.booking_type] || '📋';
+    const dateRange = b.travel_start_date
+      ? (b.travel_end_date && b.travel_end_date !== b.travel_start_date
+        ? `${formatShortDate(b.travel_start_date)} - ${formatShortDate(b.travel_end_date)}`
+        : formatShortDate(b.travel_start_date))
+      : 'Dates TBD';
+
+    return `
+    <div class="booking-card">
+      <div class="booking-icon">${icon}</div>
+      <div class="booking-content">
+        <div class="booking-header">
+          <div class="booking-supplier">${b.supplier_name || 'Supplier TBD'}</div>
+          <div class="booking-type">${b.booking_type || 'Other'}</div>
+        </div>
+        <div class="booking-dates">${dateRange}</div>
+        ${b.confirmation_number ? `<div class="booking-confirmation">Confirmation: ${b.confirmation_number}</div>` : ''}
+        ${b.supplier_notes ? `<div class="booking-notes">${b.supplier_notes}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build travelers section
+  const travelerRows = travelers.map((t, idx) => {
+    const passportStatus = t.passport_status === 'yes'
+      ? `✅ Passport (exp: ${t.passport_expiration ? formatShortDate(t.passport_expiration) : 'N/A'})`
+      : (t.passport_status === 'no' ? '❌ No Passport' : '❓ Passport Unknown');
+
+    return `
+    <div class="traveler-card">
+      <div class="traveler-number">${idx + 1}</div>
+      <div class="traveler-content">
+        <div class="traveler-name">${t.full_legal_name || 'Name TBD'}</div>
+        ${t.date_of_birth ? `<div class="traveler-dob">DOB: ${formatDate(t.date_of_birth)}</div>` : ''}
+        <div class="traveler-passport">${passportStatus}</div>
+        ${t.special_needs ? `<div class="traveler-needs">Special needs: ${t.special_needs}</div>` : ''}
+        ${t.relationship_to_client ? `<div class="traveler-relationship">${t.relationship_to_client}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Itinerary - ${trip.name}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 40px; color: #1F2937; background: #F9FAFB; }
+    .itinerary-container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .header { text-align: center; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 3px solid ${agency?.primary_color || '#1a56db'}; }
+    .agency-name { font-size: 14px; color: #6B7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .trip-title { font-size: 32px; font-weight: 700; color: #1F2937; margin-bottom: 8px; }
+    .trip-destination { font-size: 20px; color: ${agency?.primary_color || '#1a56db'}; margin-bottom: 16px; }
+    .trip-dates { font-size: 16px; color: #6B7280; }
+    .client-section { background: #F3F4F6; padding: 20px; border-radius: 8px; margin-bottom: 32px; }
+    .client-label { font-size: 12px; color: #6B7280; text-transform: uppercase; margin-bottom: 4px; }
+    .client-name { font-size: 18px; font-weight: 600; color: #1F2937; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 18px; font-weight: 600; color: #1F2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #E5E7EB; }
+    .booking-card { display: flex; gap: 16px; padding: 16px; background: #F9FAFB; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid ${agency?.primary_color || '#1a56db'}; }
+    .booking-icon { font-size: 24px; width: 40px; text-align: center; }
+    .booking-content { flex: 1; }
+    .booking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .booking-supplier { font-weight: 600; color: #1F2937; }
+    .booking-type { font-size: 12px; color: #6B7280; text-transform: uppercase; background: #E5E7EB; padding: 2px 8px; border-radius: 4px; }
+    .booking-dates { color: #6B7280; font-size: 14px; }
+    .booking-confirmation { font-size: 13px; color: #059669; margin-top: 4px; }
+    .booking-notes { font-size: 13px; color: #6B7280; margin-top: 4px; font-style: italic; }
+    .traveler-card { display: flex; gap: 12px; padding: 12px; background: #F9FAFB; border-radius: 8px; margin-bottom: 8px; }
+    .traveler-number { width: 28px; height: 28px; background: ${agency?.primary_color || '#1a56db'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+    .traveler-content { flex: 1; }
+    .traveler-name { font-weight: 600; color: #1F2937; }
+    .traveler-dob, .traveler-passport, .traveler-needs, .traveler-relationship { font-size: 13px; color: #6B7280; }
+    .traveler-needs { color: #D97706; }
+    .empty-message { color: #9CA3AF; font-style: italic; padding: 20px; text-align: center; background: #F9FAFB; border-radius: 8px; }
+    .footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid #E5E7EB; text-align: center; }
+    .footer-text { font-size: 12px; color: #9CA3AF; }
+    .itinerary-number { font-size: 11px; color: #D1D5DB; margin-top: 8px; }
+    @media print {
+      body { padding: 20px; background: white; }
+      .itinerary-container { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="itinerary-container">
+    <div class="header">
+      <div class="agency-name">${agency ? agency.name : 'Travel Itinerary'}</div>
+      <div class="trip-title">${trip.name}</div>
+      ${trip.destination ? `<div class="trip-destination">📍 ${trip.destination}</div>` : ''}
+      ${trip.travel_start_date ? `<div class="trip-dates">📅 ${formatDate(trip.travel_start_date)}${trip.travel_end_date ? ` - ${formatDate(trip.travel_end_date)}` : ''}</div>` : ''}
+    </div>
+
+    <div class="client-section">
+      <div class="client-label">Prepared For</div>
+      <div class="client-name">${clientName}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">👥 Travelers (${travelers.length})</div>
+      ${travelers.length > 0 ? travelerRows : '<div class="empty-message">No travelers added to this trip yet.</div>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">📋 Itinerary (${bookings.length} bookings)</div>
+      ${bookings.length > 0 ? bookingRows : '<div class="empty-message">No bookings added to this trip yet.</div>'}
+    </div>
+
+    <div class="footer">
+      <div class="footer-text">Thank you for choosing ${agency ? agency.name : 'us'} for your travel planning needs.</div>
+      <div class="footer-text">Generated on ${formatDate(generatedDate)}</div>
+      <div class="itinerary-number">${itineraryNumber}</div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 function formatDocument(d) {
   return {
     id: d.id,
