@@ -1040,3 +1040,47 @@
 - Pagination fully implemented for clients and trips
 - Filter reset behavior verified
 - Build succeeds, no lint errors
+
+### Session - 2026-02-06 (Agent batch: Features #28, #30, #11)
+
+**Features Completed: #28, #30, #11 (Security & Access Control)**
+
+#### Feature #28: Approval workflow - admin denies request
+- Pending approval request exists
+- Admin can deny request via PUT /api/approvals/:id/deny
+- Deny accepts a responseNote (reason)
+- Action is NOT executed when denied (booking status remains unchanged)
+- Requester notified via notification with denial reason
+- Audit log records deny_request action with all details
+
+#### Feature #30: Approval audit trail is complete
+- All approval actions logged in audit trail:
+  - create_approval_request: logged when planner creates request
+  - approve_request: logged when admin approves with timestamp and note
+  - deny_request: logged when admin denies with timestamp and reason
+- Audit entries cannot be edited (returns 403 Forbidden)
+- Audit entries cannot be deleted (returns 403 Forbidden)
+- All data persists after server restart
+
+#### Feature #11: User cannot login with invalid credentials
+- Wrong email returns generic error "Invalid email or password"
+- Wrong password returns same generic error "Invalid email or password"
+- No JWT token issued on failed login
+- Error message does not reveal which field is wrong (security best practice)
+- Returns HTTP 401 Unauthorized status
+
+#### Test Data Created
+- Agency: Deny Test Agency (ID: 58)
+- Admin: deny_test_admin@atlas.com / TestPass123
+- Planner: deny_test_planner@atlas.com / Welcome123!
+- Client: Deny TestClient (ID: 129)
+- Trip: DENY_TEST_TRIP (ID: 28)
+- Booking: DENY-BOOKING-001 (Roma Grand Hotel, ID: 19)
+- Approval Requests: IDs 5 (denied), 6 (approved)
+
+#### Current State
+- 72/240 features passing (~30%)
+- Backend on port 3001, Frontend on port 3000
+- Approval workflow fully functional with audit trail
+- Login security properly handles invalid credentials
+- Zero console errors
