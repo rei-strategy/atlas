@@ -18,6 +18,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     city: '', state: '', country: '',
@@ -28,6 +30,60 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     contactConsent: true,
     assignedUserId: ''
   });
+
+  // Validation function for individual fields
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'firstName':
+        if (!value || !value.trim()) {
+          return 'First name is required';
+        }
+        if (value.trim().length < 2) {
+          return 'First name must be at least 2 characters';
+        }
+        return '';
+      case 'lastName':
+        if (!value || !value.trim()) {
+          return 'Last name is required';
+        }
+        if (value.trim().length < 2) {
+          return 'Last name must be at least 2 characters';
+        }
+        return '';
+      case 'email':
+        if (value && value.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value.trim())) {
+            return 'Please enter a valid email address';
+          }
+        }
+        return '';
+      case 'phone':
+        if (value && value.trim()) {
+          // Allow various phone formats but require at least 7 digits
+          const digits = value.replace(/\D/g, '');
+          if (digits.length < 7) {
+            return 'Please enter a valid phone number';
+          }
+        }
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Validate all fields and return errors object
+  const validateAllFields = () => {
+    const errors = {};
+    const fieldsToValidate = ['firstName', 'lastName', 'email', 'phone'];
+    fieldsToValidate.forEach(field => {
+      const error = validateField(field, form[field]);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    return errors;
+  };
 
   useEffect(() => {
     if (client) {
@@ -59,13 +115,37 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       });
     }
     setError('');
+    setFieldErrors({});
+    setTouched({});
   }, [client, isOpen]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
     setForm(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
+    }));
+
+    // Clear field error when user starts typing (real-time validation)
+    if (touched[name]) {
+      const fieldError = validateField(name, newValue);
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: fieldError
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: fieldError
     }));
   };
 
@@ -82,8 +162,21 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     e.preventDefault();
     setError('');
 
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      setError('First name and last name are required');
+    // Validate all fields on submit
+    const errors = validateAllFields();
+    setFieldErrors(errors);
+
+    // Mark all required fields as touched
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true
+    });
+
+    // If there are any errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the errors below before submitting');
       return;
     }
 
