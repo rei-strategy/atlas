@@ -2401,3 +2401,46 @@
 - Git commits: d9c3139, 8d1d7f1, 6a6d8c1
 
 ---
+
+
+### Session - 2026-02-06 (Agent batch: Features #114, #115, #124)
+
+**Features Completed: #114, #115, #124 (Dashboard and Reports)**
+
+#### Feature #114: Dashboard - quick access to recent items
+- Added GET /api/dashboard/recent-items endpoint
+- Returns recently updated clients and trips (sorted by updated_at DESC)
+- Added Quick Access card to dashboard with Recent Clients and Recent Trips sections
+- Each item shows name and relevant metadata (city for clients, destination/stage for trips)
+- Clicking items navigates to client/trip detail pages
+- Added CSS styles for quick-access components
+
+#### Feature #115: Dashboard - per-planner performance (admin only)
+- Added GET /api/dashboard/planner-performance endpoint (admin-only access)
+- Returns per-planner metrics: trip counts (active, completed, canceled), conversion rates, revenue
+- Team Performance card only visible to admin users (conditional rendering)
+- Shows performance table with columns: Planner, Active, Completed, Conversion, Revenue
+- Agency totals displayed at bottom (total trips, overall conversion rate, total revenue)
+- Conversion rate color-coded: high (green 70%+), medium (yellow 50%+), low (red)
+
+#### Feature #124: Revenue report by period
+- Feature was already fully implemented
+- Revenue Report tab in Reports page with date range selector
+- Quick range buttons (7 days, 30 days, 90 days, 1 year)
+- Summary cards: Total Revenue, Commission Earned, Commission Pending
+- Revenue by Month table shows: month, booking count, revenue, commission
+- Based on actual booked amounts (total_cost field), not estimates
+- 64 bookings in database totaling $150,585
+
+#### Additional Changes (by parallel agents)
+- GET /api/dashboard/commission-pipeline endpoint added
+- GET /api/dashboard/recent-activity endpoint added for audit log feed
+- Commission Pipeline widget implemented in dashboard
+
+#### Current State
+- 160/240 features passing (66.7%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commits: 9795eaa, 0a5f920, 5bb4441
+
+---

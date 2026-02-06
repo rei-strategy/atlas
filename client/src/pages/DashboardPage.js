@@ -616,7 +616,7 @@ export default function DashboardPage() {
         </div>
 
         {/* At-Risk Payments Card */}
-        <div className="dashboard-card dashboard-card-wide">
+        <div className="dashboard-card">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {atRiskPayments.totalAtRisk > 0 && (
@@ -692,7 +692,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Commission Pipeline Card */}
-        <div className="dashboard-card">
+        <div className="dashboard-card dashboard-card-wide">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {commissionPipeline.summary.totalBookings > 0 && (
