@@ -2942,3 +2942,44 @@
 - All features verified working
 - Git commits: fda7b2e (#172), 224f15f (#174), 627cedb (#175)
 
+
+
+### Session - 2026-02-06 (Agent batch: Features #176, #177, #178)
+
+**Features Completed: #176, #177, #178 (Form Validation)**
+
+#### Feature #176: Maximum length validation on text fields
+- Added FIELD_LIMITS constants in client/src/utils/validation.js
+- Name fields: 100 chars, Email: 255 chars, Phone: 30 chars
+- City/State/Country: 100 chars each, Notes: 10000 chars
+- Updated ClientsPage.js validateField() for all text fields
+- Added maxLength HTML attributes to all form inputs
+- Character count display for notes field with warning at 80%
+- Server-side validation via validateClientFields() in utils/validation.js
+
+#### Feature #177: Server-side validation matches client-side
+- Already implemented - verified server validates:
+  - Required fields (firstName, lastName) → 400 error
+  - Email format → 400 error
+  - Max lengths → 400 error with specific field message
+- validateClientFields() and validateTripFields() on backend
+- formatValidationErrors() creates user-friendly messages
+
+#### Feature #178: Phone number format validation
+- Updated phone validation on both client and server:
+  - Rejects letters (a-zA-Z) with error message
+  - Requires minimum 7 digits for valid number
+  - Maximum 15 digits (E.164 international standard)
+  - Accepts various formats: (555) 123-4567, +1-555-123-4567, +44 20 7946 0958
+- Added validatePhoneFormat() function on server
+
+#### Code Changes
+- client/src/pages/ClientsPage.js: Enhanced validateField() with max length and phone validation
+- server/src/utils/validation.js: Added validatePhoneFormat(), updated validateClientFields()
+
+#### Current State
+- 192/240 features passing (~80.0%)
+- Backend on port 3001, Frontend on port 3000
+- All three validation features verified working
+- Git commit: e750fa4
+

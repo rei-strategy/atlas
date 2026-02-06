@@ -646,7 +646,21 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    const newValue = type === 'checkbox' ? checked : value;
+    setForm(prev => ({ ...prev, [name]: newValue }));
+
+    // Real-time validation: show error when status changes to 'booked' without confirmation number
+    if (name === 'status' && value === 'booked' && !form.confirmationNumber?.trim()) {
+      setFieldErrors(prev => ({ ...prev, confirmationNumber: 'Confirmation number is required for booked status' }));
+    }
+    // Clear confirmation error if status changes away from 'booked'
+    if (name === 'status' && value !== 'booked' && fieldErrors.confirmationNumber) {
+      setFieldErrors(prev => {
+        const updated = { ...prev };
+        delete updated.confirmationNumber;
+        return updated;
+      });
+    }
   };
 
   // Auto-calculate commission amount when rate or total cost changes
@@ -694,6 +708,13 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
     // Validate all financial fields before submission
     if (!validateAllFinancialFields()) {
       setError('Please fix the errors in the financial fields');
+      return;
+    }
+
+    // Validation: 'booked' status requires confirmation number
+    if (form.status === 'booked' && !form.confirmationNumber?.trim()) {
+      setFieldErrors(prev => ({ ...prev, confirmationNumber: 'Confirmation number is required for booked status' }));
+      setError('Confirmation number is required when status is "Booked"');
       return;
     }
 
@@ -798,16 +819,35 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                   placeholder="e.g., Royal Caribbean, Marriott"
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="confirmationNumber">Confirmation Number</label>
+              <div className={`form-group ${fieldErrors.confirmationNumber ? 'form-group-error' : ''}`}>
+                <label className="form-label" htmlFor="confirmationNumber">
+                  Confirmation Number{form.status === 'booked' ? ' *' : ''}
+                </label>
                 <input
                   id="confirmationNumber"
                   name="confirmationNumber"
-                  className="form-input"
+                  className={`form-input ${fieldErrors.confirmationNumber ? 'form-input-error' : ''}`}
                   value={form.confirmationNumber}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e);
+                    // Clear confirmation number error when user types
+                    if (fieldErrors.confirmationNumber && e.target.value.trim()) {
+                      setFieldErrors(prev => {
+                        const updated = { ...prev };
+                        delete updated.confirmationNumber;
+                        return updated;
+                      });
+                    }
+                  }}
                   placeholder="e.g., ABC12345"
+                  aria-invalid={!!fieldErrors.confirmationNumber}
+                  aria-describedby={fieldErrors.confirmationNumber ? 'confirmationNumber-error' : undefined}
                 />
+                {fieldErrors.confirmationNumber && (
+                  <span id="confirmationNumber-error" className="form-error-message" role="alert">
+                    {fieldErrors.confirmationNumber}
+                  </span>
+                )}
               </div>
             </div>
 

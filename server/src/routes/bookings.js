@@ -129,6 +129,11 @@ router.post('/', canModifyBookings, (req, res) => {
     const payStatus = paymentStatus && VALID_PAYMENT_STATUSES.includes(paymentStatus) ? paymentStatus : 'deposit_paid';
     const commStatus = commissionStatus && VALID_COMMISSION_STATUSES.includes(commissionStatus) ? commissionStatus : 'expected';
 
+    // Validation: 'booked' status requires confirmation number
+    if (bookingStatus === 'booked' && !confirmationNumber?.trim()) {
+      return res.status(400).json({ error: 'Confirmation number is required for booked status' });
+    }
+
     const result = db.prepare(`
       INSERT INTO bookings (
         trip_id, agency_id, booking_type, supplier_name, status, confirmation_number,
@@ -230,6 +235,14 @@ router.put('/:id', canModifyBookings, (req, res) => {
     }
     if (commissionStatus && !VALID_COMMISSION_STATUSES.includes(commissionStatus)) {
       return res.status(400).json({ error: 'Invalid commission status' });
+    }
+
+    // Validation: 'booked' status requires confirmation number
+    // Check the effective status (provided or existing) and effective confirmation number
+    const effectiveStatus = status || existing.status;
+    const effectiveConfirmation = confirmationNumber !== undefined ? confirmationNumber : existing.confirmation_number;
+    if (effectiveStatus === 'booked' && !effectiveConfirmation?.trim()) {
+      return res.status(400).json({ error: 'Confirmation number is required for booked status' });
     }
 
     // Check for restricted actions that require admin approval
