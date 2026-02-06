@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessage } from '../utils/apiErrors';
 import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit } from '../utils/validation';
+import { useFormDraft } from '../hooks/useFormDraft';
 import Breadcrumb from '../components/Breadcrumb';
 
 const API_BASE = '/api';
@@ -28,6 +29,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   const [conflictData, setConflictData] = useState(null);
   const abortControllerRef = useRef(null);
   const loadingStartRef = useRef(null);
+  const [draftChecked, setDraftChecked] = useState(false);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     city: '', state: '', country: '',
@@ -137,9 +139,29 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
     return errors;
   };
 
+  // Form draft persistence hook
+  const {
+    draftRestored,
+    draftAge,
+    isDirty,
+    loadExistingDraft,
+    saveFormDraft,
+    clearFormDraft,
+    dismissDraftNotification
+  } = useFormDraft('client', client?.id || null, client, {
+    enabled: isOpen, // Only enable when modal is open
+    contentFields: ['firstName', 'lastName', 'email', 'phone', 'city', 'state', 'country', 'notes']
+  });
+
   useEffect(() => {
+    if (!isOpen) {
+      setDraftChecked(false);
+      return;
+    }
+
     if (client) {
-      setForm({
+      // Edit mode - load client data, then check for draft
+      const baseForm = {
         firstName: client.firstName || '',
         lastName: client.lastName || '',
         email: client.email || '',
@@ -153,35 +175,60 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
         marketingOptIn: !!client.marketingOptIn,
         contactConsent: client.contactConsent !== false,
         assignedUserId: client.assignedUserId || '',
-        updatedAt: client.updatedAt || null // Store for optimistic locking
-      });
+        updatedAt: client.updatedAt || null
+      };
+
+      // Check for saved draft when editing
+      if (!draftChecked) {
+        const savedDraft = loadExistingDraft();
+        if (savedDraft) {
+          // Merge draft with base form, preserving updatedAt for conflict detection
+          setForm({ ...savedDraft, updatedAt: client.updatedAt || null });
+        } else {
+          setForm(baseForm);
+        }
+        setDraftChecked(true);
+      }
     } else {
-      setForm({
-        firstName: '', lastName: '', email: '', phone: '',
-        city: '', state: '', country: '',
-        preferredCommunication: '',
-        travelPreferences: [],
-        notes: '',
-        marketingOptIn: false,
-        contactConsent: true,
-        assignedUserId: '',
-        updatedAt: null
-      });
+      // Create mode - check for saved draft
+      if (!draftChecked) {
+        const savedDraft = loadExistingDraft();
+        if (savedDraft) {
+          setForm({ ...savedDraft, updatedAt: null });
+        } else {
+          setForm({
+            firstName: '', lastName: '', email: '', phone: '',
+            city: '', state: '', country: '',
+            preferredCommunication: '',
+            travelPreferences: [],
+            notes: '',
+            marketingOptIn: false,
+            contactConsent: true,
+            assignedUserId: '',
+            updatedAt: null
+          });
+        }
+        setDraftChecked(true);
+      }
     }
     setError('');
     setFieldErrors({});
     setTouched({});
     setShowConflictModal(false);
     setConflictData(null);
-  }, [client, isOpen]);
+  }, [client, isOpen, draftChecked, loadExistingDraft]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
-    setForm(prev => ({
-      ...prev,
+    const newForm = {
+      ...form,
       [name]: newValue
-    }));
+    };
+    setForm(newForm);
+
+    // Save draft on every change (debounced)
+    saveFormDraft(newForm);
 
     // Clear field error when user starts typing (real-time validation)
     if (touched[name]) {
@@ -206,12 +253,17 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
   };
 
   const handleTravelPref = (pref) => {
-    setForm(prev => ({
-      ...prev,
-      travelPreferences: prev.travelPreferences.includes(pref)
-        ? prev.travelPreferences.filter(p => p !== pref)
-        : [...prev.travelPreferences, pref]
-    }));
+    const newPrefs = form.travelPreferences.includes(pref)
+      ? form.travelPreferences.filter(p => p !== pref)
+      : [...form.travelPreferences, pref];
+    const newForm = {
+      ...form,
+      travelPreferences: newPrefs
+    };
+    setForm(newForm);
+
+    // Save draft when travel preferences change
+    saveFormDraft(newForm);
   };
 
   // Track loading elapsed time
@@ -312,6 +364,9 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [] }
       if (!res.ok) {
         throw new Error(data.error || 'Failed to save client');
       }
+
+      // Clear draft on successful save
+      clearFormDraft();
 
       addToast(isEdit ? 'Client updated successfully' : 'Client created successfully', 'success');
       onSaved(data.client);

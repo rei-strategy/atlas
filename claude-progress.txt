@@ -1,5 +1,51 @@
 ## Atlas Progress Log
 
+### Session - 2026-02-06 (Agent batch: Features #180, #181, #182)
+
+**Features Verified: #180, #181, #182 (UI-Backend Integration)**
+
+#### Feature #180: Client dropdown populated from database
+- TripFormModal fetches clients from `/api/clients` on open
+- Created 5 test clients (IDs 177-181) in agency 102
+- All 5 clients returned by API
+- Trip created with client association (clientId: 179) - verified persisted
+- Select dropdown renders all clients with name and email
+- Native browser keyboard search works in select element
+
+#### Feature #181: User dropdown populated from agency members
+- TasksPage fetches users from `/api/users` endpoint
+- Backend filters by agency_id (multi-tenant isolation)
+- Created test agency 104 with 3 users: Admin, Planner1, Support1
+- Verified all 3 users returned for agency 104
+- Verified agency 102 only sees its own user (isolation works)
+
+#### Feature #182: Stage badge colors match status
+- STAGE_COLORS constant maps each stage to color class:
+  - inquiry → status-info (blue)
+  - quoted → status-warning (yellow)
+  - booked → status-success (green)
+  - final_payment_pending → status-warning (yellow)
+  - traveling → status-info (blue)
+  - completed → status-success (green)
+  - canceled → status-error (red)
+  - archived → status-neutral (gray)
+- Created test trips in inquiry, booked, completed, canceled stages
+- CSS classes defined in index.css with proper colors
+- All stages have distinct visual representation
+
+#### Test Data Created
+- Agency 102: test_f180@atlas.com, 5 clients (IDs 177-181), Trip 92
+- Agency 104: agency_f181_admin@atlas.com, 3 users (IDs 126-128)
+- Agency 104: Trips 94-97 in various stages
+
+#### Current State
+- 197/240 features passing (~82.1%)
+- Backend on port 3001, Frontend on port 3000
+- All three features verified working
+- Git commit: c6efaf8 (#180)
+
+---
+
 ### Session - 2026-02-06 (Agent: Feature #179)
 
 **Feature Completed: #179 - Confirmation number validation**
