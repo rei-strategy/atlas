@@ -5,6 +5,13 @@ import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
+const EMAIL_STATUS_COLORS = {
+  pending: 'status-warning',
+  approved: 'status-info',
+  sent: 'status-success',
+  failed: 'status-danger'
+};
+
 const TRIP_TYPE_OPTIONS = [
   { value: 'general', label: 'General' },
   { value: 'cruise', label: 'Cruise' },
@@ -471,10 +478,376 @@ function TemplateDetail({ template, onBack, onEdit, onPreview, onToggleActive, t
   );
 }
 
+function EmailQueuePreviewModal({ isOpen, onClose, queueItem, token, onApprove, onReject }) {
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen && queueItem) {
+      fetchPreview();
+    }
+  }, [isOpen, queueItem]);
+
+  const fetchPreview = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/email-templates/queue/${queueItem.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load preview');
+      }
+
+      setPreview(data.queueItem);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    setActionLoading(true);
+    try {
+      await onApprove(queueItem.id);
+      onClose();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!window.confirm('Are you sure you want to reject this email? It will be removed from the queue.')) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await onReject(queueItem.id);
+      onClose();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const isPending = queueItem?.status === 'pending';
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">Email Preview</h2>
+          <button className="modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="modal-body">
+          {loading ? (
+            <div className="loading-screen" style={{ minHeight: '200px' }}>
+              <div className="loading-spinner" />
+              <p>Loading email preview...</p>
+            </div>
+          ) : error ? (
+            <div className="auth-error">{error}</div>
+          ) : preview ? (
+            <div className="template-preview">
+              <div className="preview-section">
+                <h4 className="preview-label">Recipient</h4>
+                <div className="preview-content preview-subject">
+                  {preview.clientName || 'Unknown'} ({preview.clientEmail || 'No email'})
+                </div>
+              </div>
+              <div className="preview-section">
+                <h4 className="preview-label">Trip</h4>
+                <div className="preview-content preview-subject">
+                  {preview.tripName || 'N/A'} - {preview.tripDestination || 'N/A'}
+                </div>
+              </div>
+              <div className="preview-section">
+                <h4 className="preview-label">Subject</h4>
+                <div className="preview-content preview-subject">{preview.populatedSubject}</div>
+              </div>
+              <div className="preview-section">
+                <h4 className="preview-label">Body</h4>
+                <div className="preview-content preview-body" style={{ whiteSpace: 'pre-wrap' }}>
+                  {preview.populatedBody}
+                </div>
+              </div>
+              <div className="preview-section">
+                <h4 className="preview-label">Status</h4>
+                <span className={`status-badge ${EMAIL_STATUS_COLORS[preview.status] || 'status-neutral'}`}>
+                  {preview.status.charAt(0).toUpperCase() + preview.status.slice(1)}
+                </span>
+                {preview.requiresApproval && (
+                  <span className="status-badge status-warning" style={{ marginLeft: 'var(--spacing-sm)' }}>
+                    Requires Approval
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <div className="modal-footer">
+          {isPending ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline btn-danger"
+                onClick={handleReject}
+                disabled={actionLoading}
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleApprove}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Processing...' : 'Approve & Send'}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={onClose}>Close</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmailQueueTab({ token, formatDateTime }) {
+  const { addToast } = useToast();
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  const fetchQueue = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus) params.set('status', filterStatus);
+
+      const res = await fetch(`${API_BASE}/email-templates/queue/list?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQueue(data.queue || []);
+      }
+    } catch (err) {
+      console.error('Failed to load email queue:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, filterStatus]);
+
+  useEffect(() => {
+    fetchQueue();
+  }, [fetchQueue]);
+
+  const handlePreview = (item) => {
+    setSelectedItem(item);
+    setShowPreviewModal(true);
+  };
+
+  const handleApprove = async (queueId) => {
+    try {
+      const res = await fetch(`${API_BASE}/email-templates/queue/${queueId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to approve email');
+      }
+
+      addToast('Email approved and sent successfully', 'success');
+      fetchQueue();
+    } catch (err) {
+      addToast(err.message, 'error');
+      throw err;
+    }
+  };
+
+  const handleReject = async (queueId) => {
+    try {
+      const res = await fetch(`${API_BASE}/email-templates/queue/${queueId}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: 'Rejected by user' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reject email');
+      }
+
+      addToast('Email rejected and removed from queue', 'success');
+      fetchQueue();
+    } catch (err) {
+      addToast(err.message, 'error');
+      throw err;
+    }
+  };
+
+  const pendingCount = queue.filter(q => q.status === 'pending').length;
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: '200px' }}>
+        <div className="loading-spinner" />
+        <p>Loading email queue...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', alignItems: 'center' }}>
+        <select
+          className="form-input"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={{ width: '150px' }}
+        >
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="sent">Sent</option>
+          <option value="failed">Failed</option>
+        </select>
+        {pendingCount > 0 && (
+          <span className="status-badge status-warning">
+            {pendingCount} pending approval
+          </span>
+        )}
+      </div>
+
+      {queue.length === 0 ? (
+        <div className="page-empty-state">
+          <div className="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">No emails in queue</h3>
+          <p className="empty-state-description">
+            Emails will appear here when triggered by stage changes or scheduled sends.
+          </p>
+        </div>
+      ) : (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Template</th>
+                <th>Recipient</th>
+                <th>Trip</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queue.map(item => (
+                <tr key={item.id}>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{item.templateName || 'Unknown Template'}</div>
+                    <div style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>
+                      {item.templateSubject || ''}
+                    </div>
+                  </td>
+                  <td>
+                    <div>{item.clientName || 'Unknown'}</div>
+                    <div style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>
+                      {item.clientEmail || 'No email'}
+                    </div>
+                  </td>
+                  <td>{item.tripName || 'N/A'}</td>
+                  <td>
+                    <span className={`status-badge ${EMAIL_STATUS_COLORS[item.status] || 'status-neutral'}`}>
+                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                    </span>
+                    {item.requiresApproval && item.status === 'pending' && (
+                      <span className="status-badge status-warning" style={{ marginLeft: 'var(--spacing-xs)' }}>
+                        Needs Approval
+                      </span>
+                    )}
+                  </td>
+                  <td>{formatDateTime(item.createdAt)}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
+                      <button
+                        className="btn btn-xs btn-outline"
+                        onClick={() => handlePreview(item)}
+                      >
+                        Preview
+                      </button>
+                      {item.status === 'pending' && (
+                        <>
+                          <button
+                            className="btn btn-xs btn-primary"
+                            onClick={() => handleApprove(item.id)}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="btn btn-xs btn-outline btn-danger"
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to reject this email?')) {
+                                handleReject(item.id);
+                              }
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <EmailQueuePreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => { setShowPreviewModal(false); setSelectedItem(null); }}
+        queueItem={selectedItem}
+        token={token}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
+    </div>
+  );
+}
+
 export default function EmailTemplatesPage() {
   const { token } = useAuth();
   const { addToast } = useToast();
   const { formatDateTime } = useTimezone();
+  const [activeTab, setActiveTab] = useState('templates');
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -632,114 +1005,139 @@ export default function EmailTemplatesPage() {
           <h1 className="page-title">Email Templates</h1>
           <p className="page-subtitle">Create and manage automated email templates for client communications.</p>
         </div>
-        <button className="btn btn-primary" onClick={handleCreateTemplate}>
-          + New Template
-        </button>
+        {activeTab === 'templates' && (
+          <button className="btn btn-primary" onClick={handleCreateTemplate}>
+            + New Template
+          </button>
+        )}
       </div>
 
-      <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          className="form-input"
-          placeholder="Search templates..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '200px' }}
-        />
-        <select
-          className="form-input"
-          value={filterTripType}
-          onChange={(e) => setFilterTripType(e.target.value)}
-          style={{ width: '150px' }}
-        >
-          <option value="">All Trip Types</option>
-          {TRIP_TYPE_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-        <select
-          className="form-input"
-          value={filterActive}
-          onChange={(e) => setFilterActive(e.target.value)}
-          style={{ width: '130px' }}
-        >
-          <option value="">All Status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="loading-screen" style={{ minHeight: '200px' }}>
-          <div className="loading-spinner" />
-          <p>Loading templates...</p>
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="page-empty-state">
-          <div className="empty-state-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </div>
-          <h3 className="empty-state-title">No email templates yet</h3>
-          <p className="empty-state-description">Create email templates to automate client communications for bookings, reminders, and more.</p>
-          <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateTemplate}>
-            + Create Your First Template
+      <div className="tabs-container" style={{ marginBottom: 'var(--spacing-lg)' }}>
+        <div className="tabs">
+          <button
+            className={`tab ${activeTab === 'templates' ? 'active' : ''}`}
+            onClick={() => setActiveTab('templates')}
+          >
+            Templates
+          </button>
+          <button
+            className={`tab ${activeTab === 'queue' ? 'active' : ''}`}
+            onClick={() => setActiveTab('queue')}
+          >
+            Email Queue
           </button>
         </div>
+      </div>
+
+      {activeTab === 'queue' ? (
+        <EmailQueueTab token={token} formatDateTime={formatDateTime} />
       ) : (
-        <div className="templates-grid">
-          {templates.map(template => (
-            <div
-              key={template.id}
-              className="template-card"
-              onClick={() => handleViewTemplate(template)}
+        <>
+          <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search templates..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <select
+              className="form-input"
+              value={filterTripType}
+              onChange={(e) => setFilterTripType(e.target.value)}
+              style={{ width: '150px' }}
             >
-              <div className="template-card-header">
-                <div className="template-card-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
-                <div className="template-card-badges">
-                  <span className={`status-badge status-sm ${template.isActive ? 'status-success' : 'status-neutral'}`}>
-                    {template.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  <span className="status-badge status-sm status-info">v{template.version}</span>
-                </div>
-              </div>
-              <h3 className="template-card-name">{template.name}</h3>
-              <p className="template-card-subject">{template.subject}</p>
-              <div className="template-card-meta">
-                <span>{TRIP_TYPE_OPTIONS.find(t => t.value === template.tripType)?.label || template.tripType}</span>
-                <span>•</span>
-                <span>{TRIGGER_TYPE_OPTIONS.find(t => t.value === template.triggerType)?.label || template.triggerType}</span>
-              </div>
-              <div className="template-card-actions" onClick={e => e.stopPropagation()}>
-                <button
-                  className="btn btn-xs btn-outline"
-                  onClick={() => handlePreviewTemplate(template)}
-                >
-                  Preview
-                </button>
-                <button
-                  className="btn btn-xs btn-outline"
-                  onClick={() => handleEditTemplate(template)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-xs btn-outline btn-danger"
-                  onClick={() => handleDeleteTemplate(template)}
-                >
-                  Delete
-                </button>
-              </div>
+              <option value="">All Trip Types</option>
+              {TRIP_TYPE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <select
+              className="form-input"
+              value={filterActive}
+              onChange={(e) => setFilterActive(e.target.value)}
+              style={{ width: '130px' }}
+            >
+              <option value="">All Status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="loading-screen" style={{ minHeight: '200px' }}>
+              <div className="loading-spinner" />
+              <p>Loading templates...</p>
             </div>
-          ))}
-        </div>
+          ) : templates.length === 0 ? (
+            <div className="page-empty-state">
+              <div className="empty-state-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </div>
+              <h3 className="empty-state-title">No email templates yet</h3>
+              <p className="empty-state-description">Create email templates to automate client communications for bookings, reminders, and more.</p>
+              <button className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }} onClick={handleCreateTemplate}>
+                + Create Your First Template
+              </button>
+            </div>
+          ) : (
+            <div className="templates-grid">
+              {templates.map(template => (
+                <div
+                  key={template.id}
+                  className="template-card"
+                  onClick={() => handleViewTemplate(template)}
+                >
+                  <div className="template-card-header">
+                    <div className="template-card-icon">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                      </svg>
+                    </div>
+                    <div className="template-card-badges">
+                      <span className={`status-badge status-sm ${template.isActive ? 'status-success' : 'status-neutral'}`}>
+                        {template.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      <span className="status-badge status-sm status-info">v{template.version}</span>
+                    </div>
+                  </div>
+                  <h3 className="template-card-name">{template.name}</h3>
+                  <p className="template-card-subject">{template.subject}</p>
+                  <div className="template-card-meta">
+                    <span>{TRIP_TYPE_OPTIONS.find(t => t.value === template.tripType)?.label || template.tripType}</span>
+                    <span>•</span>
+                    <span>{TRIGGER_TYPE_OPTIONS.find(t => t.value === template.triggerType)?.label || template.triggerType}</span>
+                  </div>
+                  <div className="template-card-actions" onClick={e => e.stopPropagation()}>
+                    <button
+                      className="btn btn-xs btn-outline"
+                      onClick={() => handlePreviewTemplate(template)}
+                    >
+                      Preview
+                    </button>
+                    <button
+                      className="btn btn-xs btn-outline"
+                      onClick={() => handleEditTemplate(template)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-xs btn-outline btn-danger"
+                      onClick={() => handleDeleteTemplate(template)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <TemplateFormModal

@@ -771,6 +771,270 @@ router.post('/process-date-triggers', (req, res) => {
   }
 });
 
+/**
+ * POST /api/email-templates/queue
+ * Add an email to the queue (manual queue - for testing or manual sends)
+ */
+router.post('/queue', (req, res) => {
+  try {
+    const { templateId, tripId, clientId, scheduledSendDate } = req.body;
+
+    if (!templateId) {
+      return res.status(400).json({ error: 'Template ID is required' });
+    }
+
+    const db = getDb();
+
+    // Verify template exists and belongs to agency
+    const template = db.prepare(`
+      SELECT * FROM email_templates WHERE id = ? AND agency_id = ?
+    `).get(templateId, req.agencyId);
+
+    if (!template) {
+      return res.status(404).json({ error: 'Email template not found' });
+    }
+
+    // If tripId provided, verify it exists
+    if (tripId) {
+      const trip = db.prepare(`
+        SELECT id, client_id FROM trips WHERE id = ? AND agency_id = ?
+      `).get(tripId, req.agencyId);
+
+      if (!trip) {
+        return res.status(404).json({ error: 'Trip not found' });
+      }
+    }
+
+    // If clientId provided, verify it exists
+    if (clientId) {
+      const client = db.prepare(`
+        SELECT id FROM clients WHERE id = ? AND agency_id = ?
+      `).get(clientId, req.agencyId);
+
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+    }
+
+    const result = db.prepare(`
+      INSERT INTO email_queue (
+        agency_id, template_id, trip_id, client_id,
+        status, requires_approval, scheduled_send_date
+      ) VALUES (?, ?, ?, ?, 'pending', ?, ?)
+    `).run(
+      req.agencyId,
+      templateId,
+      tripId || null,
+      clientId || null,
+      template.requires_approval ? 1 : 0,
+      scheduledSendDate || null
+    );
+
+    const queueId = result.lastInsertRowid;
+
+    // Fetch the created queue item
+    const queueItem = db.prepare(`
+      SELECT eq.*,
+        et.name as template_name, et.subject as template_subject,
+        t.name as trip_name,
+        c.first_name as client_first_name, c.last_name as client_last_name, c.email as client_email
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      LEFT JOIN trips t ON eq.trip_id = t.id
+      LEFT JOIN clients c ON eq.client_id = c.id
+      WHERE eq.id = ?
+    `).get(queueId);
+
+    // Log in audit logs
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'queue_email',
+      'email_queue',
+      queueId,
+      JSON.stringify({ templateName: template.name, tripId, clientId })
+    );
+
+    console.log(`[EMAIL] Manually queued email from template "${template.name}" (queue ID: ${queueId})`);
+
+    res.status(201).json({
+      message: 'Email queued successfully',
+      queueItem: formatQueueItem(queueItem)
+    });
+  } catch (error) {
+    console.error('[ERROR] Queue email failed:', error.message);
+    res.status(500).json({ error: 'Failed to queue email' });
+  }
+});
+
+/**
+ * PUT /api/email-templates/queue/:queueId/approve
+ * Approve a pending email in the queue (sends it)
+ */
+router.put('/queue/:queueId/approve', (req, res) => {
+  try {
+    const db = getDb();
+    const queueId = req.params.queueId;
+
+    const queueItem = db.prepare(`
+      SELECT eq.*, et.name as template_name, et.subject as template_subject, et.body as template_body,
+        c.email as client_email, c.first_name as client_first_name, c.last_name as client_last_name,
+        t.name as trip_name, t.destination as trip_destination, t.travel_start_date, t.travel_end_date,
+        a.name as agency_name,
+        planner.first_name as planner_first_name, planner.last_name as planner_last_name
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      LEFT JOIN clients c ON eq.client_id = c.id
+      LEFT JOIN trips t ON eq.trip_id = t.id
+      LEFT JOIN agencies a ON eq.agency_id = a.id
+      LEFT JOIN users planner ON t.assigned_user_id = planner.id
+      WHERE eq.id = ? AND eq.agency_id = ?
+    `).get(queueId, req.agencyId);
+
+    if (!queueItem) {
+      return res.status(404).json({ error: 'Email queue item not found' });
+    }
+
+    if (queueItem.status !== 'pending') {
+      return res.status(400).json({ error: `Cannot approve email with status: ${queueItem.status}` });
+    }
+
+    // Check if user has permission to approve (admin or planner)
+    const canApprove = ['admin', 'planner', 'planner_advisor'].includes(req.user.role);
+    if (!canApprove) {
+      return res.status(403).json({ error: 'You do not have permission to approve emails' });
+    }
+
+    // Populate the email content
+    const populatedContent = populateEmailContent(queueItem);
+
+    // Update status to approved and mark as sent (simulated send - logs to console)
+    db.prepare(`
+      UPDATE email_queue SET
+        status = 'sent',
+        approved_by = ?,
+        approved_at = datetime('now'),
+        sent_at = datetime('now')
+      WHERE id = ? AND agency_id = ?
+    `).run(req.user.id, queueId, req.agencyId);
+
+    // Log the simulated email to console (development mode)
+    console.log('\n========================================');
+    console.log('[EMAIL SENT - Development Mode]');
+    console.log('----------------------------------------');
+    console.log(`To: ${queueItem.client_email || 'No recipient'}`);
+    console.log(`Subject: ${populatedContent.subject}`);
+    console.log('----------------------------------------');
+    console.log(populatedContent.body);
+    console.log('========================================\n');
+
+    // Log in audit logs
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'approve_email',
+      'email_queue',
+      queueId,
+      JSON.stringify({
+        templateName: queueItem.template_name,
+        recipientEmail: queueItem.client_email,
+        subject: populatedContent.subject
+      })
+    );
+
+    // Fetch updated queue item
+    const updatedItem = db.prepare(`
+      SELECT eq.*,
+        et.name as template_name, et.subject as template_subject,
+        t.name as trip_name,
+        c.first_name as client_first_name, c.last_name as client_last_name, c.email as client_email,
+        u.first_name as approved_by_first_name, u.last_name as approved_by_last_name
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      LEFT JOIN trips t ON eq.trip_id = t.id
+      LEFT JOIN clients c ON eq.client_id = c.id
+      LEFT JOIN users u ON eq.approved_by = u.id
+      WHERE eq.id = ?
+    `).get(queueId);
+
+    res.json({
+      message: 'Email approved and sent successfully',
+      queueItem: formatQueueItem(updatedItem)
+    });
+  } catch (error) {
+    console.error('[ERROR] Approve email failed:', error.message);
+    res.status(500).json({ error: 'Failed to approve email' });
+  }
+});
+
+/**
+ * PUT /api/email-templates/queue/:queueId/reject
+ * Reject/cancel a pending email in the queue
+ */
+router.put('/queue/:queueId/reject', (req, res) => {
+  try {
+    const db = getDb();
+    const queueId = req.params.queueId;
+    const { reason } = req.body;
+
+    const queueItem = db.prepare(`
+      SELECT eq.*, et.name as template_name
+      FROM email_queue eq
+      LEFT JOIN email_templates et ON eq.template_id = et.id
+      WHERE eq.id = ? AND eq.agency_id = ?
+    `).get(queueId, req.agencyId);
+
+    if (!queueItem) {
+      return res.status(404).json({ error: 'Email queue item not found' });
+    }
+
+    if (queueItem.status !== 'pending') {
+      return res.status(400).json({ error: `Cannot reject email with status: ${queueItem.status}` });
+    }
+
+    // Check if user has permission to reject (admin or planner)
+    const canReject = ['admin', 'planner', 'planner_advisor'].includes(req.user.role);
+    if (!canReject) {
+      return res.status(403).json({ error: 'You do not have permission to reject emails' });
+    }
+
+    // Delete the queue item (rejected emails are removed)
+    db.prepare('DELETE FROM email_queue WHERE id = ? AND agency_id = ?').run(queueId, req.agencyId);
+
+    // Log in audit logs
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'reject_email',
+      'email_queue',
+      queueId,
+      JSON.stringify({
+        templateName: queueItem.template_name,
+        reason: reason || 'No reason provided'
+      })
+    );
+
+    console.log(`[EMAIL] Rejected and removed email from queue (ID: ${queueId}, template: "${queueItem.template_name}")`);
+
+    res.json({
+      message: 'Email rejected and removed from queue',
+      deletedId: parseInt(queueId)
+    });
+  } catch (error) {
+    console.error('[ERROR] Reject email failed:', error.message);
+    res.status(500).json({ error: 'Failed to reject email' });
+  }
+});
+
 function formatTemplate(t) {
   let triggerConfig = {};
   try {

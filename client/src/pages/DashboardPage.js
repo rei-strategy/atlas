@@ -349,6 +349,14 @@ export default function DashboardPage() {
                 <span className="dashboard-card-count">{tasks.length}</span>
               )}
               <h3>Today's Tasks</h3>
+              {(() => {
+                const overdueCount = tasks.filter(t => t.status === 'overdue').length;
+                return overdueCount > 0 && (
+                  <span className="badge badge-overdue" style={{ marginLeft: 'auto' }}>
+                    {overdueCount} Overdue
+                  </span>
+                );
+              })()}
             </div>
           </div>
           <div className="dashboard-card-body">
