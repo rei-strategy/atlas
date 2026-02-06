@@ -516,18 +516,18 @@ router.post('/import', upload.single('file'), (req, res) => {
       }
     });
 
-    // If there are validation errors, return them without importing
-    if (validationErrors.length > 0) {
+    // If there are no valid rows at all, return error
+    if (clientsToInsert.length === 0 && validationErrors.length > 0) {
       return res.status(400).json({
-        error: 'CSV validation failed',
+        error: 'CSV validation failed - no valid rows to import',
         validationErrors,
         totalRows: records.length,
-        validRows: clientsToInsert.length,
+        validRows: 0,
         errorRows: validationErrors.length
       });
     }
 
-    // Insert all valid clients
+    // Insert valid clients (partial import - continue even if some rows had errors)
     const insertStmt = db.prepare(`
       INSERT INTO clients (
         agency_id, assigned_user_id, first_name, last_name, email, phone,
@@ -568,11 +568,23 @@ router.post('/import', upload.single('file'), (req, res) => {
 
     console.log(`[INFO] CSV import: ${insertedClients.length} clients imported for agency ${req.agencyId}`);
 
-    res.status(201).json({
-      message: 'CSV import completed successfully',
+    // Build response with import results
+    const response = {
+      message: validationErrors.length > 0
+        ? `Partial import: ${insertedClients.length} imported, ${validationErrors.length} failed`
+        : 'CSV import completed successfully',
       imported: insertedClients.length,
-      clients: insertedClients
-    });
+      clients: insertedClients,
+      totalRows: records.length
+    };
+
+    // Include validation errors if any (partial success)
+    if (validationErrors.length > 0) {
+      response.validationErrors = validationErrors;
+      response.errorRows = validationErrors.length;
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     console.error('[ERROR] CSV import failed:', error.message);
     res.status(500).json({ error: 'Failed to import clients from CSV' });
