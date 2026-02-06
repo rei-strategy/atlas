@@ -745,4 +745,210 @@ router.get('/import/template', (req, res) => {
   res.send(csvTemplate);
 });
 
+/**
+ * GET /api/clients/:id/portal
+ * Get portal access status for a client
+ */
+router.get('/:id/portal', (req, res) => {
+  try {
+    const db = getDb();
+    const clientId = req.params.id;
+
+    // Verify client exists and belongs to agency
+    const client = db.prepare(
+      'SELECT id, email FROM clients WHERE id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Check for existing customer portal account
+    const customer = db.prepare(
+      'SELECT id, email, is_active, created_at FROM customers WHERE client_id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    res.json({
+      clientId: parseInt(clientId),
+      hasPortalAccess: !!customer,
+      portalAccount: customer ? {
+        id: customer.id,
+        email: customer.email,
+        isActive: !!customer.is_active,
+        createdAt: customer.created_at
+      } : null
+    });
+  } catch (error) {
+    console.error('[ERROR] Get portal status failed:', error.message);
+    res.status(500).json({ error: 'Failed to get portal status' });
+  }
+});
+
+/**
+ * POST /api/clients/:id/portal
+ * Create portal access for a client (enables portal access)
+ */
+router.post('/:id/portal', (req, res) => {
+  try {
+    const db = getDb();
+    const bcrypt = require('bcryptjs');
+    const clientId = req.params.id;
+    const { email, password } = req.body;
+
+    // Verify client exists and belongs to agency
+    const client = db.prepare(
+      'SELECT id, email, first_name, last_name FROM clients WHERE id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Check if customer account already exists for this client
+    const existingByClient = db.prepare(
+      'SELECT id FROM customers WHERE client_id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (existingByClient) {
+      return res.status(409).json({ error: 'Portal account already exists for this client' });
+    }
+
+    // Use provided email or client's email
+    const portalEmail = email || client.email;
+    if (!portalEmail) {
+      return res.status(400).json({ error: 'Email is required. Either provide an email or ensure client has an email on file.' });
+    }
+
+    // Check if email is already used by another customer
+    const existingByEmail = db.prepare(
+      'SELECT id FROM customers WHERE email = ?'
+    ).get(portalEmail);
+
+    if (existingByEmail) {
+      return res.status(409).json({ error: 'This email is already registered for portal access' });
+    }
+
+    // Validate password
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+
+    const result = db.prepare(
+      'INSERT INTO customers (agency_id, client_id, email, password_hash, is_active) VALUES (?, ?, ?, ?, 1)'
+    ).run(req.agencyId, clientId, portalEmail, passwordHash);
+
+    const customer = db.prepare(
+      'SELECT id, email, is_active, created_at FROM customers WHERE id = ?'
+    ).get(result.lastInsertRowid);
+
+    console.log(`[INFO] Portal access enabled for client ${clientId} by user ${req.user.id}`);
+
+    res.status(201).json({
+      message: 'Portal access enabled successfully',
+      portalAccount: {
+        id: customer.id,
+        email: customer.email,
+        isActive: !!customer.is_active,
+        createdAt: customer.created_at
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Create portal access failed:', error.message);
+    res.status(500).json({ error: 'Failed to create portal access' });
+  }
+});
+
+/**
+ * PUT /api/clients/:id/portal
+ * Toggle portal access for a client (enable/disable)
+ */
+router.put('/:id/portal', (req, res) => {
+  try {
+    const db = getDb();
+    const clientId = req.params.id;
+    const { isActive } = req.body;
+
+    // Verify client exists and belongs to agency
+    const client = db.prepare(
+      'SELECT id FROM clients WHERE id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Check for existing customer portal account
+    const customer = db.prepare(
+      'SELECT id, email, is_active FROM customers WHERE client_id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!customer) {
+      return res.status(404).json({ error: 'No portal account exists for this client. Create one first.' });
+    }
+
+    // Update is_active status
+    const newStatus = isActive ? 1 : 0;
+    db.prepare(
+      'UPDATE customers SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).run(newStatus, customer.id);
+
+    console.log(`[INFO] Portal access ${isActive ? 'enabled' : 'disabled'} for client ${clientId} by user ${req.user.id}`);
+
+    res.json({
+      message: isActive ? 'Portal access enabled' : 'Portal access disabled',
+      portalAccount: {
+        id: customer.id,
+        email: customer.email,
+        isActive: !!newStatus
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Toggle portal access failed:', error.message);
+    res.status(500).json({ error: 'Failed to update portal access' });
+  }
+});
+
+/**
+ * DELETE /api/clients/:id/portal
+ * Remove portal access for a client (deletes customer account)
+ */
+router.delete('/:id/portal', (req, res) => {
+  try {
+    const db = getDb();
+    const clientId = req.params.id;
+
+    // Verify client exists and belongs to agency
+    const client = db.prepare(
+      'SELECT id FROM clients WHERE id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Check for existing customer portal account
+    const customer = db.prepare(
+      'SELECT id FROM customers WHERE client_id = ? AND agency_id = ?'
+    ).get(clientId, req.agencyId);
+
+    if (!customer) {
+      return res.status(404).json({ error: 'No portal account exists for this client' });
+    }
+
+    db.prepare('DELETE FROM customers WHERE id = ?').run(customer.id);
+
+    console.log(`[INFO] Portal account deleted for client ${clientId} by user ${req.user.id}`);
+
+    res.json({
+      message: 'Portal account removed successfully',
+      deletedCustomerId: customer.id
+    });
+  } catch (error) {
+    console.error('[ERROR] Delete portal access failed:', error.message);
+    res.status(500).json({ error: 'Failed to remove portal access' });
+  }
+});
+
 module.exports = router;

@@ -596,25 +596,114 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
   );
 }
 
-function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
+function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTrip }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [tripCount, setTripCount] = useState(0);
+  const [trips, setTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
   const { addToast } = useToast();
 
-  // Fetch associated trips count when delete modal opens
+  // Portal access state
+  const [portalStatus, setPortalStatus] = useState(null);
+  const [portalLoading, setPortalLoading] = useState(true);
+  const [showPortalModal, setShowPortalModal] = useState(false);
+  const [portalForm, setPortalForm] = useState({ email: '', password: '' });
+  const [portalFormLoading, setPortalFormLoading] = useState(false);
+  const [portalToggling, setPortalToggling] = useState(false);
+
+  // Fetch associated trips when client loads
   useEffect(() => {
-    if (showDeleteConfirm && client) {
+    if (client) {
+      setTripsLoading(true);
       fetch(`/api/trips?clientId=${client.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(res => res.json())
         .then(data => {
-          setTripCount(data.trips ? data.trips.length : 0);
+          setTrips(data.trips || []);
         })
-        .catch(() => setTripCount(0));
+        .catch(() => setTrips([]))
+        .finally(() => setTripsLoading(false));
     }
-  }, [showDeleteConfirm, client, token]);
+  }, [client, token]);
+
+  // Fetch portal access status
+  useEffect(() => {
+    if (client) {
+      setPortalLoading(true);
+      fetch(`/api/clients/${client.id}/portal`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setPortalStatus(data);
+        })
+        .catch(() => setPortalStatus(null))
+        .finally(() => setPortalLoading(false));
+    }
+  }, [client, token]);
+
+  // Handle creating portal access
+  const handleCreatePortalAccess = async (e) => {
+    e.preventDefault();
+    if (!portalForm.password || portalForm.password.length < 6) {
+      addToast('Password must be at least 6 characters', 'error');
+      return;
+    }
+
+    setPortalFormLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}/portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: portalForm.email || client.email,
+          password: portalForm.password
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create portal access');
+      }
+      addToast('Portal access enabled successfully', 'success');
+      setPortalStatus({ ...portalStatus, hasPortalAccess: true, portalAccount: data.portalAccount });
+      setShowPortalModal(false);
+      setPortalForm({ email: '', password: '' });
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setPortalFormLoading(false);
+    }
+  };
+
+  // Handle toggling portal access (enable/disable)
+  const handleTogglePortalAccess = async (enable) => {
+    setPortalToggling(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}/portal`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: enable })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update portal access');
+      }
+      addToast(enable ? 'Portal access enabled' : 'Portal access disabled', 'success');
+      setPortalStatus({ ...portalStatus, portalAccount: data.portalAccount });
+    } catch (err) {
+      addToast(err.message, 'error');
+    } finally {
+      setPortalToggling(false);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
@@ -635,6 +724,19 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  const getStageColor = (stage) => {
+    const colors = {
+      inquiry: 'status-info',
+      quoted: 'status-warning',
+      booked: 'status-success',
+      traveling: 'status-primary',
+      completed: 'status-neutral',
+      canceled: 'status-danger',
+      archived: 'status-neutral'
+    };
+    return colors[stage] || 'status-neutral';
   };
 
   if (!client) return null;
@@ -674,10 +776,10 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
                 <p style={{ marginBottom: 'var(--spacing-md)', fontWeight: '500' }}>
                   Are you sure you want to delete <strong>{client.firstName} {client.lastName}</strong>?
                 </p>
-                {tripCount > 0 && (
+                {trips.length > 0 && (
                   <div className="warning-box" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-md)' }}>
                     <p style={{ color: 'var(--color-warning-text, #92400e)', margin: 0 }}>
-                      ⚠️ This client has <strong>{tripCount} associated trip{tripCount !== 1 ? 's' : ''}</strong>.
+                      ⚠️ This client has <strong>{trips.length} associated trip{trips.length !== 1 ? 's' : ''}</strong>.
                       Deleting this client may affect related trip records.
                     </p>
                   </div>
@@ -712,79 +814,190 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token }) {
           </div>
         </div>
 
-        <div className="detail-sections">
-          <div className="detail-section">
-            <h3 className="detail-section-title">Contact Information</h3>
-            <div className="detail-grid">
-              <div className="detail-field">
-                <span className="detail-field-label">Email</span>
-                <span className="detail-field-value">{client.email || '—'}</span>
+        {/* Tabs for Info, Trips, and Portal */}
+        <div className="detail-tabs" style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--spacing-lg)' }}>
+          <button
+            className={`detail-tab ${activeTab === 'info' ? 'detail-tab-active' : ''}`}
+            onClick={() => setActiveTab('info')}
+            style={{
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'info' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'info' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+              fontWeight: activeTab === 'info' ? '600' : '400',
+              cursor: 'pointer',
+              marginRight: 'var(--spacing-md)'
+            }}
+          >
+            Info
+          </button>
+          <button
+            className={`detail-tab ${activeTab === 'trips' ? 'detail-tab-active' : ''}`}
+            onClick={() => setActiveTab('trips')}
+            style={{
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'trips' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'trips' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+              fontWeight: activeTab === 'trips' ? '600' : '400',
+              cursor: 'pointer',
+              marginRight: 'var(--spacing-md)'
+            }}
+          >
+            Trips ({trips.length})
+          </button>
+          <button
+            className={`detail-tab ${activeTab === 'portal' ? 'detail-tab-active' : ''}`}
+            onClick={() => setActiveTab('portal')}
+            style={{
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'portal' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'portal' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+              fontWeight: activeTab === 'portal' ? '600' : '400',
+              cursor: 'pointer'
+            }}
+          >
+            Portal Access
+          </button>
+        </div>
+
+        {activeTab === 'info' && (
+          <div className="detail-sections">
+            <div className="detail-section">
+              <h3 className="detail-section-title">Contact Information</h3>
+              <div className="detail-grid">
+                <div className="detail-field">
+                  <span className="detail-field-label">Email</span>
+                  <span className="detail-field-value">{client.email || '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Phone</span>
+                  <span className="detail-field-value">{client.phone || '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Preferred Communication</span>
+                  <span className="detail-field-value">{client.preferredCommunication || '—'}</span>
+                </div>
               </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Phone</span>
-                <span className="detail-field-value">{client.phone || '—'}</span>
+            </div>
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Location</h3>
+              <div className="detail-grid">
+                <div className="detail-field">
+                  <span className="detail-field-label">City</span>
+                  <span className="detail-field-value">{client.city || '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">State</span>
+                  <span className="detail-field-value">{client.state || '—'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Country</span>
+                  <span className="detail-field-value">{client.country || '—'}</span>
+                </div>
               </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Preferred Communication</span>
-                <span className="detail-field-value">{client.preferredCommunication || '—'}</span>
+            </div>
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Travel Preferences</h3>
+              {client.travelPreferences && client.travelPreferences.length > 0 ? (
+                <div className="chip-group">
+                  {client.travelPreferences.map(pref => (
+                    <span key={pref} className="chip chip-active chip-readonly">{pref}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-secondary">No travel preferences set</p>
+              )}
+            </div>
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Notes</h3>
+              <p className="detail-notes">{client.notes || 'No notes'}</p>
+            </div>
+
+            <div className="detail-section">
+              <h3 className="detail-section-title">Consent & Marketing</h3>
+              <div className="detail-grid">
+                <div className="detail-field">
+                  <span className="detail-field-label">Marketing Opt-in</span>
+                  <span className={`status-badge ${client.marketingOptIn ? 'status-success' : 'status-neutral'}`}>
+                    {client.marketingOptIn ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-field-label">Contact Consent</span>
+                  <span className={`status-badge ${client.contactConsent ? 'status-success' : 'status-neutral'}`}>
+                    {client.contactConsent ? 'Yes' : 'No'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          <div className="detail-section">
-            <h3 className="detail-section-title">Location</h3>
-            <div className="detail-grid">
-              <div className="detail-field">
-                <span className="detail-field-label">City</span>
-                <span className="detail-field-value">{client.city || '—'}</span>
+        {activeTab === 'trips' && (
+          <div className="client-trips-section">
+            {tripsLoading ? (
+              <div className="loading-screen" style={{ minHeight: '100px' }}>
+                <div className="loading-spinner" />
+                <p>Loading trips...</p>
               </div>
-              <div className="detail-field">
-                <span className="detail-field-label">State</span>
-                <span className="detail-field-value">{client.state || '—'}</span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Country</span>
-                <span className="detail-field-value">{client.country || '—'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="detail-section">
-            <h3 className="detail-section-title">Travel Preferences</h3>
-            {client.travelPreferences && client.travelPreferences.length > 0 ? (
-              <div className="chip-group">
-                {client.travelPreferences.map(pref => (
-                  <span key={pref} className="chip chip-active chip-readonly">{pref}</span>
-                ))}
+            ) : trips.length === 0 ? (
+              <div className="empty-state-small" style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                <p>No trips found for this client.</p>
               </div>
             ) : (
-              <p className="text-secondary">No travel preferences set</p>
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Trip Name</th>
+                      <th>Destination</th>
+                      <th>Stage</th>
+                      <th>Dates</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trips.map(trip => (
+                      <tr
+                        key={trip.id}
+                        className="data-table-row-clickable"
+                        onClick={() => onNavigateToTrip(trip.id)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td>
+                          <span style={{ fontWeight: '500', color: 'var(--color-primary)' }}>
+                            {trip.name}
+                          </span>
+                        </td>
+                        <td>{trip.destination || '—'}</td>
+                        <td>
+                          <span className={`status-badge ${getStageColor(trip.stage)}`}>
+                            {trip.stage}
+                          </span>
+                        </td>
+                        <td>
+                          {trip.startDate && trip.endDate
+                            ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}`
+                            : trip.startDate
+                              ? new Date(trip.startDate).toLocaleDateString()
+                              : '—'
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-
-          <div className="detail-section">
-            <h3 className="detail-section-title">Notes</h3>
-            <p className="detail-notes">{client.notes || 'No notes'}</p>
-          </div>
-
-          <div className="detail-section">
-            <h3 className="detail-section-title">Consent & Marketing</h3>
-            <div className="detail-grid">
-              <div className="detail-field">
-                <span className="detail-field-label">Marketing Opt-in</span>
-                <span className={`status-badge ${client.marketingOptIn ? 'status-success' : 'status-neutral'}`}>
-                  {client.marketingOptIn ? 'Yes' : 'No'}
-                </span>
-              </div>
-              <div className="detail-field">
-                <span className="detail-field-label">Contact Consent</span>
-                <span className={`status-badge ${client.contactConsent ? 'status-success' : 'status-neutral'}`}>
-                  {client.contactConsent ? 'Yes' : 'No'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -1004,6 +1217,7 @@ export default function ClientsPage() {
           onEdit={handleEditClient}
           onDelete={handleDeleteClient}
           token={token}
+          onNavigateToTrip={(tripId) => navigate(`/trips/${tripId}`)}
         />
         <ClientFormModal
           isOpen={showModal}
