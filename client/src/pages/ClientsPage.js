@@ -7,6 +7,7 @@ import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessag
 import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit } from '../utils/validation';
 import { useFormDraft } from '../hooks/useFormDraft';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import Breadcrumb from '../components/Breadcrumb';
 import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 import LoadingButton from '../components/LoadingButton';
@@ -34,6 +35,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
   const abortControllerRef = useRef(null);
   const loadingStartRef = useRef(null);
   const [draftChecked, setDraftChecked] = useState(false);
+  // Modal accessibility: focus trapping, Escape key, focus restoration
+  const { modalRef } = useModalAccessibility(isOpen, onClose);
   // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
   const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
