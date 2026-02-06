@@ -185,6 +185,9 @@ router.post('/', (req, res) => {
 /**
  * PUT /api/approvals/:id/approve
  * Approve a request (Admin only)
+ *
+ * Uses atomic update to prevent race conditions when two admins
+ * try to approve the same request simultaneously.
  */
 router.put('/:id/approve', authorize('admin'), (req, res) => {
   try {
@@ -192,6 +195,7 @@ router.put('/:id/approve', authorize('admin'), (req, res) => {
     const { id } = req.params;
     const { responseNote } = req.body;
 
+    // First check if request exists at all
     const request = db.prepare(
       'SELECT * FROM approval_requests WHERE id = ? AND agency_id = ?'
     ).get(id, req.agencyId);
@@ -200,19 +204,44 @@ router.put('/:id/approve', authorize('admin'), (req, res) => {
       return res.status(404).json({ error: 'Approval request not found' });
     }
 
-    if (request.status !== 'pending') {
-      return res.status(400).json({ error: 'This request has already been processed' });
-    }
-
-    // Update the approval request
-    db.prepare(`
+    // Use atomic UPDATE with WHERE status = 'pending' to prevent race conditions
+    // If two admins click approve at the same time, only one will succeed
+    const updateResult = db.prepare(`
       UPDATE approval_requests
       SET status = 'approved',
           approved_by = ?,
           response_note = ?,
           resolved_at = datetime('now')
-      WHERE id = ?
-    `).run(req.user.id, responseNote || null, id);
+      WHERE id = ? AND agency_id = ? AND status = 'pending'
+    `).run(req.user.id, responseNote || null, id, req.agencyId);
+
+    // If no rows were updated, the request was already processed
+    if (updateResult.changes === 0) {
+      // Re-fetch to get the current state
+      const currentRequest = db.prepare(
+        'SELECT * FROM approval_requests WHERE id = ? AND agency_id = ?'
+      ).get(id, req.agencyId);
+
+      if (currentRequest.status === 'approved') {
+        return res.status(409).json({
+          error: 'This request has already been approved',
+          code: 'ALREADY_APPROVED',
+          status: currentRequest.status,
+          approvedBy: currentRequest.approved_by,
+          resolvedAt: currentRequest.resolved_at
+        });
+      } else if (currentRequest.status === 'denied') {
+        return res.status(409).json({
+          error: 'This request has already been denied',
+          code: 'ALREADY_DENIED',
+          status: currentRequest.status,
+          approvedBy: currentRequest.approved_by,
+          resolvedAt: currentRequest.resolved_at
+        });
+      }
+
+      return res.status(400).json({ error: 'This request has already been processed' });
+    }
 
     // Execute the approved action
     const actionResult = executeApprovedAction(db, request, req);
@@ -260,6 +289,9 @@ router.put('/:id/approve', authorize('admin'), (req, res) => {
 /**
  * PUT /api/approvals/:id/deny
  * Deny a request (Admin only)
+ *
+ * Uses atomic update to prevent race conditions when two admins
+ * try to process the same request simultaneously.
  */
 router.put('/:id/deny', authorize('admin'), (req, res) => {
   try {
@@ -267,6 +299,7 @@ router.put('/:id/deny', authorize('admin'), (req, res) => {
     const { id } = req.params;
     const { responseNote } = req.body;
 
+    // First check if request exists at all
     const request = db.prepare(
       'SELECT * FROM approval_requests WHERE id = ? AND agency_id = ?'
     ).get(id, req.agencyId);
@@ -275,18 +308,43 @@ router.put('/:id/deny', authorize('admin'), (req, res) => {
       return res.status(404).json({ error: 'Approval request not found' });
     }
 
-    if (request.status !== 'pending') {
-      return res.status(400).json({ error: 'This request has already been processed' });
-    }
-
-    db.prepare(`
+    // Use atomic UPDATE with WHERE status = 'pending' to prevent race conditions
+    const updateResult = db.prepare(`
       UPDATE approval_requests
       SET status = 'denied',
           approved_by = ?,
           response_note = ?,
           resolved_at = datetime('now')
-      WHERE id = ?
-    `).run(req.user.id, responseNote || null, id);
+      WHERE id = ? AND agency_id = ? AND status = 'pending'
+    `).run(req.user.id, responseNote || null, id, req.agencyId);
+
+    // If no rows were updated, the request was already processed
+    if (updateResult.changes === 0) {
+      // Re-fetch to get the current state
+      const currentRequest = db.prepare(
+        'SELECT * FROM approval_requests WHERE id = ? AND agency_id = ?'
+      ).get(id, req.agencyId);
+
+      if (currentRequest.status === 'approved') {
+        return res.status(409).json({
+          error: 'This request has already been approved',
+          code: 'ALREADY_APPROVED',
+          status: currentRequest.status,
+          approvedBy: currentRequest.approved_by,
+          resolvedAt: currentRequest.resolved_at
+        });
+      } else if (currentRequest.status === 'denied') {
+        return res.status(409).json({
+          error: 'This request has already been denied',
+          code: 'ALREADY_DENIED',
+          status: currentRequest.status,
+          approvedBy: currentRequest.approved_by,
+          resolvedAt: currentRequest.resolved_at
+        });
+      }
+
+      return res.status(400).json({ error: 'This request has already been processed' });
+    }
 
     // Audit log
     db.prepare(`

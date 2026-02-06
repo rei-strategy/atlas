@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { getDb, closeDb } = require('./config/database');
+const idempotency = require('./middleware/idempotency');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +20,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+
+// Idempotency middleware for preventing duplicate submissions
+app.use('/api', idempotency);
 
 // Health endpoint
 app.get('/api/health', (req, res) => {

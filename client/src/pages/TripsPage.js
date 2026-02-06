@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
+import { generateIdempotencyKey } from '../utils/idempotency';
 import Modal from '../components/Modal';
 import Breadcrumb from '../components/Breadcrumb';
 import LoadingButton from '../components/LoadingButton';
@@ -122,6 +123,8 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
+  const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
     clientId: '', name: '', destination: '', description: '',
     travelStartDate: '', travelEndDate: '', changeReason: ''
@@ -259,7 +262,8 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey })
         },
         body: JSON.stringify(form)
       });
@@ -470,6 +474,8 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
   const [dateErrors, setDateErrors] = useState({});
   const [dateWarnings, setDateWarnings] = useState({});
   const submittingRef = useRef(false); // Prevent double-click submission
+  // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
+  const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
 
   // Validate date constraints for booking
   const validateBookingDates = (startDate, endDate) => {
@@ -769,7 +775,8 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey })
         },
         body: JSON.stringify(payload)
       });

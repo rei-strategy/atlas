@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -6,6 +6,7 @@ import { useTimezone } from '../hooks/useTimezone';
 import { fetchWithTimeout, isTimeoutError, isNetworkError, getNetworkErrorMessage } from '../utils/apiErrors';
 import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit } from '../utils/validation';
 import { useFormDraft } from '../hooks/useFormDraft';
+import { generateIdempotencyKey } from '../utils/idempotency';
 import Breadcrumb from '../components/Breadcrumb';
 import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 import LoadingButton from '../components/LoadingButton';
@@ -33,6 +34,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
   const abortControllerRef = useRef(null);
   const loadingStartRef = useRef(null);
   const [draftChecked, setDraftChecked] = useState(false);
+  // Generate new idempotency key when modal opens to prevent duplicate submissions on back/resubmit
+  const idempotencyKey = useMemo(() => isOpen ? generateIdempotencyKey() : null, [isOpen]);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     city: '', state: '', country: '',
@@ -378,7 +381,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          ...(idempotencyKey && { 'Idempotency-Key': idempotencyKey })
         },
         body: JSON.stringify(requestBody),
         timeout: REQUEST_TIMEOUT,
