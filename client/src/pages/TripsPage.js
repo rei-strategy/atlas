@@ -115,9 +115,10 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [clients, setClients] = useState([]);
+  const [showChangeReason, setShowChangeReason] = useState(false);
   const [form, setForm] = useState({
     clientId: '', name: '', destination: '', description: '',
-    travelStartDate: '', travelEndDate: ''
+    travelStartDate: '', travelEndDate: '', changeReason: ''
   });
 
   useEffect(() => {
@@ -139,13 +140,17 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
         destination: trip.destination || '',
         description: trip.description || '',
         travelStartDate: trip.travelStartDate || '',
-        travelEndDate: trip.travelEndDate || ''
+        travelEndDate: trip.travelEndDate || '',
+        changeReason: ''
       });
+      // Show change reason field if trip is locked
+      setShowChangeReason(trip.isLocked || false);
     } else {
       setForm({
         clientId: '', name: '', destination: '', description: '',
-        travelStartDate: '', travelEndDate: ''
+        travelStartDate: '', travelEndDate: '', changeReason: ''
       });
+      setShowChangeReason(false);
     }
     setError('');
   }, [trip, isOpen]);
@@ -180,6 +185,21 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
       });
 
       const data = await res.json();
+
+      // Handle 202 Accepted - approval request created
+      if (res.status === 202 && data.approvalRequired) {
+        addToast('Changes require admin approval. Request submitted.', 'info');
+        onClose();
+        return;
+      }
+
+      // Handle 400 - reason required for locked trip
+      if (res.status === 400 && data.requiresApproval) {
+        setError('Please provide a reason for changing this locked trip.');
+        setShowChangeReason(true);
+        setLoading(false);
+        return;
+      }
 
       if (!res.ok) {
         // Handle locked trip error with more detail
@@ -290,12 +310,45 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                 />
               </div>
             </div>
+
+            {/* Change reason for locked trips */}
+            {showChangeReason && trip?.isLocked && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                borderRadius: '8px',
+                border: '1px solid var(--color-warning, #f59e0b)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <span style={{ fontWeight: 600, color: '#92400e' }}>This trip is locked</span>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: '#a16207', marginBottom: '0.75rem' }}>
+                  Changes to locked trip fields require admin approval. Please provide a reason for your changes.
+                </p>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="changeReason">Reason for Change *</label>
+                  <textarea
+                    id="changeReason"
+                    name="changeReason"
+                    className="form-input form-textarea"
+                    value={form.changeReason}
+                    onChange={handleChange}
+                    placeholder="Explain why these changes are needed..."
+                    rows={2}
+                    required
+                    style={{ background: '#fff' }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : (trip ? 'Save Changes' : 'Create Trip')}
+              {loading ? 'Saving...' : (trip?.isLocked && showChangeReason ? 'Request Changes' : (trip ? 'Save Changes' : 'Create Trip'))}
             </button>
           </div>
         </form>
@@ -2365,10 +2418,54 @@ function DocumentsTab({ tripId, token }) {
 }
 
 /* =================== TRIP DETAIL =================== */
-function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
+function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, token }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePreview, setDeletePreview] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   if (!trip) return null;
+
+  const handleDeleteClick = async () => {
+    setDeleteLoading(true);
+    try {
+      // Fetch delete preview to show in confirmation modal
+      const res = await fetch(`${API_BASE}/trips/${trip.id}/delete-preview`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeletePreview(data);
+        setShowDeleteModal(true);
+      } else {
+        console.error('Failed to get delete preview');
+      }
+    } catch (err) {
+      console.error('Error fetching delete preview:', err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/trips/${trip.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setShowDeleteModal(false);
+        onDelete(trip.id);
+      } else {
+        console.error('Failed to delete trip');
+      }
+    } catch (err) {
+      console.error('Error deleting trip:', err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
@@ -2384,26 +2481,40 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
         <button className="btn btn-outline btn-sm" onClick={onBack}>
           ← Back to Trips
         </button>
-        {trip.isLocked ? (
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {trip.isLocked ? (
+            <button
+              className="btn btn-sm"
+              disabled
+              style={{
+                background: 'var(--color-warning, #f59e0b)',
+                color: '#fff',
+                border: 'none',
+                opacity: 0.8,
+                cursor: 'not-allowed'
+              }}
+              title={trip.lockReason || 'Trip is locked'}
+            >
+              🔒 Trip Locked
+            </button>
+          ) : (
+            <button className="btn btn-primary btn-sm" onClick={() => onEdit(trip)}>
+              Edit Trip
+            </button>
+          )}
           <button
             className="btn btn-sm"
-            disabled
             style={{
-              background: 'var(--color-warning, #f59e0b)',
+              background: 'var(--color-error, #dc2626)',
               color: '#fff',
-              border: 'none',
-              opacity: 0.8,
-              cursor: 'not-allowed'
+              border: 'none'
             }}
-            title={trip.lockReason || 'Trip is locked'}
+            onClick={handleDeleteClick}
+            disabled={deleteLoading}
           >
-            🔒 Trip Locked
+            {deleteLoading ? 'Loading...' : 'Delete Trip'}
           </button>
-        ) : (
-          <button className="btn btn-primary btn-sm" onClick={() => onEdit(trip)}>
-            Edit Trip
-          </button>
-        )}
+        </div>
       </div>
 
       {/* Locked Trip Banner */}
@@ -2576,6 +2687,90 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, token }) {
           <CommissionsTab tripId={trip.id} token={token} />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletePreview && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+                Delete Trip
+              </h2>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowDeleteModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{
+                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                border: '1px solid var(--color-error, #dc2626)',
+                borderRadius: '8px',
+                padding: '1rem 1.25rem',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                  <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+                  You are about to permanently delete <strong>"{deletePreview.tripName}"</strong> and all its related data.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  The following related data will be deleted:
+                </h4>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  {deletePreview.relatedData.bookings > 0 && (
+                    <li><strong>{deletePreview.relatedData.bookings}</strong> booking(s)</li>
+                  )}
+                  {deletePreview.relatedData.travelers > 0 && (
+                    <li><strong>{deletePreview.relatedData.travelers}</strong> traveler(s)</li>
+                  )}
+                  {deletePreview.relatedData.documents > 0 && (
+                    <li><strong>{deletePreview.relatedData.documents}</strong> document(s)</li>
+                  )}
+                  {deletePreview.relatedData.tasks > 0 && (
+                    <li><strong>{deletePreview.relatedData.tasks}</strong> task(s) will be unlinked</li>
+                  )}
+                  {deletePreview.relatedData.bookings === 0 &&
+                   deletePreview.relatedData.travelers === 0 &&
+                   deletePreview.relatedData.documents === 0 &&
+                   deletePreview.relatedData.tasks === 0 && (
+                    <li>No related data found</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn"
+                style={{
+                  background: 'var(--color-error, #dc2626)',
+                  color: '#fff',
+                  border: 'none'
+                }}
+                onClick={handleConfirmDelete}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete Trip'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2751,6 +2946,15 @@ export default function TripsPage() {
     setShowModal(true);
   };
 
+  const handleDeleteTrip = (tripId) => {
+    // Remove trip from list
+    setTrips(prev => prev.filter(t => t.id !== tripId));
+    // Clear selection and navigate back
+    setSelectedTrip(null);
+    addToast('Trip deleted successfully', 'success');
+    navigate('/trips');
+  };
+
   const handleViewTrip = (trip) => {
     setSelectedTrip(trip);
     navigate(`/trips/${trip.id}`);
@@ -2793,6 +2997,7 @@ export default function TripsPage() {
           onBack={() => { setSelectedTrip(null); navigate(`/trips?${searchParams.toString()}`); }}
           onEdit={handleEditTrip}
           onStageChange={handleStageChange}
+          onDelete={handleDeleteTrip}
           token={token}
         />
         <TripFormModal

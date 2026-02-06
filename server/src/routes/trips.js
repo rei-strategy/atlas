@@ -809,22 +809,102 @@ router.put('/:id/unlock', (req, res) => {
 });
 
 /**
+ * GET /api/trips/:id/delete-preview
+ * Preview what will be affected if this trip is deleted
+ */
+router.get('/:id/delete-preview', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    const existing = db.prepare('SELECT id, name FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Count related data that will be deleted (CASCADE)
+    const bookingsCount = db.prepare('SELECT COUNT(*) as count FROM bookings WHERE trip_id = ?').get(tripId).count;
+    const travelersCount = db.prepare('SELECT COUNT(*) as count FROM travelers WHERE trip_id = ?').get(tripId).count;
+    const documentsCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE trip_id = ?').get(tripId).count;
+
+    // Count related data that will be unlinked (SET NULL)
+    const tasksCount = db.prepare('SELECT COUNT(*) as count FROM tasks WHERE trip_id = ?').get(tripId).count;
+
+    res.json({
+      tripId,
+      tripName: existing.name,
+      relatedData: {
+        bookings: bookingsCount,
+        travelers: travelersCount,
+        documents: documentsCount,
+        tasks: tasksCount
+      },
+      cascade: {
+        willDelete: ['bookings', 'travelers', 'documents', 'trip_change_records'],
+        willUnlink: ['tasks', 'email_queue', 'audit_logs']
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Delete preview failed:', error.message);
+    res.status(500).json({ error: 'Failed to generate delete preview' });
+  }
+});
+
+/**
  * DELETE /api/trips/:id
- * Delete a trip
+ * Delete a trip with cascade handling
  */
 router.delete('/:id', (req, res) => {
   try {
     const db = getDb();
     const tripId = req.params.id;
 
-    const existing = db.prepare('SELECT id FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
+    const existing = db.prepare('SELECT id, name FROM trips WHERE id = ? AND agency_id = ?').get(tripId, req.agencyId);
     if (!existing) {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
+    // Get counts before deletion for response
+    const bookingsCount = db.prepare('SELECT COUNT(*) as count FROM bookings WHERE trip_id = ?').get(tripId).count;
+    const travelersCount = db.prepare('SELECT COUNT(*) as count FROM travelers WHERE trip_id = ?').get(tripId).count;
+    const documentsCount = db.prepare('SELECT COUNT(*) as count FROM documents WHERE trip_id = ?').get(tripId).count;
+    const tasksCount = db.prepare('SELECT COUNT(*) as count FROM tasks WHERE trip_id = ?').get(tripId).count;
+
+    // Log the deletion in audit_logs before deletion (while trip still exists)
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.user.id,
+      'delete_trip',
+      'trip',
+      tripId,
+      JSON.stringify({
+        tripName: existing.name,
+        deletedRelatedData: {
+          bookings: bookingsCount,
+          travelers: travelersCount,
+          documents: documentsCount,
+          tasksUnlinked: tasksCount
+        }
+      })
+    );
+
+    // Delete the trip - CASCADE will handle related data
     db.prepare('DELETE FROM trips WHERE id = ? AND agency_id = ?').run(tripId, req.agencyId);
 
-    res.json({ message: 'Trip deleted successfully', deletedId: tripId });
+    res.json({
+      message: 'Trip deleted successfully',
+      deletedId: tripId,
+      tripName: existing.name,
+      deletedRelatedData: {
+        bookings: bookingsCount,
+        travelers: travelersCount,
+        documents: documentsCount,
+        tasksUnlinked: tasksCount
+      }
+    });
   } catch (error) {
     console.error('[ERROR] Delete trip failed:', error.message);
     res.status(500).json({ error: 'Failed to delete trip' });
