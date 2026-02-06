@@ -192,11 +192,11 @@ body {
 
 a {
   color: var(--color-primary);
-  text-decoration: none;
+  text-decoration: underline;  /* WCAG: Links must be distinguishable not by color alone */
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration: none;  /* Invert on hover for feedback */
 }
 
 /* Focus styles for accessibility */
@@ -1986,19 +1986,35 @@ fieldset:disabled .btn {
   border-radius: 9999px;
 }
 
+/* Status badges use icons alongside color for WCAG compliance -
+   information not conveyed by color alone */
 .status-success {
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(4, 120, 87, 0.1);
   color: var(--color-success);
 }
 
+.status-success::before {
+  content: "✓ ";
+  font-weight: 700;
+}
+
 .status-warning {
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(180, 83, 9, 0.1);
   color: var(--color-warning);
 }
 
+.status-warning::before {
+  content: "⚠ ";
+}
+
 .status-error {
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(220, 38, 38, 0.1);
   color: var(--color-error);
+}
+
+.status-error::before {
+  content: "✕ ";
+  font-weight: 700;
 }
 
 .status-neutral {
@@ -2006,9 +2022,17 @@ fieldset:disabled .btn {
   color: var(--color-text-secondary);
 }
 
+.status-neutral::before {
+  content: "○ ";
+}
+
 .status-info {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(29, 78, 216, 0.1);
   color: var(--color-info);
+}
+
+.status-info::before {
+  content: "ℹ ";
 }
 
 /* Payment overdue styling */

@@ -382,9 +382,11 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                   className={`form-input ${dateErrors.travelStartDate ? 'form-input-error' : ''}`}
                   value={form.travelStartDate}
                   onChange={handleDateChange}
+                  aria-invalid={!!dateErrors.travelStartDate}
+                  aria-describedby={dateErrors.travelStartDate ? 'travelStartDate-error' : undefined}
                 />
                 {dateErrors.travelStartDate && (
-                  <span className="form-error-message">{dateErrors.travelStartDate}</span>
+                  <span id="travelStartDate-error" className="form-error-message">{dateErrors.travelStartDate}</span>
                 )}
                 {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
                   <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
