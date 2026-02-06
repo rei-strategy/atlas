@@ -3459,108 +3459,110 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <div className="detail-sections">
-            <div className="detail-section">
-              <h3 className="detail-section-title">Trip Details</h3>
-              <div className="detail-grid">
-                <div className="detail-field">
-                  <span className="detail-field-label">Destination</span>
-                  <span className="detail-field-value">{trip.destination || '—'}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Travel Start</span>
-                  <span className="detail-field-value">{formatDate(trip.travelStartDate)}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Travel End</span>
-                  <span className="detail-field-value">{formatDate(trip.travelEndDate)}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Stage</span>
-                  <span className={`status-badge ${STAGE_COLORS[trip.stage]}`}>
-                    {STAGE_LABELS[trip.stage]}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {trip.description && (
+        <div className="trip-tab-content">
+          {activeTab === 'overview' && (
+            <div className="detail-sections">
               <div className="detail-section">
-                <h3 className="detail-section-title">Description</h3>
-                <p className="detail-notes">{trip.description}</p>
+                <h3 className="detail-section-title">Trip Details</h3>
+                <div className="detail-grid">
+                  <div className="detail-field">
+                    <span className="detail-field-label">Destination</span>
+                    <span className="detail-field-value">{trip.destination || '—'}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Travel Start</span>
+                    <span className="detail-field-value">{formatDate(trip.travelStartDate)}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Travel End</span>
+                    <span className="detail-field-value">{formatDate(trip.travelEndDate)}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Stage</span>
+                    <span className={`status-badge ${STAGE_COLORS[trip.stage]}`}>
+                      {STAGE_LABELS[trip.stage]}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <div className="detail-section">
-              <h3 className="detail-section-title">Stage Transition</h3>
-              <div className="stage-buttons">
-                {STAGE_ORDER.map(stage => (
-                  <button
-                    key={stage}
-                    className={`btn btn-sm ${trip.stage === stage ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => onStageChange(trip.id, stage)}
-                    disabled={trip.stage === stage}
-                  >
-                    {STAGE_LABELS[stage]}
-                  </button>
-                ))}
+              {trip.description && (
+                <div className="detail-section">
+                  <h3 className="detail-section-title">Description</h3>
+                  <p className="detail-notes">{trip.description}</p>
+                </div>
+              )}
+
+              <div className="detail-section">
+                <h3 className="detail-section-title">Stage Transition</h3>
+                <div className="stage-buttons">
+                  {STAGE_ORDER.map(stage => (
+                    <button
+                      key={stage}
+                      className={`btn btn-sm ${trip.stage === stage ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => onStageChange(trip.id, stage)}
+                      disabled={trip.stage === stage}
+                    >
+                      {STAGE_LABELS[stage]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h3 className="detail-section-title">Dates & Deadlines</h3>
+                <div className="detail-grid">
+                  <div className="detail-field">
+                    <span className="detail-field-label">Final Payment Deadline</span>
+                    <span className="detail-field-value">{formatDate(trip.finalPaymentDeadline)}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Insurance Cutoff</span>
+                    <span className="detail-field-value">{formatDate(trip.insuranceCutoffDate)}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Check-in Date</span>
+                    <span className="detail-field-value">{formatDate(trip.checkinDate)}</span>
+                  </div>
+                  <div className="detail-field">
+                    <span className="detail-field-label">Locked</span>
+                    <span className={`status-badge ${trip.isLocked ? 'status-warning' : 'status-neutral'}`}>
+                      {trip.isLocked ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="detail-section">
-              <h3 className="detail-section-title">Dates & Deadlines</h3>
-              <div className="detail-grid">
-                <div className="detail-field">
-                  <span className="detail-field-label">Final Payment Deadline</span>
-                  <span className="detail-field-value">{formatDate(trip.finalPaymentDeadline)}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Insurance Cutoff</span>
-                  <span className="detail-field-value">{formatDate(trip.insuranceCutoffDate)}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Check-in Date</span>
-                  <span className="detail-field-value">{formatDate(trip.checkinDate)}</span>
-                </div>
-                <div className="detail-field">
-                  <span className="detail-field-label">Locked</span>
-                  <span className={`status-badge ${trip.isLocked ? 'status-warning' : 'status-neutral'}`}>
-                    {trip.isLocked ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          {activeTab === 'travelers' && (
+            <TravelersTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'travelers' && (
-          <TravelersTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'bookings' && (
+            <BookingsTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'bookings' && (
-          <BookingsTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'tasks' && (
+            <TasksTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'tasks' && (
-          <TasksTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'documents' && (
+            <DocumentsTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'documents' && (
-          <DocumentsTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'communications' && (
+            <CommunicationsTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'communications' && (
-          <CommunicationsTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'commissions' && (
+            <CommissionsTab tripId={trip.id} token={token} />
+          )}
 
-        {activeTab === 'commissions' && (
-          <CommissionsTab tripId={trip.id} token={token} />
-        )}
-
-        {activeTab === 'timeline' && (
-          <TimelineTab tripId={trip.id} token={token} />
-        )}
+          {activeTab === 'timeline' && (
+            <TimelineTab tripId={trip.id} token={token} />
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Modal - Keyboard Accessible */}

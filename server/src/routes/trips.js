@@ -1412,4 +1412,162 @@ function formatTrip(t) {
   };
 }
 
+// ============================================
+// Acknowledgments Routes
+// ============================================
+
+/**
+ * GET /api/trips/:id/acknowledgments
+ * Get all acknowledgments for a trip (planner view)
+ */
+router.get('/:id/acknowledgments', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    // Verify trip exists and belongs to agency
+    const trip = db.prepare(
+      'SELECT id FROM trips WHERE id = ? AND agency_id = ?'
+    ).get(tripId, req.agencyId);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const acknowledgments = db.prepare(`
+      SELECT a.*,
+        c.first_name || ' ' || c.last_name as client_name,
+        u.first_name || ' ' || u.last_name as created_by_name
+      FROM acknowledgments a
+      LEFT JOIN clients c ON a.client_id = c.id
+      LEFT JOIN users u ON a.created_by = u.id
+      WHERE a.trip_id = ? AND a.agency_id = ?
+      ORDER BY a.created_at DESC
+    `).all(tripId, req.agencyId);
+
+    res.json({
+      acknowledgments: acknowledgments.map(a => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        type: a.acknowledgment_type,
+        documentId: a.document_id,
+        isAcknowledged: !!a.is_acknowledged,
+        acknowledgedAt: a.acknowledged_at,
+        clientName: a.client_name,
+        createdByName: a.created_by_name,
+        createdAt: a.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('[ERROR] Get trip acknowledgments failed:', error.message);
+    res.status(500).json({ error: 'Failed to get acknowledgments' });
+  }
+});
+
+/**
+ * POST /api/trips/:id/acknowledgments
+ * Create a new acknowledgment request for a trip (planner creates it)
+ */
+router.post('/:id/acknowledgments', (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    // Verify trip exists
+    const trip = db.prepare(
+      'SELECT id, client_id FROM trips WHERE id = ? AND agency_id = ?'
+    ).get(tripId, req.agencyId);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const { title, description, type, documentId } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const validTypes = ['info', 'document', 'itinerary', 'booking', 'payment', 'terms'];
+    const ackType = validTypes.includes(type) ? type : 'info';
+
+    const result = db.prepare(`
+      INSERT INTO acknowledgments (agency_id, trip_id, client_id, document_id, title, description, acknowledgment_type, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      tripId,
+      trip.client_id,
+      documentId || null,
+      title,
+      description || null,
+      ackType,
+      req.userId
+    );
+
+    // Log in audit
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id, client_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.agencyId,
+      req.userId,
+      'acknowledgment_created',
+      'acknowledgment',
+      result.lastInsertRowid,
+      JSON.stringify({ title, type: ackType }),
+      tripId,
+      trip.client_id
+    );
+
+    const ack = db.prepare('SELECT * FROM acknowledgments WHERE id = ?').get(result.lastInsertRowid);
+
+    res.status(201).json({
+      message: 'Acknowledgment request created',
+      acknowledgment: {
+        id: ack.id,
+        title: ack.title,
+        description: ack.description,
+        type: ack.acknowledgment_type,
+        isAcknowledged: false,
+        createdAt: ack.created_at
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Create acknowledgment failed:', error.message);
+    res.status(500).json({ error: 'Failed to create acknowledgment' });
+  }
+});
+
+/**
+ * DELETE /api/trips/:tripId/acknowledgments/:id
+ * Delete an acknowledgment (planner only, only if not yet acknowledged)
+ */
+router.delete('/:tripId/acknowledgments/:id', (req, res) => {
+  try {
+    const db = getDb();
+    const { tripId, id } = req.params;
+
+    const ack = db.prepare(
+      'SELECT * FROM acknowledgments WHERE id = ? AND trip_id = ? AND agency_id = ?'
+    ).get(id, tripId, req.agencyId);
+
+    if (!ack) {
+      return res.status(404).json({ error: 'Acknowledgment not found' });
+    }
+
+    if (ack.is_acknowledged) {
+      return res.status(400).json({ error: 'Cannot delete an acknowledgment that has already been confirmed' });
+    }
+
+    db.prepare('DELETE FROM acknowledgments WHERE id = ?').run(id);
+
+    res.json({ message: 'Acknowledgment deleted' });
+  } catch (error) {
+    console.error('[ERROR] Delete acknowledgment failed:', error.message);
+    res.status(500).json({ error: 'Failed to delete acknowledgment' });
+  }
+});
+
 module.exports = router;

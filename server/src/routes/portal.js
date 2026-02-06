@@ -877,4 +877,163 @@ router.post('/trips/:id/feedback', authenticateCustomer, (req, res) => {
   }
 });
 
+/**
+ * GET /api/portal/acknowledgments
+ * Get all pending acknowledgments for the customer
+ */
+router.get('/acknowledgments', authenticateCustomer, (req, res) => {
+  try {
+    const db = getDb();
+
+    const acknowledgments = db.prepare(`
+      SELECT a.id, a.trip_id, a.title, a.description, a.acknowledgment_type,
+        a.is_acknowledged, a.acknowledged_at, a.created_at,
+        t.name as trip_name, t.destination as trip_destination
+      FROM acknowledgments a
+      JOIN trips t ON a.trip_id = t.id
+      WHERE a.client_id = ? AND a.agency_id = ?
+      ORDER BY a.is_acknowledged ASC, a.created_at DESC
+    `).all(req.customer.client_id, req.customer.agency_id);
+
+    const pending = acknowledgments.filter(a => !a.is_acknowledged);
+    const acknowledged = acknowledgments.filter(a => a.is_acknowledged);
+
+    res.json({
+      pendingCount: pending.length,
+      acknowledgments: acknowledgments.map(a => ({
+        id: a.id,
+        tripId: a.trip_id,
+        tripName: a.trip_name,
+        tripDestination: a.trip_destination,
+        title: a.title,
+        description: a.description,
+        type: a.acknowledgment_type,
+        isAcknowledged: !!a.is_acknowledged,
+        acknowledgedAt: a.acknowledged_at,
+        createdAt: a.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('[ERROR] Get acknowledgments failed:', error.message);
+    res.status(500).json({ error: 'Failed to get acknowledgments' });
+  }
+});
+
+/**
+ * GET /api/portal/trips/:id/acknowledgments
+ * Get acknowledgments for a specific trip
+ */
+router.get('/trips/:id/acknowledgments', authenticateCustomer, (req, res) => {
+  try {
+    const db = getDb();
+    const tripId = req.params.id;
+
+    // Verify trip belongs to customer
+    const trip = db.prepare(
+      'SELECT id FROM trips WHERE id = ? AND client_id = ? AND agency_id = ?'
+    ).get(tripId, req.customer.client_id, req.customer.agency_id);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    const acknowledgments = db.prepare(`
+      SELECT id, title, description, acknowledgment_type, is_acknowledged,
+        acknowledged_at, document_id, created_at
+      FROM acknowledgments
+      WHERE trip_id = ? AND agency_id = ?
+      ORDER BY is_acknowledged ASC, created_at DESC
+    `).all(tripId, req.customer.agency_id);
+
+    res.json({
+      acknowledgments: acknowledgments.map(a => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        type: a.acknowledgment_type,
+        documentId: a.document_id,
+        isAcknowledged: !!a.is_acknowledged,
+        acknowledgedAt: a.acknowledged_at,
+        createdAt: a.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('[ERROR] Get trip acknowledgments failed:', error.message);
+    res.status(500).json({ error: 'Failed to get acknowledgments' });
+  }
+});
+
+/**
+ * POST /api/portal/acknowledgments/:id/acknowledge
+ * Customer acknowledges receipt of information
+ */
+router.post('/acknowledgments/:id/acknowledge', authenticateCustomer, (req, res) => {
+  try {
+    const db = getDb();
+    const ackId = req.params.id;
+
+    // Find the acknowledgment and verify it belongs to this customer
+    const ack = db.prepare(`
+      SELECT a.*, t.client_id, t.agency_id as trip_agency_id
+      FROM acknowledgments a
+      JOIN trips t ON a.trip_id = t.id
+      WHERE a.id = ? AND a.agency_id = ?
+    `).get(ackId, req.customer.agency_id);
+
+    if (!ack) {
+      return res.status(404).json({ error: 'Acknowledgment not found' });
+    }
+
+    if (ack.client_id !== req.customer.client_id) {
+      return res.status(403).json({ error: 'Not authorized to acknowledge this item' });
+    }
+
+    if (ack.is_acknowledged) {
+      return res.status(400).json({ error: 'This item has already been acknowledged' });
+    }
+
+    // Update the acknowledgment
+    db.prepare(`
+      UPDATE acknowledgments
+      SET is_acknowledged = 1, acknowledged_at = datetime('now'),
+        acknowledged_by_customer_id = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(req.customer.id, ackId);
+
+    // Log in audit
+    db.prepare(`
+      INSERT INTO audit_logs (agency_id, user_id, action, entity_type, entity_id, details, trip_id, client_id)
+      VALUES (?, NULL, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.customer.agency_id,
+      'acknowledgment_confirmed',
+      'acknowledgment',
+      ackId,
+      JSON.stringify({
+        title: ack.title,
+        type: ack.acknowledgment_type,
+        customerEmail: req.customer.email,
+        acknowledgedAt: new Date().toISOString()
+      }),
+      ack.trip_id,
+      req.customer.client_id
+    );
+
+    const updated = db.prepare('SELECT * FROM acknowledgments WHERE id = ?').get(ackId);
+
+    res.json({
+      message: 'Acknowledgment confirmed',
+      acknowledgment: {
+        id: updated.id,
+        title: updated.title,
+        isAcknowledged: true,
+        acknowledgedAt: updated.acknowledged_at
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Acknowledge failed:', error.message);
+    res.status(500).json({ error: 'Failed to acknowledge' });
+  }
+});
+
 module.exports = router;

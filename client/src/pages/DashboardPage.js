@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const { formatShortDate, isOverdue: checkOverdue, timezone } = useTimezone();
   const [tasks, setTasks] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [atRiskPayments, setAtRiskPayments] = useState({ overdue: [], nearDue: [], totalAtRisk: 0 });
   const [loading, setLoading] = useState(true);
 
   // Handle access denied redirect from admin routes
@@ -140,14 +141,32 @@ export default function DashboardPage() {
     }
   }, [token, checkTokenExpiration]);
 
+  const fetchAtRiskPayments = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/at-risk-payments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Check for token expiration
+      if (await checkTokenExpiration(res)) return;
+
+      const data = await res.json();
+      if (res.ok) {
+        setAtRiskPayments(data);
+      }
+    } catch (err) {
+      console.error('Failed to load at-risk payments:', err);
+    }
+  }, [token, checkTokenExpiration]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchTrips()]);
+      await Promise.all([fetchTasks(), fetchTrips(), fetchAtRiskPayments()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchTrips]);
+  }, [fetchTasks, fetchTrips, fetchAtRiskPayments]);
 
   const handleCompleteTask = async (taskId) => {
     try {
@@ -416,6 +435,82 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* At-Risk Payments Card */}
+        <div className="dashboard-card">
+          <div className="dashboard-card-header">
+            <div className="dashboard-card-title-row">
+              {atRiskPayments.totalAtRisk > 0 && (
+                <span className="dashboard-card-count">{atRiskPayments.totalAtRisk}</span>
+              )}
+              <h3>At-Risk Payments</h3>
+              {atRiskPayments.overdue.length > 0 && (
+                <span className="badge badge-overdue" style={{ marginLeft: 'auto' }}>
+                  {atRiskPayments.overdue.length} Overdue
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="dashboard-card-body">
+            {atRiskPayments.totalAtRisk === 0 ? (
+              <p className="dashboard-empty-state">No at-risk payments. Payments approaching due date will appear here.</p>
+            ) : (
+              <div className="dashboard-atrisk-list">
+                {/* Overdue payments first (in red) */}
+                {atRiskPayments.overdue.map(payment => (
+                  <div
+                    key={`overdue-${payment.bookingId}`}
+                    className="dashboard-atrisk-item atrisk-overdue"
+                    onClick={() => navigate(`/trips`)}
+                  >
+                    <div className="atrisk-icon atrisk-icon-overdue">!</div>
+                    <div className="atrisk-info">
+                      <div className="atrisk-supplier">{payment.supplierName || payment.bookingType}</div>
+                      <div className="atrisk-meta">
+                        <span className="atrisk-trip">{payment.tripName}</span>
+                        {payment.clientName && <span className="atrisk-client">{payment.clientName}</span>}
+                      </div>
+                    </div>
+                    <div className="atrisk-details">
+                      <div className="atrisk-amount">${(payment.finalPaymentAmount || 0).toLocaleString()}</div>
+                      <div className="atrisk-due text-danger">
+                        {payment.daysOverdue} day{payment.daysOverdue !== 1 ? 's' : ''} overdue
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {/* Near-due payments */}
+                {atRiskPayments.nearDue.slice(0, 5 - atRiskPayments.overdue.length).map(payment => (
+                  <div
+                    key={`neardue-${payment.bookingId}`}
+                    className={`dashboard-atrisk-item ${payment.isUrgent ? 'atrisk-urgent' : ''}`}
+                    onClick={() => navigate(`/trips`)}
+                  >
+                    <div className={`atrisk-icon ${payment.isUrgent ? 'atrisk-icon-urgent' : 'atrisk-icon-warning'}`}>$</div>
+                    <div className="atrisk-info">
+                      <div className="atrisk-supplier">{payment.supplierName || payment.bookingType}</div>
+                      <div className="atrisk-meta">
+                        <span className="atrisk-trip">{payment.tripName}</span>
+                        {payment.clientName && <span className="atrisk-client">{payment.clientName}</span>}
+                      </div>
+                    </div>
+                    <div className="atrisk-details">
+                      <div className="atrisk-amount">${(payment.finalPaymentAmount || 0).toLocaleString()}</div>
+                      <div className={`atrisk-due ${payment.isUrgent ? 'text-warning' : ''}`}>
+                        Due in {payment.daysUntilDue} day{payment.daysUntilDue !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {atRiskPayments.totalAtRisk > 5 && (
+                  <button className="btn btn-link" onClick={() => navigate('/commissions')}>
+                    View all {atRiskPayments.totalAtRisk} at-risk payments
+                  </button>
+                )}
               </div>
             )}
           </div>

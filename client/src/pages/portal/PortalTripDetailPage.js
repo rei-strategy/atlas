@@ -50,6 +50,11 @@ export default function PortalTripDetailPage() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
+  // Acknowledgments state
+  const [acknowledgments, setAcknowledgments] = useState([]);
+  const [ackSubmitting, setAckSubmitting] = useState(null);
+  const [ackMessage, setAckMessage] = useState('');
+
   // Helper to check if a payment is overdue
   const isPaymentOverdue = (booking) => {
     if (!booking.finalPaymentDueDate) return false;
@@ -61,7 +66,46 @@ export default function PortalTripDetailPage() {
   useEffect(() => {
     fetchTripDetails();
     fetchFeedback();
+    fetchAcknowledgments();
   }, [id]);
+
+  const fetchAcknowledgments = async () => {
+    try {
+      const res = await fetch(`/api/portal/trips/${id}/acknowledgments`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setAcknowledgments(data.acknowledgments || []);
+    } catch (err) {
+      console.error('Failed to fetch acknowledgments:', err);
+    }
+  };
+
+  const handleAcknowledge = async (ackId) => {
+    setAckSubmitting(ackId);
+    setAckMessage('');
+
+    try {
+      const res = await fetch(`/api/portal/acknowledgments/${ackId}/acknowledge`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to acknowledge');
+
+      // Update the acknowledgments list
+      setAcknowledgments(acknowledgments.map(a =>
+        a.id === ackId ? { ...a, isAcknowledged: true, acknowledgedAt: new Date().toISOString() } : a
+      ));
+      setAckMessage('Thank you for confirming receipt!');
+    } catch (err) {
+      setAckMessage('Error: ' + err.message);
+    } finally {
+      setAckSubmitting(null);
+    }
+  };
 
   const fetchFeedback = async () => {
     try {
@@ -269,11 +313,14 @@ export default function PortalTripDetailPage() {
     );
   }
 
+  const pendingAcks = acknowledgments.filter(a => !a.isAcknowledged).length;
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'travelers', label: `Travelers (${travelers.length})` },
     { id: 'bookings', label: `Bookings (${bookings.length})` },
     { id: 'documents', label: `Documents (${documents.length})` },
+    { id: 'acknowledgments', label: pendingAcks > 0 ? `⚠️ To Review (${pendingAcks})` : 'To Review' },
     { id: 'feedback', label: feedback ? '✓ Feedback' : 'Feedback' }
   ];
 
@@ -646,6 +693,69 @@ export default function PortalTripDetailPage() {
                   <span className="portal-doc-date">{formatDate(d.createdAt)}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Acknowledgments Tab */}
+      {activeTab === 'acknowledgments' && (
+        <div className="portal-tab-content" role="tabpanel">
+          {ackMessage && (
+            <div className={`portal-message ${ackMessage.startsWith('Error') ? 'error' : 'success'}`}>
+              {ackMessage}
+            </div>
+          )}
+
+          <h2>Items to Review</h2>
+          <p className="portal-ack-intro">
+            Please review the following items and confirm you have received the information.
+          </p>
+
+          {acknowledgments.length === 0 ? (
+            <div className="portal-empty-section">
+              <p>No items requiring acknowledgment at this time.</p>
+            </div>
+          ) : (
+            <div className="portal-ack-list">
+              {acknowledgments.filter(a => !a.isAcknowledged).length > 0 && (
+                <div className="portal-ack-section">
+                  <h3 className="portal-ack-section-title">⏳ Pending Review</h3>
+                  {acknowledgments.filter(a => !a.isAcknowledged).map(ack => (
+                    <div key={ack.id} className="portal-ack-card pending">
+                      <div className="portal-ack-header">
+                        <span className={`portal-ack-type type-${ack.type}`}>{ack.type}</span>
+                        <span className="portal-ack-date">{formatDate(ack.createdAt)}</span>
+                      </div>
+                      <h4 className="portal-ack-title">{ack.title}</h4>
+                      {ack.description && <p className="portal-ack-desc">{ack.description}</p>}
+                      <button
+                        className="portal-ack-btn"
+                        onClick={() => handleAcknowledge(ack.id)}
+                        disabled={ackSubmitting === ack.id}
+                      >
+                        {ackSubmitting === ack.id ? 'Confirming...' : '✓ I Acknowledge Receipt'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {acknowledgments.filter(a => a.isAcknowledged).length > 0 && (
+                <div className="portal-ack-section">
+                  <h3 className="portal-ack-section-title">✅ Confirmed</h3>
+                  {acknowledgments.filter(a => a.isAcknowledged).map(ack => (
+                    <div key={ack.id} className="portal-ack-card confirmed">
+                      <div className="portal-ack-header">
+                        <span className={`portal-ack-type type-${ack.type}`}>{ack.type}</span>
+                        <span className="portal-ack-date">Confirmed: {formatDate(ack.acknowledgedAt)}</span>
+                      </div>
+                      <h4 className="portal-ack-title">{ack.title}</h4>
+                      {ack.description && <p className="portal-ack-desc">{ack.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
