@@ -607,3 +607,52 @@
 - Agency timezone setting fully functional
 - Zero console errors
 - Git commit: dcebe61
+
+### Session - 2026-02-06 (Agent: Feature #121)
+
+**Feature Completed: #121 (Feedback & Notification - Notification deduplication)**
+
+#### Feature #121: Notification deduplication
+- System prevents duplicate notifications for the same event
+- Added `event_key` column to notifications table for unique event identification
+- Created unique index on (user_id, event_key) to prevent database-level duplicates
+- Created notificationService.js with:
+  - `createNotification()`: Creates notification with deduplication check
+  - `createNotificationsForUsers()`: Creates notifications for multiple users
+  - `generateEventKey()`: Generates unique event keys like "new_inquiry:trip:123"
+- Updated trip creation to use deduplication service
+
+#### Verification Steps Completed
+1. Created test user: dedup_test@example.com / TestPass123 (Dedup Test Agency, ID: 45)
+2. Created client and trips to generate notifications
+3. Verified direct dedup test:
+   - First attempt: Created notification (id: 10)
+   - Second attempt (same event_key): Duplicate prevented
+   - Third attempt (different user): Created notification (id: 11)
+4. Database unique constraint verified: INSERT with duplicate event_key fails with UNIQUE constraint error
+5. Server restart persistence test: PASSED - notifications persisted with event_keys intact
+6. Mock data grep: No mock patterns in production code
+7. Trip notification counts verified:
+   - Trip 19: 1 notification (only admin existed)
+   - Trip 20: 2 notifications (admin + planner, no duplicates)
+   - Trip 21: 2 notifications (admin + planner, no duplicates)
+
+#### Key Implementation Details
+- server/src/config/initDb.js: Added event_key column to notifications table
+- server/src/services/notificationService.js: New service with deduplication logic
+- server/src/routes/trips.js: Updated to use notification service
+- server/src/routes/notifications.js: Added eventKey to response format
+- Event key format: "event_type:entity_type:entity_id:user:user_id"
+
+#### Test Data Created
+- Agency: Dedup Test Agency (ID: 45)
+- Admin: dedup_test@example.com / TestPass123
+- Planner: planner2_dedup@example.com / TestPass123
+- Client: Test Client (ID: 75)
+- Trips: DEDUP_TEST_TRIP_121, DEDUP_MULTI_USER_TRIP, FINAL_DEDUP_TEST
+
+#### Current State
+- 48/240 features passing (~20%)
+- Backend on port 3001, Frontend on port 3000
+- Notification deduplication fully functional
+- Zero console errors
