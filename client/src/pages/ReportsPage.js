@@ -37,6 +37,7 @@ export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState('bookings');
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [reportData, setReportData] = useState(null);
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('all');
 
   const fetchBookingsReport = useCallback(async () => {
     try {
@@ -130,6 +131,32 @@ export default function ReportsPage() {
     }
   }, [token, dateRange, addToast]);
 
+  const fetchTasksReport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+      if (taskCategoryFilter && taskCategoryFilter !== 'all') {
+        params.append('category', taskCategoryFilter);
+      }
+
+      const res = await fetch(`${API_BASE}/reports/tasks?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReportData(data);
+      } else {
+        const error = await res.json();
+        addToast(error.error || 'Failed to load tasks report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch tasks report:', err);
+      addToast('Failed to load tasks report', 'error');
+    }
+  }, [token, dateRange, taskCategoryFilter, addToast]);
+
   useEffect(() => {
     const loadReport = async () => {
       setLoading(true);
@@ -141,11 +168,13 @@ export default function ReportsPage() {
         await fetchTripsReport();
       } else if (activeReport === 'conversion') {
         await fetchConversionReport();
+      } else if (activeReport === 'tasks') {
+        await fetchTasksReport();
       }
       setLoading(false);
     };
     loadReport();
-  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport, fetchConversionReport]);
+  }, [activeReport, fetchBookingsReport, fetchRevenueReport, fetchTripsReport, fetchConversionReport, fetchTasksReport]);
 
   const handleDateChange = (field, value) => {
     setDateRange(prev => ({ ...prev, [field]: value }));
@@ -254,6 +283,13 @@ export default function ReportsPage() {
             style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
           >
             Conversion Report
+          </button>
+          <button
+            className={`btn ${activeReport === 'tasks' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveReport('tasks')}
+            style={{ borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          >
+            Task Report
           </button>
           <Link
             to="/commissions"
@@ -831,6 +867,278 @@ export default function ReportsPage() {
                   <h3 className="empty-state-title">No trips in this date range</h3>
                   <p className="empty-state-description">
                     Try adjusting your date range to see conversion data.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Task Report */}
+          {activeReport === 'tasks' && reportData && (
+            <div>
+              {/* Category Filter */}
+              <div className="dashboard-card" style={{ marginBottom: '1rem' }}>
+                <div className="dashboard-card-body" style={{ padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Filter by category:</span>
+                    <select
+                      className="form-input"
+                      style={{ width: 'auto', padding: '0.375rem 0.75rem' }}
+                      value={taskCategoryFilter}
+                      onChange={(e) => setTaskCategoryFilter(e.target.value)}
+                    >
+                      <option value="all">All Categories</option>
+                      <option value="follow_up">Follow Up</option>
+                      <option value="payment">Payment</option>
+                      <option value="commission">Commission</option>
+                      <option value="client_request">Client Request</option>
+                      <option value="internal">Internal</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Total Tasks
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {reportData.summary?.totalTasks || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Completed
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)' }}>
+                      {reportData.summary?.completed || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Open
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info)' }}>
+                      {reportData.summary?.open || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Overdue
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-error)' }}>
+                      {reportData.summary?.overdue || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Completion Rate
+                    </div>
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 700,
+                      color: reportData.summary?.completionRate >= 80 ? 'var(--color-success)' :
+                             reportData.summary?.completionRate >= 60 ? 'var(--color-warning)' :
+                             'var(--color-error)'
+                    }}>
+                      {reportData.summary?.completionRate !== null
+                        ? `${reportData.summary.completionRate}%`
+                        : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card">
+                  <div className="dashboard-card-body" style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      Avg. Completion Time
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {reportData.summary?.avgCompletionTime !== null
+                        ? `${reportData.summary.avgCompletionTime} days`
+                        : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* By Category */}
+              {reportData.byCategory && reportData.byCategory.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">Tasks by Category</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Category</th>
+                            <th>Total</th>
+                            <th>Completed</th>
+                            <th>Open</th>
+                            <th>Overdue</th>
+                            <th>Completion Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.byCategory.map(item => (
+                            <tr key={item.category}>
+                              <td style={{ textTransform: 'capitalize' }}>{item.category.replace('_', ' ')}</td>
+                              <td>{item.total}</td>
+                              <td style={{ color: 'var(--color-success)' }}>{item.completed}</td>
+                              <td style={{ color: 'var(--color-info)' }}>{item.open}</td>
+                              <td style={{ color: 'var(--color-error)' }}>{item.overdue}</td>
+                              <td>
+                                <span style={{
+                                  fontWeight: 600,
+                                  color: item.completionRate >= 80 ? 'var(--color-success)' :
+                                         item.completionRate >= 60 ? 'var(--color-warning)' :
+                                         'var(--color-error)'
+                                }}>
+                                  {item.completionRate !== null ? `${item.completionRate}%` : 'N/A'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Overdue Tasks */}
+              {reportData.overdueDetails && reportData.overdueDetails.length > 0 && (
+                <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title" style={{ color: 'var(--color-error)' }}>
+                      ⚠️ Overdue Tasks ({reportData.overdueDetails.length})
+                    </h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Task</th>
+                            <th>Days Overdue</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Category</th>
+                            <th>Assigned To</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.overdueDetails.map(task => (
+                            <tr key={task.id}>
+                              <td>
+                                {task.tripId ? (
+                                  <Link to={`/trips?id=${task.tripId}`} style={{ color: 'var(--color-primary)' }}>
+                                    {task.title}
+                                  </Link>
+                                ) : task.title}
+                              </td>
+                              <td style={{ color: 'var(--color-error)', fontWeight: 600 }}>
+                                {task.daysOverdue} day{task.daysOverdue !== 1 ? 's' : ''}
+                              </td>
+                              <td>{formatDate(task.dueDate)}</td>
+                              <td>
+                                <span className={`status-badge ${task.priority === 'urgent' ? 'status-error' : 'status-info'}`}>
+                                  {task.priority}
+                                </span>
+                              </td>
+                              <td style={{ textTransform: 'capitalize' }}>{task.category?.replace('_', ' ') || '—'}</td>
+                              <td>{task.assignedTo || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* All Tasks List */}
+              {reportData.tasks && reportData.tasks.length > 0 && (
+                <div className="dashboard-card">
+                  <div className="dashboard-card-header">
+                    <h3 className="dashboard-card-title">All Tasks ({reportData.tasks.length})</h3>
+                  </div>
+                  <div className="dashboard-card-body">
+                    <div className="data-table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Created</th>
+                            <th>Task</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Category</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.tasks.map(task => (
+                            <tr key={task.id}>
+                              <td>{formatDate(task.createdAt)}</td>
+                              <td>
+                                {task.tripId ? (
+                                  <Link to={`/trips?id=${task.tripId}`} style={{ color: 'var(--color-primary)' }}>
+                                    {task.title}
+                                  </Link>
+                                ) : task.title}
+                                {task.isSystemGenerated && (
+                                  <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                    (auto)
+                                  </span>
+                                )}
+                              </td>
+                              <td>{formatDate(task.dueDate)}</td>
+                              <td>
+                                <span className={`status-badge ${
+                                  task.status === 'completed' ? 'status-success' :
+                                  task.status === 'overdue' ? 'status-error' :
+                                  'status-warning'
+                                }`}>
+                                  {task.status}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`status-badge ${task.priority === 'urgent' ? 'status-error' : 'status-info'}`}>
+                                  {task.priority}
+                                </span>
+                              </td>
+                              <td style={{ textTransform: 'capitalize' }}>{task.category?.replace('_', ' ') || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(!reportData.tasks || reportData.tasks.length === 0) && (
+                <div className="page-empty-state" style={{ padding: '2rem' }}>
+                  <h3 className="empty-state-title">No tasks in this date range</h3>
+                  <p className="empty-state-description">
+                    Try adjusting your date range or category filter to see task data.
                   </p>
                 </div>
               )}

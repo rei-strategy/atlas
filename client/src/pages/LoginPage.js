@@ -84,7 +84,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginTop: 'var(--spacing-md)' }}>
             <label htmlFor="password" className="form-label">Password</label>
             <input
               id="password"
@@ -102,6 +102,7 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary btn-full"
             disabled={loading}
+            style={{ marginTop: 'var(--spacing-lg)' }}
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>

@@ -283,7 +283,19 @@ export default function DashboardPage() {
   };
 
   const handleTaskClick = (task) => {
+    if (task?.tripId) {
+      navigate(`/trips/${task.tripId}`);
+      return;
+    }
     navigate('/tasks');
+  };
+
+  const navigateToTrip = (tripId) => {
+    if (tripId) {
+      navigate(`/trips/${tripId}`);
+      return;
+    }
+    navigate('/trips');
   };
 
   const getStageLabel = (stage) => {
@@ -440,7 +452,7 @@ export default function DashboardPage() {
                     <div
                       key={trip.id}
                       className="dashboard-trip-item"
-                      onClick={() => navigate(`/trips`)}
+                      onClick={() => navigateToTrip(trip.id)}
                     >
                       <div className="dashboard-trip-info">
                         <div className="dashboard-trip-name">{trip.name}</div>
@@ -596,7 +608,7 @@ export default function DashboardPage() {
                   <div
                     key={idx}
                     className="dashboard-deadline-item"
-                    onClick={() => navigate('/trips')}
+                    onClick={() => navigateToTrip(deadline.tripId)}
                   >
                     <div className={`deadline-icon ${deadline.type === 'payment' ? 'deadline-payment' : 'deadline-travel'}`}>
                       {deadline.type === 'payment' ? '$' : '✈'}
@@ -640,7 +652,7 @@ export default function DashboardPage() {
                   <div
                     key={`overdue-${payment.bookingId}`}
                     className="dashboard-atrisk-item atrisk-overdue"
-                    onClick={() => navigate(`/trips`)}
+                    onClick={() => navigateToTrip(payment.tripId)}
                   >
                     <div className="atrisk-icon atrisk-icon-overdue">!</div>
                     <div className="atrisk-info">
@@ -663,7 +675,7 @@ export default function DashboardPage() {
                   <div
                     key={`neardue-${payment.bookingId}`}
                     className={`dashboard-atrisk-item ${payment.isUrgent ? 'atrisk-urgent' : ''}`}
-                    onClick={() => navigate(`/trips`)}
+                    onClick={() => navigateToTrip(payment.tripId)}
                   >
                     <div className={`atrisk-icon ${payment.isUrgent ? 'atrisk-icon-urgent' : 'atrisk-icon-warning'}`}>$</div>
                     <div className="atrisk-info">

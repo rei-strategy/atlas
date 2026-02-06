@@ -382,4 +382,191 @@ router.get('/conversion', authorize('admin', 'planner'), (req, res) => {
   }
 });
 
+/**
+ * GET /api/reports/tasks
+ * Task completion report - completion rates and timing
+ * Shows task completion statistics, overdue tracking, and category breakdown
+ * Accessible to admin and planner roles only
+ */
+router.get('/tasks', authorize('admin', 'planner'), (req, res) => {
+  try {
+    const db = getDb();
+    const { startDate, endDate, category } = req.query;
+
+    // Build query with filters
+    let tasksQuery = `
+      SELECT
+        t.id, t.title, t.description, t.due_date, t.status, t.priority,
+        t.category, t.is_system_generated, t.source_event,
+        t.created_at, t.completed_at, t.updated_at,
+        tr.id as trip_id, tr.name as trip_name,
+        u.first_name as assigned_first_name, u.last_name as assigned_last_name
+      FROM tasks t
+      LEFT JOIN trips tr ON t.trip_id = tr.id
+      LEFT JOIN users u ON t.assigned_user_id = u.id
+      WHERE t.agency_id = ?
+    `;
+    const params = [req.agencyId];
+
+    if (startDate) {
+      tasksQuery += ' AND t.created_at >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      tasksQuery += ' AND t.created_at <= ?';
+      params.push(endDate + ' 23:59:59');
+    }
+    if (category && category !== 'all') {
+      tasksQuery += ' AND t.category = ?';
+      params.push(category);
+    }
+
+    tasksQuery += ' ORDER BY t.created_at DESC';
+
+    const tasks = db.prepare(tasksQuery).all(...params);
+
+    // Calculate statistics
+    const today = new Date().toISOString().split('T')[0];
+
+    // Categorize tasks
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const openTasks = tasks.filter(t => t.status === 'open');
+    const overdueTasks = tasks.filter(t =>
+      (t.status === 'open' || t.status === 'overdue') && t.due_date < today
+    );
+
+    // Calculate average completion time for completed tasks (in days)
+    let avgCompletionTime = null;
+    const tasksWithCompletionTime = completedTasks.filter(t => t.completed_at && t.created_at);
+    if (tasksWithCompletionTime.length > 0) {
+      const totalDays = tasksWithCompletionTime.reduce((sum, t) => {
+        const created = new Date(t.created_at);
+        const completed = new Date(t.completed_at);
+        const days = (completed - created) / (1000 * 60 * 60 * 24);
+        return sum + days;
+      }, 0);
+      avgCompletionTime = parseFloat((totalDays / tasksWithCompletionTime.length).toFixed(1));
+    }
+
+    // Calculate completion rate
+    const completionRate = tasks.length > 0
+      ? parseFloat(((completedTasks.length / tasks.length) * 100).toFixed(1))
+      : null;
+
+    // Summary
+    const summary = {
+      totalTasks: tasks.length,
+      completed: completedTasks.length,
+      open: openTasks.length,
+      overdue: overdueTasks.length,
+      completionRate,
+      avgCompletionTime
+    };
+
+    // Group by category
+    const byCategoryMap = {};
+    tasks.forEach(t => {
+      const cat = t.category || 'internal';
+      if (!byCategoryMap[cat]) {
+        byCategoryMap[cat] = {
+          category: cat,
+          total: 0,
+          completed: 0,
+          open: 0,
+          overdue: 0
+        };
+      }
+      byCategoryMap[cat].total++;
+      if (t.status === 'completed') {
+        byCategoryMap[cat].completed++;
+      } else {
+        byCategoryMap[cat].open++;
+        if (t.due_date < today) {
+          byCategoryMap[cat].overdue++;
+        }
+      }
+    });
+
+    // Calculate completion rate per category
+    const byCategory = Object.values(byCategoryMap).map(c => ({
+      ...c,
+      completionRate: c.total > 0
+        ? parseFloat(((c.completed / c.total) * 100).toFixed(1))
+        : null
+    }));
+
+    // Group by priority
+    const byPriorityMap = {};
+    tasks.forEach(t => {
+      const pri = t.priority || 'normal';
+      if (!byPriorityMap[pri]) {
+        byPriorityMap[pri] = {
+          priority: pri,
+          total: 0,
+          completed: 0,
+          open: 0
+        };
+      }
+      byPriorityMap[pri].total++;
+      if (t.status === 'completed') {
+        byPriorityMap[pri].completed++;
+      } else {
+        byPriorityMap[pri].open++;
+      }
+    });
+
+    const byPriority = Object.values(byPriorityMap).map(p => ({
+      ...p,
+      completionRate: p.total > 0
+        ? parseFloat(((p.completed / p.total) * 100).toFixed(1))
+        : null
+    }));
+
+    // Get overdue tasks details
+    const overdueDetails = overdueTasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      dueDate: t.due_date,
+      daysOverdue: Math.floor((new Date(today) - new Date(t.due_date)) / (1000 * 60 * 60 * 24)),
+      priority: t.priority,
+      category: t.category,
+      tripId: t.trip_id,
+      tripName: t.trip_name,
+      assignedTo: t.assigned_first_name && t.assigned_last_name
+        ? `${t.assigned_first_name} ${t.assigned_last_name}`
+        : null
+    })).sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    res.json({
+      summary,
+      byCategory,
+      byPriority,
+      overdueDetails,
+      tasks: tasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        dueDate: t.due_date,
+        status: t.status,
+        priority: t.priority,
+        category: t.category,
+        isSystemGenerated: !!t.is_system_generated,
+        sourceEvent: t.source_event,
+        createdAt: t.created_at,
+        completedAt: t.completed_at,
+        tripId: t.trip_id,
+        tripName: t.trip_name,
+        assignedTo: t.assigned_first_name && t.assigned_last_name
+          ? `${t.assigned_first_name} ${t.assigned_last_name}`
+          : null
+      })),
+      dateRange: { startDate, endDate },
+      categoryFilter: category || 'all'
+    });
+  } catch (error) {
+    console.error('[ERROR] Task report failed:', error.message);
+    res.status(500).json({ error: 'Failed to generate task report' });
+  }
+});
+
 module.exports = router;

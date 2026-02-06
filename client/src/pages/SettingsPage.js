@@ -1233,6 +1233,117 @@ function RoleBadge({ role }) {
   );
 }
 
+// Role Selector component for admin role management
+function RoleSelector({ userId, currentRole, currentUserId, token, onRoleChanged }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(currentRole);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const { showToast } = useToast();
+
+  const roles = [
+    { value: 'admin', label: 'Admin' },
+    { value: 'planner', label: 'Planner' },
+    { value: 'support', label: 'Support' },
+    { value: 'marketing', label: 'Marketing' }
+  ];
+
+  // Can't change own role
+  const isSelf = userId === currentUserId;
+
+  const handleSave = async () => {
+    if (selectedRole === currentRole) {
+      setIsEditing(false);
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/users/${userId}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: selectedRole })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to change role');
+      }
+
+      showToast(`Role changed to ${selectedRole}`, 'success');
+      onRoleChanged();
+      setIsEditing(false);
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setSelectedRole(currentRole);
+    setIsEditing(false);
+    setError('');
+  };
+
+  if (isSelf) {
+    return <RoleBadge role={currentRole} />;
+  }
+
+  if (!isEditing) {
+    return (
+      <div className="role-editable">
+        <RoleBadge role={currentRole} />
+        <button
+          className="btn-icon btn-edit-role"
+          onClick={() => setIsEditing(true)}
+          title="Change role"
+          aria-label="Change role"
+        >
+          ✏️
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="role-editor">
+      <select
+        value={selectedRole}
+        onChange={(e) => setSelectedRole(e.target.value)}
+        disabled={saving}
+        className="role-select"
+      >
+        {roles.map(r => (
+          <option key={r.value} value={r.value}>{r.label}</option>
+        ))}
+      </select>
+      <button
+        className="btn btn-sm btn-primary"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? '...' : 'Save'}
+      </button>
+      <button
+        className="btn btn-sm btn-secondary"
+        onClick={handleCancel}
+        disabled={saving}
+      >
+        ✕
+      </button>
+      {error && <span className="role-error">{error}</span>}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, token } = useAuth();
   const { formatDate } = useTimezone();
@@ -1340,7 +1451,19 @@ export default function SettingsPage() {
                           </div>
                         </td>
                         <td>{u.email}</td>
-                        <td><RoleBadge role={u.role} /></td>
+                        <td>
+                          {isAdmin ? (
+                            <RoleSelector
+                              userId={u.id}
+                              currentRole={u.role}
+                              currentUserId={user?.id}
+                              token={token}
+                              onRoleChanged={fetchUsers}
+                            />
+                          ) : (
+                            <RoleBadge role={u.role} />
+                          )}
+                        </td>
                         <td>
                           <span className={`status-indicator ${u.isActive ? 'status-active' : 'status-inactive'}`}>
                             {u.isActive ? 'Active' : 'Inactive'}
