@@ -3491,3 +3491,38 @@
 - All three features verified working - no code changes needed
 - Features were already fully implemented
 
+
+
+---
+
+### Session - 2026-02-06 (Agent batch: Features #220, #221)
+
+**Features Completed: #220, #221 (Search & Filter Edge Cases)**
+
+#### Feature #220: Zero results search feedback
+- GlobalSearch component now shows 'No results found for "{query}"' with helpful hint
+- Added 'Try different keywords or check spelling' suggestion
+- ClientsPage shows 'No results found' with search term when filters return empty
+- TripsPage shows 'No results found' with search term when filters return empty
+- Both pages show 'Clear Filters' button for quick reset
+- Search input preserved for easy editing
+
+#### Feature #221: Filter persistence across page navigation
+- ClientsPage now uses URL search params for filter persistence
+- Added useSearchParams hook to ClientsPage
+- Filters initialized from URL params on page load
+- Sync filter state to URL params via useEffect
+- Back navigation preserves search params: navigate(\`/clients?${searchParams.toString()}\`)
+- TripsPage already had this functionality (verified working)
+
+#### Code Changes
+- client/src/components/GlobalSearch.js: Enhanced no results message with styling
+- client/src/pages/ClientsPage.js: Added useSearchParams, URL param persistence
+- client/src/pages/TripsPage.js: Added hasActiveFilters variable, handleClearFilters function
+- client/src/styles/index.css: Added global-search-empty-title and hint styles
+
+#### Current State
+- 224/240 features passing (~93.3%)
+- Backend on port 3001, Frontend on port 3000
+- Both features verified working
+- Git commit: 9e45406 (#220)
