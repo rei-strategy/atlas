@@ -189,78 +189,102 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="firstName" className="form-label">First name</label>
+            <div className={`form-group ${fieldErrors.firstName && touched.firstName ? 'form-group-error' : ''}`}>
+              <label htmlFor="firstName" className="form-label">First name *</label>
               <input
                 id="firstName"
                 name="firstName"
                 type="text"
-                className="form-input"
+                className={`form-input ${fieldErrors.firstName && touched.firstName ? 'form-input-error' : ''}`}
                 value={formData.firstName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="First name"
-                required
+                aria-invalid={!!(fieldErrors.firstName && touched.firstName)}
+                aria-describedby={fieldErrors.firstName && touched.firstName ? 'firstName-error' : undefined}
               />
+              {fieldErrors.firstName && touched.firstName && (
+                <span id="firstName-error" className="form-error-message">{fieldErrors.firstName}</span>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="lastName" className="form-label">Last name</label>
+            <div className={`form-group ${fieldErrors.lastName && touched.lastName ? 'form-group-error' : ''}`}>
+              <label htmlFor="lastName" className="form-label">Last name *</label>
               <input
                 id="lastName"
                 name="lastName"
                 type="text"
-                className="form-input"
+                className={`form-input ${fieldErrors.lastName && touched.lastName ? 'form-input-error' : ''}`}
                 value={formData.lastName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="Last name"
-                required
+                aria-invalid={!!(fieldErrors.lastName && touched.lastName)}
+                aria-describedby={fieldErrors.lastName && touched.lastName ? 'lastName-error' : undefined}
               />
+              {fieldErrors.lastName && touched.lastName && (
+                <span id="lastName-error" className="form-error-message">{fieldErrors.lastName}</span>
+              )}
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email address</label>
+          <div className={`form-group ${fieldErrors.email && touched.email ? 'form-group-error' : ''}`}>
+            <label htmlFor="email" className="form-label">Email address *</label>
             <input
               id="email"
               name="email"
               type="email"
-              className="form-input"
+              className={`form-input ${fieldErrors.email && touched.email ? 'form-input-error' : ''}`}
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="you@example.com"
-              required
               autoComplete="email"
+              aria-invalid={!!(fieldErrors.email && touched.email)}
+              aria-describedby={fieldErrors.email && touched.email ? 'email-error' : undefined}
             />
+            {fieldErrors.email && touched.email && (
+              <span id="email-error" className="form-error-message">{fieldErrors.email}</span>
+            )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
+          <div className={`form-group ${fieldErrors.password && touched.password ? 'form-group-error' : ''}`}>
+            <label htmlFor="password" className="form-label">Password *</label>
             <input
               id="password"
               name="password"
               type="password"
-              className="form-input"
+              className={`form-input ${fieldErrors.password && touched.password ? 'form-input-error' : ''}`}
               value={formData.password}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="At least 6 characters"
-              required
               autoComplete="new-password"
-              minLength={6}
+              aria-invalid={!!(fieldErrors.password && touched.password)}
+              aria-describedby={fieldErrors.password && touched.password ? 'password-error' : undefined}
             />
+            {fieldErrors.password && touched.password && (
+              <span id="password-error" className="form-error-message">{fieldErrors.password}</span>
+            )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm password</label>
+          <div className={`form-group ${fieldErrors.confirmPassword && touched.confirmPassword ? 'form-group-error' : ''}`}>
+            <label htmlFor="confirmPassword" className="form-label">Confirm password *</label>
             <input
               id="confirmPassword"
               name="confirmPassword"
               type="password"
-              className="form-input"
+              className={`form-input ${fieldErrors.confirmPassword && touched.confirmPassword ? 'form-input-error' : ''}`}
               value={formData.confirmPassword}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Confirm your password"
-              required
               autoComplete="new-password"
+              aria-invalid={!!(fieldErrors.confirmPassword && touched.confirmPassword)}
+              aria-describedby={fieldErrors.confirmPassword && touched.confirmPassword ? 'confirmPassword-error' : undefined}
             />
+            {fieldErrors.confirmPassword && touched.confirmPassword && (
+              <span id="confirmPassword-error" className="form-error-message">{fieldErrors.confirmPassword}</span>
+            )}
           </div>
 
           <button

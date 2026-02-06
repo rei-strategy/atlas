@@ -5,6 +5,9 @@ import { useTimezone } from '../hooks/useTimezone';
 
 const API_BASE = '/api';
 
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Notification preference types with labels and descriptions
 const NOTIFICATION_TYPES = [
   { key: 'taskAssigned', label: 'Task Assigned', description: 'When a task is assigned to you' },
@@ -31,7 +34,48 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+
+  // Validate individual field
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'email':
+        if (!value || !value.trim()) {
+          return 'Email is required';
+        }
+        if (!EMAIL_REGEX.test(value.trim())) {
+          return 'Please enter a valid email address';
+        }
+        return '';
+      case 'firstName':
+        if (!value || !value.trim()) {
+          return 'First name is required';
+        }
+        return '';
+      case 'lastName':
+        if (!value || !value.trim()) {
+          return 'Last name is required';
+        }
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  // Validate all fields
+  const validateAllFields = () => {
+    const errors = {};
+    const fields = ['firstName', 'lastName', 'email'];
+    fields.forEach(field => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    return errors;
+  };
 
   // Fetch current user profile
   const fetchProfile = useCallback(async () => {
@@ -64,11 +108,44 @@ export default function ProfilePage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
+
+    // Real-time validation for touched fields
+    if (touched[name]) {
+      const fieldError = validateField(name, value);
+      setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validate all fields on submit
+    const errors = validateAllFields();
+    setFieldErrors(errors);
+
+    // Mark all fields as touched
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true
+    });
+
+    // If there are any errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setError('Please fix the errors below before submitting');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -304,27 +381,35 @@ export default function ProfilePage() {
               <form onSubmit={handleSubmit} className="profile-form">
                 <fieldset disabled={saving} style={{ border: 'none', padding: 0, margin: 0 }}>
                 <div className="form-row">
-                  <div className="form-group">
+                  <div className={`form-group ${fieldErrors.firstName && touched.firstName ? 'form-group-error' : ''}`}>
                     <label htmlFor="firstName">First Name *</label>
                     <input
                       id="firstName"
                       type="text"
                       name="firstName"
+                      className={fieldErrors.firstName && touched.firstName ? 'form-input-error' : ''}
                       value={formData.firstName}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="First name"
-                      required
                       autoFocus
+                      aria-invalid={!!(fieldErrors.firstName && touched.firstName)}
+                      aria-describedby={fieldErrors.firstName && touched.firstName ? 'firstName-error' : undefined}
                     />
+                    {fieldErrors.firstName && touched.firstName && (
+                      <span id="firstName-error" className="form-error-message">{fieldErrors.firstName}</span>
+                    )}
                   </div>
-                  <div className="form-group">
+                  <div className={`form-group ${fieldErrors.lastName && touched.lastName ? 'form-group-error' : ''}`}>
                     <label htmlFor="lastName">Last Name *</label>
                     <input
                       id="lastName"
                       type="text"
                       name="lastName"
+                      className={fieldErrors.lastName && touched.lastName ? 'form-input-error' : ''}
                       value={formData.lastName}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="Last name"
                       required
                     />
