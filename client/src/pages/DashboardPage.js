@@ -536,7 +536,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Today's Tasks Card */}
-        <div className="dashboard-card dashboard-card-wide">
+        <div className="dashboard-card">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {tasks.length > 0 && (
@@ -616,7 +616,7 @@ export default function DashboardPage() {
         </div>
 
         {/* At-Risk Payments Card */}
-        <div className="dashboard-card">
+        <div className="dashboard-card dashboard-card-wide">
           <div className="dashboard-card-header">
             <div className="dashboard-card-title-row">
               {atRiskPayments.totalAtRisk > 0 && (
