@@ -344,7 +344,7 @@ function WorkflowSettingsForm({ token, isAdmin }) {
   );
 }
 
-function AgencySettingsForm({ token, isAdmin }) {
+function AgencySettingsForm({ token, isAdmin, refreshAgency }) {
   const { showToast } = useToast();
   const fileInputRef = useRef(null);
 
@@ -487,6 +487,11 @@ function AgencySettingsForm({ token, isAdmin }) {
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to save settings');
+      }
+
+      // Refresh agency data in AuthContext so timezone changes take effect immediately
+      if (refreshAgency) {
+        await refreshAgency();
       }
 
       showToast('Agency settings saved successfully!', 'success');
@@ -1458,7 +1463,7 @@ function RoleSelector({ userId, currentRole, currentUserId, token, onRoleChanged
 }
 
 export default function SettingsPage() {
-  const { user, token } = useAuth();
+  const { user, token, refreshAgency } = useAuth();
   const { formatDate } = useTimezone();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -1594,7 +1599,7 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'agency' && (
-        <AgencySettingsForm token={token} isAdmin={isAdmin} />
+        <AgencySettingsForm token={token} isAdmin={isAdmin} refreshAgency={refreshAgency} />
       )}
 
       {activeTab === 'workflow' && (

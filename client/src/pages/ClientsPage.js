@@ -670,14 +670,15 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
             </div>
 
             <div className="form-group">
-              <label className="form-label">Travel Preferences</label>
-              <div className="chip-group">
+              <label className="form-label" id="travelPreferences-label">Travel Preferences</label>
+              <div className="chip-group" role="group" aria-labelledby="travelPreferences-label">
                 {TRAVEL_PREFERENCE_OPTIONS.map(pref => (
                   <button
                     type="button"
                     key={pref}
                     className={`chip ${form.travelPreferences.includes(pref) ? 'chip-active' : ''}`}
                     onClick={() => handleTravelPref(pref)}
+                    aria-pressed={form.travelPreferences.includes(pref)}
                   >
                     {pref}
                   </button>

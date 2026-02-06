@@ -404,9 +404,11 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                   value={form.travelEndDate}
                   onChange={handleDateChange}
                   min={form.travelStartDate || undefined}
+                  aria-invalid={!!dateErrors.travelEndDate}
+                  aria-describedby={dateErrors.travelEndDate ? 'travelEndDate-error' : undefined}
                 />
                 {dateErrors.travelEndDate && (
-                  <span className="form-error-message">{dateErrors.travelEndDate}</span>
+                  <span id="travelEndDate-error" className="form-error-message">{dateErrors.travelEndDate}</span>
                 )}
                 {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
                   <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>

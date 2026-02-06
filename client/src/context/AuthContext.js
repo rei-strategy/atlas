@@ -139,6 +139,27 @@ export function AuthProvider({ children }) {
     return res;
   }, [token, handleAuthError]);
 
+  // Refresh agency data (e.g., after updating settings)
+  const refreshAgency = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to refresh agency data');
+      }
+
+      const data = await res.json();
+      setAgency(data.agency);
+      setUser(data.user);
+    } catch (error) {
+      console.error('Error refreshing agency:', error);
+    }
+  }, [token]);
+
   const value = {
     user,
     agency,
@@ -152,7 +173,8 @@ export function AuthProvider({ children }) {
     handleSessionExpired,
     handleAuthError,
     clearSessionExpiredMessage,
-    authFetch
+    authFetch,
+    refreshAgency
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
