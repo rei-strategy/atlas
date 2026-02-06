@@ -2900,3 +2900,45 @@
 #### Current State
 - 190/240 features passing (~79.2%)
 - Feature verified working end-to-end
+
+
+---
+
+### Session - 2026-02-06 (Agent batch: Features #172, #174, #175)
+
+**Features Completed: #172, #174, #175 (Form Validation)**
+
+#### Feature #172: Date validation on trip forms
+- Added dateErrors and dateWarnings state to TripFormModal
+- Created validateDates() function checking:
+  - End date cannot be before start date (error)
+  - Past dates show warning (non-blocking)
+- handleDateChange() validates on change and updates state
+- Date picker constraints: end date has min={startDate}
+- Added same validation to BookingFormModal for travel dates
+- Form submission blocked if date errors exist
+- UI shows error messages under fields and warnings with amber color
+
+#### Feature #174: Unique email validation on registration
+- Already fully implemented - verified via API testing
+- Backend returns 409 with 'Email already registered' for duplicates
+- Frontend catches error and displays in auth-error div
+- Registration with different email succeeds
+
+#### Feature #175: Password strength validation
+- Enhanced password requirements: 8+ chars, uppercase, lowercase, number
+- Added visual password requirements checklist with real-time validation
+- Checklist shows green checkmarks for met requirements
+- Backend validation updated to enforce same rules
+- Clear error messages for each missing requirement
+
+#### Test Data Created
+- test_dup_174@test.com, test_dup_174_different@test.com (for #174)
+- test_pwd_175_strong@test.com (for #175)
+
+#### Current State
+- 192/240 features passing (~80%)
+- Backend on port 3001, Frontend on port 3000
+- All features verified working
+- Git commits: fda7b2e (#172), 224f15f (#174), 627cedb (#175)
+
