@@ -171,6 +171,26 @@ router.post('/', (req, res) => {
       WHERE t.id = ? AND t.agency_id = ?
     `).get(tripId, req.agencyId);
 
+    // NEW INQUIRY: Create urgent notification for all agency users (admins and planners)
+    const clientName = trip.client_first_name ? `${trip.client_first_name} ${trip.client_last_name}` : 'Unknown Client';
+    const agencyUsers = db.prepare(`
+      SELECT id FROM users WHERE agency_id = ? AND is_active = 1 AND role IN ('admin', 'planner')
+    `).all(req.agencyId);
+
+    for (const targetUser of agencyUsers) {
+      db.prepare(`
+        INSERT INTO notifications (agency_id, user_id, type, title, message, entity_type, entity_id)
+        VALUES (?, ?, 'urgent', ?, ?, 'trip', ?)
+      `).run(
+        req.agencyId,
+        targetUser.id,
+        'New Inquiry',
+        `New inquiry "${trip.name}" for ${clientName}${destination ? ` to ${destination}` : ''}`,
+        tripId
+      );
+    }
+    console.log(`[NOTIFICATION] Created urgent notification for new inquiry trip ${tripId}`);
+
     res.status(201).json({
       message: 'Trip created successfully',
       trip: formatTrip(trip)

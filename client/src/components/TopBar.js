@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
+import NotificationBell from './NotificationBell';
 
 export default function TopBar({ onMenuToggle }) {
   const { user, agency, logout } = useAuth();
@@ -25,6 +26,7 @@ export default function TopBar({ onMenuToggle }) {
       </div>
 
       <div className="topbar-right">
+        <NotificationBell />
         <span className="topbar-user-info">
           <span className="topbar-user-name">{user?.firstName} {user?.lastName}</span>
           <span className="topbar-role-badge">{user?.role}</span>
