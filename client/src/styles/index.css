@@ -29,6 +29,8 @@
   --color-error-light: #f2edf0;
   --color-info: #7da7c7;
   --color-info-light: #e7eef4;
+  --color-danger: var(--color-error);
+  --color-danger-light: var(--color-error-light);
   --color-success-bg: var(--color-success-light);
   --color-success-text: var(--color-success);
   --color-warning-bg: var(--color-warning-light);
@@ -62,6 +64,7 @@
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(47, 58, 69, 0.06);
   --shadow-md: 0 8px 20px -8px rgba(47, 58, 69, 0.18);
+  --shadow-lg: 0 18px 50px -24px rgba(47, 58, 69, 0.32);
 }
 
 /* Dark mode variables - WCAG AA compliant */
@@ -84,6 +87,8 @@
   --color-error-light: #322c31;
   --color-info: #9bbbd3;
   --color-info-light: #26303a;
+  --color-danger: var(--color-error);
+  --color-danger-light: var(--color-error-light);
   --bg-secondary: var(--color-bg-secondary);
   --border-color: var(--color-border);
   --text-secondary: var(--color-text-secondary);
@@ -98,6 +103,7 @@
   --color-info-text: var(--color-primary);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
   --shadow-md: 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 50px -28px rgba(0, 0, 0, 0.7);
 }
 
 /* Dark mode specific overrides */
@@ -363,7 +369,7 @@ fieldset:disabled .btn {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-xl);
-  background-color: var(--color-bg);
+  background-color: var(--color-card-bg);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-lg);
   max-width: 400px;
@@ -412,7 +418,7 @@ fieldset:disabled .btn {
   font-size: var(--font-size-base);
   font-family: inherit;
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background-color: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -421,7 +427,7 @@ fieldset:disabled .btn {
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  box-shadow: 0 0 0 3px rgba(125, 167, 199, 0.25);
 }
 
 .form-input::placeholder {
@@ -431,31 +437,31 @@ fieldset:disabled .btn {
 
 /* Form field error states */
 .form-group-error .form-label {
-  color: var(--color-danger);
+  color: var(--color-error);
 }
 
 .form-input-error {
-  border-color: var(--color-danger) !important;
-  background-color: rgba(239, 68, 68, 0.05);
+  border-color: var(--color-error) !important;
+  background-color: var(--color-error-light);
 }
 
 .form-input-error:focus {
-  border-color: var(--color-danger) !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px rgba(182, 167, 179, 0.2) !important;
 }
 
 .form-error-message {
   display: block;
   margin-top: 4px;
   font-size: var(--font-size-sm);
-  color: var(--color-danger);
+  color: var(--color-error);
   font-weight: 400;
 }
 
 /* Icon indicator for error fields */
 .form-group-error .form-input {
   padding-right: 36px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23b6a7b3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 18px;
@@ -580,12 +586,12 @@ fieldset:disabled .btn {
 
 /* Form validation */
 .form-error {
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--color-error-light);
   color: var(--color-error);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--border-radius);
   font-size: var(--font-size-sm);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--color-error);
 }
 
 .form-hint {
@@ -608,7 +614,7 @@ fieldset:disabled .btn {
   font-size: var(--font-size-base);
   font-family: inherit;
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background-color: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -619,7 +625,7 @@ fieldset:disabled .btn {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  box-shadow: 0 0 0 3px rgba(125, 167, 199, 0.25);
 }
 
 .form-group input::placeholder,
@@ -637,7 +643,7 @@ fieldset:disabled .btn {
   justify-content: center;
   min-height: 100vh;
   padding: var(--spacing-lg);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg);
 }
 
 .auth-container {
@@ -669,7 +675,7 @@ fieldset:disabled .btn {
 }
 
 .auth-form {
-  background: var(--color-bg);
+  background: var(--color-card-bg);
   padding: var(--spacing-xl);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-md);
@@ -1573,7 +1579,7 @@ fieldset:disabled .btn {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(47, 58, 69, 0.35);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1583,9 +1589,10 @@ fieldset:disabled .btn {
 }
 
 .modal-content {
-  background: var(--color-bg);
+  background: var(--color-card-bg);
   border-radius: var(--border-radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
   width: 100%;
   max-width: 520px;
   margin: 40px auto;
@@ -1731,7 +1738,7 @@ fieldset:disabled .btn {
 }
 
 .chip-active {
-  background: rgba(26, 86, 219, 0.08);
+  background: rgba(125, 167, 199, 0.18);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -1744,7 +1751,7 @@ fieldset:disabled .btn {
    Data Table
    ============================================ */
 .data-table-container {
-  background: var(--color-bg);
+  background: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
@@ -1788,12 +1795,12 @@ fieldset:disabled .btn {
 }
 
 .data-table-row-clickable:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: rgba(125, 167, 199, 0.12);
 }
 
 .data-table-row-clickable:focus {
   outline: none;
-  background-color: var(--color-bg-secondary);
+  background-color: rgba(125, 167, 199, 0.12);
 }
 
 .data-table-row-clickable:focus-visible {
