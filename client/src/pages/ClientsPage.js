@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useBlocker, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
@@ -1896,24 +1896,27 @@ export default function ClientsPage() {
     setSearchParams(params, { replace: true });
   }, [search, plannerFilter, setSearchParams]);
 
-  // Block navigation when form has unsaved changes
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      formIsDirty && currentLocation.pathname !== nextLocation.pathname
-  );
-
-  // Handle navigation confirmation
-  const handleConfirmNavigation = () => {
-    if (blocker.state === 'blocked') {
-      blocker.proceed();
+  const confirmIfDirty = (action) => {
+    if (!formIsDirty) {
+      action();
+      return;
+    }
+    const ok = window.confirm('You have unsaved changes. Are you sure you want to leave this page?');
+    if (ok) {
+      setFormIsDirty(false);
+      action();
     }
   };
 
-  const handleCancelNavigation = () => {
-    if (blocker.state === 'blocked') {
-      blocker.reset();
-    }
-  };
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!formIsDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formIsDirty]);
 
   // Fetch users for planner filter dropdown
   useEffect(() => {
@@ -2053,7 +2056,7 @@ export default function ClientsPage() {
 
   const handleViewClient = (client) => {
     setSelectedClient(client);
-    navigate(`/clients/${client.id}`);
+    confirmIfDirty(() => navigate(`/clients/${client.id}`));
   };
 
   const handleClearFilters = () => {
@@ -2070,7 +2073,7 @@ export default function ClientsPage() {
   const handleDeleteClient = (deletedId) => {
     setClients(prev => prev.filter(c => c.id !== deletedId));
     setSelectedClient(null);
-    navigate('/clients');
+    confirmIfDirty(() => navigate('/clients'));
   };
 
   const hasActiveFilters = search !== '' || plannerFilter !== '';
@@ -2118,7 +2121,7 @@ export default function ClientsPage() {
           <button
             className="btn btn-primary"
             style={{ marginTop: 'var(--spacing-md)' }}
-            onClick={() => { setNotFound(false); navigate('/clients'); }}
+            onClick={() => { setNotFound(false); confirmIfDirty(() => navigate('/clients')); }}
           >
             ← Back to Clients
           </button>
@@ -2133,11 +2136,11 @@ export default function ClientsPage() {
       <div className="page-container">
         <ClientDetail
           client={selectedClient}
-          onBack={() => { setSelectedClient(null); navigate(`/clients?${searchParams.toString()}`); }}
+          onBack={() => { setSelectedClient(null); confirmIfDirty(() => navigate(`/clients?${searchParams.toString()}`)); }}
           onEdit={handleEditClient}
           onDelete={handleDeleteClient}
           token={token}
-          onNavigateToTrip={(tripId) => navigate(`/trips/${tripId}`)}
+          onNavigateToTrip={(tripId) => confirmIfDirty(() => navigate(`/trips/${tripId}`))}
         />
         <ClientFormModal
           isOpen={showModal}
@@ -2147,12 +2150,6 @@ export default function ClientsPage() {
           token={token}
           users={users}
           onDirtyChange={setFormIsDirty}
-        />
-        {/* Navigation blocker dialog for unsaved changes */}
-        <UnsavedChangesDialog
-          isOpen={blocker.state === 'blocked'}
-          onStay={handleCancelNavigation}
-          onLeave={handleConfirmNavigation}
         />
       </div>
     );
@@ -2397,12 +2394,6 @@ export default function ClientsPage() {
         onClose={() => setShowImportModal(false)}
         onImported={handleImportComplete}
         token={token}
-      />
-      {/* Navigation blocker dialog for unsaved changes */}
-      <UnsavedChangesDialog
-        isOpen={blocker.state === 'blocked'}
-        onStay={handleCancelNavigation}
-        onLeave={handleConfirmNavigation}
       />
     </div>
   );
