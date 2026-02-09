@@ -1680,7 +1680,7 @@ fieldset:disabled .btn {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   margin: var(--spacing-sm) 0 0;
   padding-bottom: var(--spacing-xs);
@@ -1781,7 +1781,7 @@ fieldset:disabled .btn {
   font-weight: 600;
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -1832,7 +1832,7 @@ fieldset:disabled .btn {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   flex-shrink: 0;
 }
 
@@ -1935,7 +1935,7 @@ fieldset:disabled .btn {
   justify-content: center;
   font-size: 1.25rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   flex-shrink: 0;
 }
 
@@ -1971,7 +1971,7 @@ fieldset:disabled .btn {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   margin: 0 0 var(--spacing-md);
 }
@@ -1992,7 +1992,7 @@ fieldset:disabled .btn {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.03em;
 }
 
@@ -2092,7 +2092,7 @@ fieldset:disabled .btn {
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   margin-left: 0.5rem;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .status-overdue {
@@ -2176,7 +2176,7 @@ fieldset:disabled .btn {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   flex-shrink: 0;
 }
 
@@ -2558,7 +2558,7 @@ html, body {
   color: var(--color-primary);
   font-size: 0.625rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
@@ -2750,7 +2750,7 @@ html, body {
   padding: 0.1875rem 0.5rem;
   border-radius: 9999px;
   white-space: nowrap;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.03em;
 }
 
@@ -2824,7 +2824,7 @@ html, body {
   padding: 0.375rem 0.75rem;
   border-radius: 8px;
   white-space: nowrap;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
 }
 
@@ -2846,7 +2846,7 @@ html, body {
 .portal-date-label {
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   color: var(--color-text-secondary);
   margin-bottom: 0.125rem;
@@ -3208,7 +3208,7 @@ html, body {
 .portal-payment-label {
   display: block;
   font-size: 0.75rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.02em;
   color: var(--color-text-secondary);
   margin-bottom: 0.25rem;
@@ -3302,7 +3302,7 @@ html, body {
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   margin-left: 0.5rem;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .portal-payment-overall {
@@ -3573,7 +3573,7 @@ html, body {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 9999px;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.025em;
   flex-shrink: 0;
 }
@@ -3786,7 +3786,7 @@ html, body {
   font-weight: 600;
   padding: 2px 6px;
   border-radius: var(--border-radius);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.025em;
 }
 
@@ -4127,7 +4127,7 @@ html, body {
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
 }
 
@@ -4278,7 +4278,7 @@ html, body {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
 }
 
@@ -4398,7 +4398,7 @@ html, body {
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--spacing-sm);
@@ -4489,7 +4489,7 @@ html, body {
 .total-label {
   font-size: 0.7rem;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
 }
 
@@ -4630,7 +4630,7 @@ html, body {
   padding: var(--spacing-xs) var(--spacing-md);
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.03em;
   color: var(--color-text-secondary);
   margin: 0;
@@ -4931,7 +4931,7 @@ html, body {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
 }
 
@@ -5279,7 +5279,7 @@ html, body {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
   padding: 4px 8px;
   margin-bottom: 4px;
@@ -5412,7 +5412,7 @@ html, body {
   font-weight: 500;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .color-picker-dropdown {
@@ -5464,7 +5464,7 @@ html, body {
 .custom-color-input input {
   flex: 1;
   font-family: monospace;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 /* Form Info Box */
@@ -5743,7 +5743,7 @@ html, body {
   justify-content: center;
   font-size: 1.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .profile-name-section h2 {
@@ -6158,7 +6158,7 @@ html, body {
   font-weight: 600;
   color: var(--color-text-secondary);
   margin: 0;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
 }
 
@@ -6191,7 +6191,7 @@ html, body {
 .portal-ack-type {
   font-size: 0.6875rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: none;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   letter-spacing: 0.5px;
