@@ -784,6 +784,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
                 className="btn btn-primary"
                 loading={loading}
                 loadingText="Saving..."
+                onClick={handleSubmit}
               >
                 {client ? 'Save Changes' : 'Create Client'}
               </LoadingButton>
