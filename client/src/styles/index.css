@@ -341,7 +341,7 @@ fieldset:disabled .btn {
 
 .loading-timeout-warning {
   color: var(--color-danger);
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-error-light);
 }
 
 .loading-cancel-btn {
@@ -1515,7 +1515,7 @@ fieldset:disabled .btn {
   align-items: center;
   gap: var(--spacing-sm);
   padding: 12px 16px;
-  background: var(--color-bg);
+  background: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-md);
@@ -1928,7 +1928,7 @@ fieldset:disabled .btn {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(26, 86, 219, 0.1);
+  background: rgba(125, 167, 199, 0.18);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -2031,7 +2031,7 @@ fieldset:disabled .btn {
 /* Status badges use icons alongside color for WCAG compliance -
    information not conveyed by color alone */
 .status-success {
-  background: rgba(4, 120, 87, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
@@ -2041,7 +2041,7 @@ fieldset:disabled .btn {
 }
 
 .status-warning {
-  background: rgba(180, 83, 9, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
@@ -2050,7 +2050,7 @@ fieldset:disabled .btn {
 }
 
 .status-error {
-  background: rgba(220, 38, 38, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -2244,7 +2244,7 @@ fieldset:disabled .btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
   display: flex;
   align-items: center;
@@ -3579,7 +3579,7 @@ html, body {
 }
 
 .priority-urgent {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -3732,7 +3732,7 @@ html, body {
 
 .task-complete-btn:hover {
   border-color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
 }
 
 .task-complete-btn .checkbox-circle {
@@ -3791,7 +3791,7 @@ html, body {
 }
 
 .badge-urgent {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -3853,27 +3853,27 @@ html, body {
 }
 
 .stage-inquiry {
-  background: rgba(107, 114, 128, 0.1);
+  background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
 }
 
 .stage-quoted {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
 .stage-booked {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .stage-payment {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .stage-traveling {
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-muted);
 }
 
@@ -3909,12 +3909,12 @@ html, body {
 }
 
 .deadline-payment {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .deadline-travel {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
@@ -3987,7 +3987,7 @@ html, body {
 }
 
 .dashboard-atrisk-item.atrisk-overdue:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   border-color: var(--color-error);
 }
 
@@ -3997,7 +3997,7 @@ html, body {
 }
 
 .dashboard-atrisk-item.atrisk-urgent:hover {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   border-color: var(--color-warning);
 }
 
@@ -4014,7 +4014,7 @@ html, body {
 }
 
 .atrisk-icon-overdue {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -4024,7 +4024,7 @@ html, body {
 }
 
 .atrisk-icon-warning {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
@@ -4109,17 +4109,17 @@ html, body {
 }
 
 .pipeline-expected {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .pipeline-submitted {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .pipeline-paid {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
@@ -4217,17 +4217,17 @@ html, body {
 }
 
 .activity-icon-create {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .activity-icon-update {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
 .activity-icon-delete {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-danger);
 }
 
@@ -4318,12 +4318,12 @@ html, body {
 }
 
 .quick-access-icon-client {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
 .quick-access-icon-trip {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
@@ -4451,17 +4451,17 @@ html, body {
 }
 
 .conversion-high {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .conversion-medium {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .conversion-low {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -4562,7 +4562,7 @@ html, body {
   outline: none;
   border-color: var(--color-primary);
   background-color: var(--color-bg);
-  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  box-shadow: 0 0 0 3px rgba(125, 167, 199, 0.18);
 }
 
 .global-search-input::placeholder {
@@ -4685,63 +4685,63 @@ html, body {
 
 /* Search result stage badges */
 .global-search-result-badge.stage-inquiry {
-  background: rgba(107, 114, 128, 0.1);
+  background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
 }
 
 .global-search-result-badge.stage-quoted {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
 .global-search-result-badge.stage-booked {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .global-search-result-badge.stage-final_payment_pending {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .global-search-result-badge.stage-traveling {
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--color-info-light);
   color: var(--color-muted);
 }
 
 .global-search-result-badge.stage-completed {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .global-search-result-badge.stage-canceled {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
 .global-search-result-badge.stage-archived {
-  background: rgba(107, 114, 128, 0.1);
+  background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
 }
 
 /* Booking status badges in search */
 .global-search-result-badge.booking-planned {
-  background: rgba(107, 114, 128, 0.1);
+  background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
 }
 
 .global-search-result-badge.booking-quoted {
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .global-search-result-badge.booking-booked {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-light);
   color: var(--color-success);
 }
 
 .global-search-result-badge.booking-canceled {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -4795,7 +4795,7 @@ html, body {
 .template-card-icon {
   width: 40px;
   height: 40px;
-  background: rgba(26, 86, 219, 0.1);
+  background: rgba(125, 167, 199, 0.18);
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;
@@ -4850,7 +4850,7 @@ html, body {
 .template-icon {
   width: 48px;
   height: 48px;
-  background: rgba(26, 86, 219, 0.1);
+  background: rgba(125, 167, 199, 0.18);
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;
@@ -5046,7 +5046,7 @@ html, body {
 }
 
 .notification-bell-btn.has-urgent {
-  color: var(--color-error);
+  color: var(--color-warning);
   animation: bell-shake 0.5s ease-in-out;
 }
 
@@ -5068,13 +5068,13 @@ html, body {
   font-weight: 600;
   line-height: 18px;
   text-align: center;
-  color: white;
+  color: var(--color-card-bg);
   background-color: var(--color-primary);
   border-radius: 9px;
 }
 
 .notification-badge.urgent {
-  background-color: var(--color-error);
+  background-color: var(--color-warning);
   animation: pulse 2s infinite;
 }
 
@@ -5089,10 +5089,10 @@ html, body {
   right: 0;
   width: 360px;
   max-height: 480px;
-  background-color: var(--color-bg);
+  background-color: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   z-index: 1100;
   overflow: hidden;
 }
@@ -5142,15 +5142,15 @@ html, body {
 }
 
 .notification-item.unread {
-  background-color: rgba(26, 86, 219, 0.05);
+  background-color: rgba(125, 167, 199, 0.12);
 }
 
 .notification-item.urgent {
-  border-left: 3px solid var(--color-error);
+  border-left: 3px solid var(--color-warning);
 }
 
 .notification-item.urgent.unread {
-  background-color: rgba(239, 68, 68, 0.05);
+  background-color: rgba(201, 191, 174, 0.2);
 }
 
 .notification-icon {
@@ -5166,8 +5166,8 @@ html, body {
 }
 
 .notification-item.urgent .notification-icon {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
+  background-color: rgba(201, 191, 174, 0.25);
+  color: var(--color-warning);
 }
 
 .notification-content {
@@ -5183,7 +5183,7 @@ html, body {
 }
 
 .notification-item.urgent .notification-title {
-  color: var(--color-error);
+  color: var(--color-warning);
 }
 
 .notification-message {
@@ -5223,7 +5223,7 @@ html, body {
 }
 
 .notification-dismiss:hover {
-  background-color: var(--color-border);
+  background-color: var(--color-bg-secondary);
   color: var(--color-text);
 }
 
@@ -5256,7 +5256,7 @@ html, body {
 }
 
 .notification-snooze:hover {
-  background-color: var(--color-border);
+  background-color: var(--color-bg-secondary);
   color: var(--color-primary);
 }
 
@@ -5266,7 +5266,7 @@ html, body {
   right: 50px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: var(--color-bg);
+  background-color: var(--color-card-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-md);
@@ -5367,7 +5367,7 @@ html, body {
 
 .logo-upload-placeholder:hover {
   border-color: var(--color-primary);
-  background-color: rgba(26, 86, 219, 0.02);
+  background-color: rgba(125, 167, 199, 0.12);
 }
 
 .logo-upload-placeholder:focus-visible {
@@ -5473,8 +5473,8 @@ html, body {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
-  background-color: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background-color: var(--color-info-light);
+  border: 1px solid var(--color-primary-light);
   border-radius: var(--border-radius);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -5534,7 +5534,7 @@ html, body {
 
 .settings-tab.active {
   color: var(--color-primary);
-  background-color: rgba(26, 86, 219, 0.1);
+  background-color: rgba(125, 167, 199, 0.18);
 }
 
 /* Workflow Settings Form */
@@ -5664,27 +5664,27 @@ html, body {
 }
 
 .action-badge.action-approve {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: var(--color-success-light);
   color: var(--color-success);
 }
 
 .action-badge.action-deny {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-error-light);
   color: var(--color-error);
 }
 
 .action-badge.action-create {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--color-info-light);
   color: var(--color-primary);
 }
 
 .action-badge.action-update {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .action-badge.action-delete {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-error-light);
   color: var(--color-error);
 }
 
@@ -6312,7 +6312,7 @@ html, body {
 .role-select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.1);
+  box-shadow: 0 0 0 2px rgba(125, 167, 199, 0.18);
 }
 
 .role-error {
