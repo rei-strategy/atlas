@@ -1660,6 +1660,21 @@ fieldset:disabled .btn {
   overflow-y: auto;
 }
 
+/* Increase breathing room for modal forms */
+.modal-body .form-group {
+  gap: 10px;
+  margin-bottom: var(--spacing-md);
+}
+
+.modal-body .form-row,
+.modal-body .form-row-3 {
+  gap: var(--spacing-lg);
+}
+
+.modal-body .checkbox-group {
+  gap: var(--spacing-sm);
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
