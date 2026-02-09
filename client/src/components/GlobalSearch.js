@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_BASE from '../utils/apiBase';
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
@@ -20,7 +21,7 @@ export default function GlobalSearch() {
     }
 
     setLoading(true);
-    fetch(`http://localhost:3001/api/search?q=${encodeURIComponent(searchQuery)}`, {
+    fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

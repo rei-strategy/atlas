@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+import API_BASE from '../utils/apiBase';
 
 const formatCurrency = (amount) => {
   if (amount == null) return '$0.00';

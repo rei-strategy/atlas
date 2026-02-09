@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_BASE from '../utils/apiBase';
 import { useTimezone } from '../hooks/useTimezone';
 
 export default function NotificationBell() {
@@ -19,7 +20,7 @@ export default function NotificationBell() {
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:3001/api/notifications', {
+      const response = await fetch(`${API_BASE}/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -57,7 +58,7 @@ export default function NotificationBell() {
 
   const handleMarkRead = async (id) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${id}/read`, {
+      const response = await fetch(`${API_BASE}/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -84,7 +85,7 @@ export default function NotificationBell() {
   const handleMarkAllRead = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/notifications/read-all', {
+      const response = await fetch(`${API_BASE}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,7 +108,7 @@ export default function NotificationBell() {
   const handleDismiss = async (id, e) => {
     e.stopPropagation();
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${id}/dismiss`, {
+      const response = await fetch(`${API_BASE}/notifications/${id}/dismiss`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -164,7 +165,7 @@ export default function NotificationBell() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${id}/snooze`, {
+      const response = await fetch(`${API_BASE}/notifications/${id}/snooze`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

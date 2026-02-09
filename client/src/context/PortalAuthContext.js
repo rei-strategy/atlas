@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import API_BASE from '../utils/apiBase';
 
 const PortalAuthContext = createContext(null);
-
-const API_BASE = '/api';
 
 export function PortalAuthProvider({ children }) {
   const [customer, setCustomer] = useState(null);
