@@ -33,6 +33,7 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
   const [conflictData, setConflictData] = useState(null);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const abortControllerRef = useRef(null);
+  const submittingRef = useRef(false);
   const loadingStartRef = useRef(null);
   const [draftChecked, setDraftChecked] = useState(false);
   // Modal accessibility: focus trapping, Escape key, focus restoration
