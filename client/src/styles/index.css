@@ -643,7 +643,7 @@ fieldset:disabled .btn {
   justify-content: center;
   min-height: 100vh;
   padding: var(--spacing-lg);
-  background-color: var(--color-bg);
+  background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
 }
 
 .auth-container {
@@ -658,6 +658,13 @@ fieldset:disabled .btn {
 
 .auth-logo {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   margin-bottom: var(--spacing-md);
 }
 
@@ -678,7 +685,7 @@ fieldset:disabled .btn {
   background: var(--color-card-bg);
   padding: var(--spacing-xl);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -702,8 +709,8 @@ fieldset:disabled .btn {
 }
 
 [data-theme="dark"] .auth-error {
-  background-color: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
+  background-color: var(--color-error-light);
+  border-color: var(--color-error);
 }
 
 .auth-warning {
@@ -717,8 +724,8 @@ fieldset:disabled .btn {
 }
 
 [data-theme="dark"] .auth-warning {
-  background-color: rgba(234, 179, 8, 0.1);
-  border-color: rgba(234, 179, 8, 0.3);
+  background-color: var(--color-warning-light);
+  border-color: var(--color-warning);
   color: var(--color-warning);
 }
 
