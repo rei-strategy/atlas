@@ -8,9 +8,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (corsOrigins.includes('*')) return callback(null, true);
+    if (corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: false
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
