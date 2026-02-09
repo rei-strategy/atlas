@@ -10,6 +10,13 @@ function getDb() {
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    const hasUsersTable = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+      .get();
+    if (!hasUsersTable) {
+      const { initializeDatabase } = require('./initDb');
+      initializeDatabase();
+    }
   }
   return db;
 }

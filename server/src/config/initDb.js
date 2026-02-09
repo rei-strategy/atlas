@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', '..', 'atlas.db');
+const DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, '..', '..', 'atlas.db');
 
 function initializeDatabase() {
   const db = new Database(DB_PATH);
@@ -318,4 +318,8 @@ function initializeDatabase() {
   db.close();
 }
 
-initializeDatabase();
+if (require.main === module) {
+  initializeDatabase();
+}
+
+module.exports = { initializeDatabase, DB_PATH };
