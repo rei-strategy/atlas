@@ -64,10 +64,18 @@ npm start
 - **Backend API:** http://localhost:3001
 - **Health Check:** http://localhost:3001/api/health
 
+## Docs
+
+Project documentation and artifacts live in `docs/`, including specs, notes, and screenshots.
+
 ## Project Structure
 
 ```
 atlas/
+  docs/
+    screenshots/   # UI and workflow screenshots
+    specs/         # Product and technical specifications
+    notes/         # Progress notes and scratch files
   server/
     src/
       config/       # Database configuration and initialization
@@ -75,8 +83,7 @@ atlas/
       models/       # Data access layer
       routes/       # API route handlers
       utils/        # Shared utilities
-    uploads/        # File upload storage
-    atlas.db        # SQLite database (auto-created)
+    uploads/        # File upload storage (local)
   client/
     public/         # Static assets
     src/
