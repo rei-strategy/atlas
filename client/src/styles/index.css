@@ -223,6 +223,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+svg[stroke] {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
 a {
   color: var(--color-primary);
   text-decoration: underline;  /* WCAG: Links must be distinguishable not by color alone */

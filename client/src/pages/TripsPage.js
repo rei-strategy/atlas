@@ -4522,10 +4522,10 @@ export default function TripsPage() {
       <div className="page-container">
         <div className="page-empty-state">
           <div className="empty-state-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v4" />
-              <circle cx="12" cy="16" r="1" fill="currentColor" />
+              <line x1="12" y1="16" x2="12" y2="16" />
             </svg>
           </div>
           <h3 className="empty-state-title">Trip Not Found</h3>
