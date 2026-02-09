@@ -1608,7 +1608,7 @@ fieldset:disabled .btn {
   border: 1px solid var(--color-border);
   width: 100%;
   max-width: 520px;
-  margin: 40px auto;
+  margin: 48px auto;
   animation: modalIn 0.2s ease;
 }
 
@@ -1620,7 +1620,7 @@ fieldset:disabled .btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -1652,19 +1652,19 @@ fieldset:disabled .btn {
 }
 
 .modal-body {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  max-height: 60vh;
+  gap: var(--spacing-lg);
+  max-height: 70vh;
   overflow-y: auto;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
   border-top: 1px solid var(--color-border);
 }
 
