@@ -5,8 +5,7 @@ import { useTimezone } from '../hooks/useTimezone';
 import { generateIdempotencyKey } from '../utils/idempotency';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import LoadingButton from '../components/LoadingButton';
-
-const API_BASE = '/api';
+import API_BASE from '../utils/apiBase';
 
 const PRIORITY_OPTIONS = [
   { value: 'normal', label: 'Normal' },

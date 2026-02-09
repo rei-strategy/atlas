@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usePortalAuth } from '../../context/PortalAuthContext';
 import { usePortalTimezone } from '../../hooks/usePortalTimezone';
 import { Link } from 'react-router-dom';
+import API_BASE from '../../utils/apiBase';
 
 export default function PortalDashboardPage() {
   const { customer, token } = usePortalAuth();
@@ -16,7 +17,7 @@ export default function PortalDashboardPage() {
 
   const fetchTrips = async () => {
     try {
-      const res = await fetch('/api/portal/trips', {
+      const res = await fetch(`${API_BASE}/portal/trips`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to load trips');

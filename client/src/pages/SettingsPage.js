@@ -3,9 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
+import API_BASE from '../utils/apiBase';
 import LoadingButton from '../components/LoadingButton';
-
-const API_BASE = '/api';
 
 // Audit Log Action Filter Options
 const APPROVAL_ACTIONS = [

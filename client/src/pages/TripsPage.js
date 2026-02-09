@@ -8,8 +8,7 @@ import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import Modal from '../components/Modal';
 import Breadcrumb from '../components/Breadcrumb';
 import LoadingButton from '../components/LoadingButton';
-
-const API_BASE = '/api';
+import API_BASE from '../utils/apiBase';
 
 const STAGE_LABELS = {
   inquiry: 'Inquiry',

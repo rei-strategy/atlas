@@ -8,11 +8,11 @@ import { FIELD_LIMITS, validateMaxLength, getCharacterCount, isApproachingLimit 
 import { useFormDraft } from '../hooks/useFormDraft';
 import { generateIdempotencyKey } from '../utils/idempotency';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
+import API_BASE from '../utils/apiBase';
 import Breadcrumb from '../components/Breadcrumb';
 import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 import LoadingButton from '../components/LoadingButton';
 
-const API_BASE = '/api';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 const COMMUNICATION_OPTIONS = ['Email', 'Phone', 'Text', 'Video Call'];
@@ -949,7 +949,7 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
 
   const handleDownloadTemplate = async () => {
     try {
-      const res = await fetch('/api/clients/import/template', {
+      const res = await fetch(`${API_BASE}/clients/import/template`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -982,7 +982,7 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('/api/clients/import', {
+      const res = await fetch(`${API_BASE}/clients/import`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

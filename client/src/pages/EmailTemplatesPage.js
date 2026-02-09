@@ -4,8 +4,7 @@ import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import LoadingButton from '../components/LoadingButton';
-
-const API_BASE = '/api';
+import API_BASE from '../utils/apiBase';
 
 const EMAIL_STATUS_COLORS = {
   pending: 'status-warning',
