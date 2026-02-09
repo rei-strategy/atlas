@@ -22,7 +22,7 @@ export default function PortalLayout({ children }) {
         <div className="portal-header-left">
           <Link to="/portal/dashboard" className="portal-brand">
             <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-              <rect width="40" height="40" rx="8" fill="#1a56db" />
+              <rect width="40" height="40" rx="8" fill="var(--color-primary)" />
               <path d="M12 28L20 12L28 28H12Z" fill="white" strokeWidth="0" />
             </svg>
             <span className="portal-brand-name">

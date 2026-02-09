@@ -243,7 +243,7 @@ export default function CommissionsPage() {
                   Expected
                 </div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning, var(--color-warning))' }}>
                 {formatCurrency(
                   (pipelineSummary.byStatus.find(s => s.status === 'expected' || s.status === null)?.totalExpected || 0) +
                   (pipelineSummary.byStatus.find(s => s.status === null)?.totalExpected || 0)
@@ -270,7 +270,7 @@ export default function CommissionsPage() {
                   Submitted
                 </div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>
                 {formatCurrency(pipelineSummary.byStatus.find(s => s.status === 'submitted')?.totalExpected || 0)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
@@ -293,7 +293,7 @@ export default function CommissionsPage() {
                   Paid
                 </div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>
                 {formatCurrency(pipelineSummary.byStatus.find(s => s.status === 'paid')?.totalReceived || 0)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
@@ -316,7 +316,7 @@ export default function CommissionsPage() {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Expected
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>
               {formatCurrency(allCommissions.totals?.totalExpected || 0)}
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function CommissionsPage() {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Received
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>
               {formatCurrency(allCommissions.totals?.totalReceived || 0)}
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function CommissionsPage() {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Outstanding
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-warning, var(--color-warning))' }}>
               {formatCurrency(allCommissions.totals?.outstanding || 0)}
             </div>
           </div>
@@ -398,39 +398,39 @@ export default function CommissionsPage() {
           }}>
             <div style={{
               padding: '1rem',
-              background: 'var(--color-error-light, #fef2f2)',
-              border: '1px solid var(--color-error, #dc2626)',
+              background: 'var(--color-error-light, var(--color-error-light))',
+              border: '1px solid var(--color-error, var(--color-error))',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-error, #dc2626)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-error, var(--color-error))', textTransform: 'uppercase' }}>
                 Underpaid
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-error, #dc2626)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-error, var(--color-error))' }}>
                 {varianceData.summary?.underpaidCount || 0} bookings
               </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-error, #dc2626)' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--color-error, var(--color-error))' }}>
                 -{formatCurrency(varianceData.summary?.underpaidAmount || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--color-success-light, #f0fdf4)',
-              border: '1px solid var(--color-success, #059669)',
+              background: 'var(--color-success-light, #e6f1ec)',
+              border: '1px solid var(--color-success, var(--color-success))',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-success, #059669)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-success, var(--color-success))', textTransform: 'uppercase' }}>
                 Overpaid
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>
                 {varianceData.summary?.overpaidCount || 0} bookings
               </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-success, #059669)' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--color-success, var(--color-success))' }}>
                 +{formatCurrency(varianceData.summary?.overpaidAmount || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
@@ -441,8 +441,8 @@ export default function CommissionsPage() {
                 fontSize: '1.25rem',
                 fontWeight: 700,
                 color: (varianceData.summary?.netVariance || 0) >= 0
-                  ? 'var(--color-success, #059669)'
-                  : 'var(--color-error, #dc2626)'
+                  ? 'var(--color-success, var(--color-success))'
+                  : 'var(--color-error, var(--color-error))'
               }}>
                 {(varianceData.summary?.netVariance || 0) >= 0 ? '+' : ''}{formatCurrency(varianceData.summary?.netVariance || 0)}
               </div>
@@ -534,7 +534,7 @@ export default function CommissionsPage() {
                       </td>
                       <td>{c.clientName}</td>
                       <td style={{ fontWeight: 600 }}>{formatCurrency(c.commissionAmountExpected)}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--color-success, #059669)' }}>
+                      <td style={{ fontWeight: 600, color: 'var(--color-success, var(--color-success))' }}>
                         {formatCurrency(c.commissionAmountReceived)}
                       </td>
                       <td>
@@ -819,7 +819,7 @@ export default function CommissionsPage() {
                       <td>{c.clientName}</td>
                       <td>{c.commissionRate ? `${c.commissionRate}%` : '—'}</td>
                       <td style={{ fontWeight: 600 }}>{formatCurrency(c.commissionAmountExpected)}</td>
-                      <td style={{ color: c.commissionAmountReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                      <td style={{ color: c.commissionAmountReceived > 0 ? 'var(--color-success, var(--color-success))' : 'inherit' }}>
                         {c.commissionAmountReceived > 0 ? formatCurrency(c.commissionAmountReceived) : '—'}
                       </td>
                       <td>
@@ -904,7 +904,7 @@ export default function CommissionsPage() {
           }}>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
@@ -917,40 +917,40 @@ export default function CommissionsPage() {
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Total Expected
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>
                 {formatCurrency(bySupplierData.totals?.totalExpected || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Total Received
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>
                 {formatCurrency(bySupplierData.totals?.totalReceived || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Outstanding
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, var(--color-warning))' }}>
                 {formatCurrency(bySupplierData.totals?.outstanding || 0)}
               </div>
             </div>
@@ -994,10 +994,10 @@ export default function CommissionsPage() {
                       <td style={{ fontWeight: 600 }}>{s.bookingCount}</td>
                       <td>{s.avgCommissionRate ? `${s.avgCommissionRate}%` : '—'}</td>
                       <td style={{ fontWeight: 600 }}>{formatCurrency(s.totalExpected)}</td>
-                      <td style={{ fontWeight: 600, color: s.totalReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                      <td style={{ fontWeight: 600, color: s.totalReceived > 0 ? 'var(--color-success, var(--color-success))' : 'inherit' }}>
                         {s.totalReceived > 0 ? formatCurrency(s.totalReceived) : '—'}
                       </td>
-                      <td style={{ fontWeight: 600, color: s.outstanding > 0 ? 'var(--color-warning, #f59e0b)' : 'inherit' }}>
+                      <td style={{ fontWeight: 600, color: s.outstanding > 0 ? 'var(--color-warning, var(--color-warning))' : 'inherit' }}>
                         {s.outstanding > 0 ? formatCurrency(s.outstanding) : '—'}
                       </td>
                       <td>
@@ -1096,7 +1096,7 @@ export default function CommissionsPage() {
           }}>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
@@ -1109,40 +1109,40 @@ export default function CommissionsPage() {
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Total Expected
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>
                 {formatCurrency(byPlannerData.totals?.totalExpected || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Total Received
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>
                 {formatCurrency(byPlannerData.totals?.totalReceived || 0)}
               </div>
             </div>
             <div style={{
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               border: '1px solid var(--border-color)',
               borderRadius: '8px'
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Outstanding
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, #f59e0b)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-warning, var(--color-warning))' }}>
                 {formatCurrency(byPlannerData.totals?.outstanding || 0)}
               </div>
             </div>
@@ -1186,10 +1186,10 @@ export default function CommissionsPage() {
                       <td style={{ fontWeight: 600 }}>{p.tripCount}</td>
                       <td style={{ fontWeight: 600 }}>{p.bookingCount}</td>
                       <td style={{ fontWeight: 600 }}>{formatCurrency(p.totalExpected)}</td>
-                      <td style={{ fontWeight: 600, color: p.totalReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                      <td style={{ fontWeight: 600, color: p.totalReceived > 0 ? 'var(--color-success, var(--color-success))' : 'inherit' }}>
                         {p.totalReceived > 0 ? formatCurrency(p.totalReceived) : '—'}
                       </td>
-                      <td style={{ fontWeight: 600, color: p.outstanding > 0 ? 'var(--color-warning, #f59e0b)' : 'inherit' }}>
+                      <td style={{ fontWeight: 600, color: p.outstanding > 0 ? 'var(--color-warning, var(--color-warning))' : 'inherit' }}>
                         {p.outstanding > 0 ? formatCurrency(p.outstanding) : '—'}
                       </td>
                       <td>

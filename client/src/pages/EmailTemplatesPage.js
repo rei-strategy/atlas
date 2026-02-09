@@ -389,7 +389,7 @@ function TemplatePreviewModal({ isOpen, onClose, template, token }) {
               {/* Agency Branding Section */}
               {preview.branding && (
                 <div className="preview-section preview-branding" style={{
-                  borderBottom: `3px solid ${preview.branding.primaryColor || '#1a56db'}`,
+                  borderBottom: `3px solid ${preview.branding.primaryColor || 'var(--color-primary)'}`,
                   paddingBottom: 'var(--spacing-md)',
                   marginBottom: 'var(--spacing-md)'
                 }}>

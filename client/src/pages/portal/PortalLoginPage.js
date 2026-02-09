@@ -31,7 +31,7 @@ export default function PortalLoginPage() {
         <div className="portal-login-header">
           <div className="portal-logo">
             <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-              <rect width="40" height="40" rx="8" fill="#1a56db" />
+              <rect width="40" height="40" rx="8" fill="var(--color-primary)" />
               <path d="M12 28L20 12L28 28H12Z" fill="white" strokeWidth="0" />
             </svg>
           </div>

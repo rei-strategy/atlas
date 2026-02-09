@@ -57,24 +57,17 @@ const TIMEZONES = [
   'Pacific/Auckland'
 ];
 
-// Predefined brand colors
+// Predefined brand colors (calm, pastel-leaning)
 const BRAND_COLORS = [
-  '#1a56db', // Atlas Blue (default)
-  '#2563eb', // Blue
-  '#3b82f6', // Light Blue
-  '#8b5cf6', // Purple
-  '#a855f7', // Violet
-  '#ec4899', // Pink
-  '#ef4444', // Red
-  '#f97316', // Orange
-  '#eab308', // Yellow
-  '#22c55e', // Green
-  '#14b8a6', // Teal
-  '#06b6d4', // Cyan
-  '#0891b2', // Dark Cyan
-  '#6366f1', // Indigo
-  '#64748b', // Slate
-  '#374151', // Gray
+  '#7DA7C7', // Primary Blue
+  '#6A93B2', // Primary Dark
+  '#A5C0D6', // Primary Light
+  '#A9C7B6', // Sage Green
+  '#C6C8D1', // Lavender Gray
+  '#E9E4DE', // Warm Neutral Beige
+  '#C9BFAE', // Soft Warm Accent
+  '#B6A7B3', // Muted Mauve
+  '#2F3A45', // Deep Slate
 ];
 
 // Workflow Timing Settings Form Component
@@ -354,7 +347,7 @@ function AgencySettingsForm({ token, isAdmin, refreshAgency }) {
   const [formData, setFormData] = useState({
     name: '',
     logoUrl: '',
-    primaryColor: '#1a56db',
+    primaryColor: '#7DA7C7',
     emailSignature: '',
     defaultCommissionRate: '',
     timezone: 'America/New_York'
@@ -374,7 +367,7 @@ function AgencySettingsForm({ token, isAdmin, refreshAgency }) {
         setFormData({
           name: data.agency.name || '',
           logoUrl: data.agency.logoUrl || '',
-          primaryColor: data.agency.primaryColor || '#1a56db',
+          primaryColor: data.agency.primaryColor || '#7DA7C7',
           emailSignature: data.agency.emailSignature || '',
           defaultCommissionRate: data.agency.defaultCommissionRate !== null ? String(data.agency.defaultCommissionRate) : '',
           timezone: data.agency.timezone || 'America/New_York'
@@ -640,7 +633,7 @@ function AgencySettingsForm({ token, isAdmin, refreshAgency }) {
                   <div className="custom-color-input">
                     <input
                       type="text"
-                      placeholder="#000000"
+                      placeholder="#2F3A45"
                       value={customColor}
                       onChange={(e) => setCustomColor(e.target.value)}
                       pattern="^#[0-9A-Fa-f]{6}$"
@@ -1334,10 +1327,10 @@ function AuditLogsTable({ token, isAdmin }) {
 
 function RoleBadge({ role }) {
   const roleColors = {
-    admin: '#dc2626',
-    planner: '#2563eb',
-    support: '#059669',
-    marketing: '#d97706'
+    admin: 'var(--color-primary)',
+    planner: 'var(--color-success)',
+    support: 'var(--color-muted)',
+    marketing: 'var(--color-warning)'
   };
 
   const roleLabels = {
@@ -1351,9 +1344,9 @@ function RoleBadge({ role }) {
     <span
       className="role-badge"
       style={{
-        backgroundColor: `${roleColors[role] || '#6b7280'}15`,
-        color: roleColors[role] || '#6b7280',
-        border: `1px solid ${roleColors[role] || '#6b7280'}30`
+        backgroundColor: `${roleColors[role] || 'var(--color-text-secondary)'}15`,
+        color: roleColors[role] || 'var(--color-text-secondary)',
+        border: `1px solid ${roleColors[role] || 'var(--color-text-secondary)'}30`
       }}
     >
       {roleLabels[role] || role}

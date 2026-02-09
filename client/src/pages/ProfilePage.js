@@ -207,12 +207,12 @@ export default function ProfilePage() {
 
   const getRoleColor = (role) => {
     const colors = {
-      admin: '#dc2626',
-      planner: '#2563eb',
-      support: '#059669',
-      marketing: '#d97706'
+      admin: 'var(--color-primary)',
+      planner: 'var(--color-success)',
+      support: 'var(--color-muted)',
+      marketing: 'var(--color-warning)'
     };
-    return colors[role] || '#6b7280';
+    return colors[role] || 'var(--color-text-secondary)';
   };
 
   // Notification Preferences Component

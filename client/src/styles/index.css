@@ -2,28 +2,42 @@
 
 :root {
   /* Primary palette */
-  --color-primary: #1a56db;
-  --color-primary-dark: #1444b0;
-  --color-primary-light: #3b82f6;
+  --color-primary: #7da7c7;
+  --color-primary-dark: #6a93b2;
+  --color-primary-light: #a5c0d6;
 
   /* Neutrals */
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-text: #111827;
+  --color-bg: #f5f7f9;
+  --color-bg-secondary: #e9e4de;
+  --color-card-bg: #ffffff;
+  --color-text: #2f3a45;
   --color-text-secondary: #6b7280;
-  --color-border: #e5e7eb;
-  --color-border-subtle: #d1d5db;
-  --color-value-bg: #f3f4f6;
+  --color-border: #e2e6ea;
+  --color-border-subtle: #c6c8d1;
+  --color-muted: #c6c8d1;
+  --color-value-bg: #ffffff;
+  --bg-secondary: var(--color-bg-secondary);
+  --border-color: var(--color-border);
+  --text-secondary: var(--color-text-secondary);
 
-  /* Status colors - WCAG AA compliant (4.5:1 contrast on white) */
-  --color-success: #047857;  /* Was #10b981, now 5.9:1 contrast */
-  --color-success-light: #10b981;  /* Original for backgrounds */
-  --color-warning: #b45309;  /* Was #f59e0b, now 4.9:1 contrast */
-  --color-warning-light: #f59e0b;  /* Original for backgrounds */
-  --color-error: #dc2626;    /* Was #ef4444, now 4.5:1 contrast */
-  --color-error-light: #ef4444;  /* Original for backgrounds */
-  --color-info: #1d4ed8;     /* Was #3b82f6, now 6.5:1 contrast */
-  --color-info-light: #3b82f6;  /* Original for backgrounds */
+  /* Status colors - calm, pastel-leaning */
+  --color-success: #a9c7b6;
+  --color-success-light: #e6f1ec;
+  --color-warning: #c9bfae;
+  --color-warning-light: #f3eee7;
+  --color-error: #b6a7b3;
+  --color-error-light: #f2edf0;
+  --color-info: #7da7c7;
+  --color-info-light: #e7eef4;
+  --color-success-bg: var(--color-success-light);
+  --color-success-text: var(--color-success);
+  --color-warning-bg: var(--color-warning-light);
+  --color-warning-text: var(--color-warning);
+  --color-error-bg: var(--color-error-light);
+  --color-error-text: var(--color-error);
+  --color-info-bg: var(--color-info-light);
+  --color-info-border: var(--color-primary-light);
+  --color-info-text: var(--color-primary);
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -42,35 +56,48 @@
   --font-size-3xl: 1.875rem;
 
   /* Borders */
-  --border-radius: 6px;
-  --border-radius-lg: 8px;
+  --border-radius: 10px;
+  --border-radius-lg: 12px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px 0 rgba(47, 58, 69, 0.06);
+  --shadow-md: 0 8px 20px -8px rgba(47, 58, 69, 0.18);
 }
 
 /* Dark mode variables - WCAG AA compliant */
 [data-theme="dark"] {
-  --color-bg: #111827;
-  --color-bg-secondary: #1f2937;
-  --color-text: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-border: #374151;
+  --color-bg: #1f252c;
+  --color-bg-secondary: #2a323b;
+  --color-card-bg: #222a33;
+  --color-text: #e8edf1;
+  --color-text-secondary: #b6c0c9;
+  --color-border: #3a4350;
   --color-border-subtle: #4b5563;
-  --color-value-bg: #1f2937;
-  --color-primary-light: #60a5fa;
-  /* Status colors for dark mode - lighter for dark backgrounds */
-  --color-success: #34d399;  /* Lighter green for dark bg, 4.6:1 on #111827 */
-  --color-success-light: #10b981;
-  --color-warning: #fbbf24;  /* Lighter amber for dark bg, 9:1 on #111827 */
-  --color-warning-light: #f59e0b;
-  --color-error: #f87171;    /* Lighter red for dark bg, 4.8:1 on #111827 */
-  --color-error-light: #ef4444;
-  --color-info: #60a5fa;     /* Lighter blue for dark bg, 5.1:1 on #111827 */
-  --color-info-light: #3b82f6;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --color-muted: #626e7a;
+  --color-value-bg: #2a323b;
+  --color-primary-light: #9bbbd3;
+  --color-success: #9cb7a8;
+  --color-success-light: #2b3731;
+  --color-warning: #b7ad9f;
+  --color-warning-light: #332f2b;
+  --color-error: #b19aa7;
+  --color-error-light: #322c31;
+  --color-info: #9bbbd3;
+  --color-info-light: #26303a;
+  --bg-secondary: var(--color-bg-secondary);
+  --border-color: var(--color-border);
+  --text-secondary: var(--color-text-secondary);
+  --color-success-bg: var(--color-success-light);
+  --color-success-text: var(--color-success);
+  --color-warning-bg: var(--color-warning-light);
+  --color-warning-text: var(--color-warning);
+  --color-error-bg: var(--color-error-light);
+  --color-error-text: var(--color-error);
+  --color-info-bg: var(--color-info-light);
+  --color-info-border: var(--color-primary-light);
+  --color-info-text: var(--color-primary);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 24px -12px rgba(0, 0, 0, 0.6);
 }
 
 /* Dark mode specific overrides */
@@ -482,7 +509,7 @@ fieldset:disabled .btn {
 
 .btn-spinner-light {
   border-color: rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
+  border-top-color: var(--color-card-bg);
 }
 
 .btn-loading {
@@ -490,7 +517,7 @@ fieldset:disabled .btn {
 }
 
 .btn-primary {
-  color: #ffffff;
+  color: var(--color-card-bg);
   background-color: var(--color-primary);
   border-color: var(--color-primary);
 }
@@ -530,25 +557,25 @@ fieldset:disabled .btn {
 }
 
 .btn-danger {
-  color: #ffffff;
+  color: var(--color-card-bg);
   background-color: var(--color-error);
   border-color: var(--color-error);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #dc2626;
-  border-color: #dc2626;
+  background-color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 .btn-success {
-  color: #ffffff;
+  color: var(--color-card-bg);
   background-color: var(--color-success);
   border-color: var(--color-success);
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #059669;
-  border-color: #059669;
+  background-color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 /* Form validation */
@@ -661,9 +688,9 @@ fieldset:disabled .btn {
 
 .auth-error {
   padding: 10px 14px;
-  background-color: #fef2f2;
+  background-color: var(--color-error-light);
   color: var(--color-error);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-error);
   border-radius: var(--border-radius);
   font-size: var(--font-size-sm);
 }
@@ -675,9 +702,9 @@ fieldset:disabled .btn {
 
 .auth-warning {
   padding: 10px 14px;
-  background-color: #fefce8;
-  color: #a16207;
-  border: 1px solid #fde047;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
   border-radius: var(--border-radius);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-md);
@@ -686,7 +713,7 @@ fieldset:disabled .btn {
 [data-theme="dark"] .auth-warning {
   background-color: rgba(234, 179, 8, 0.1);
   border-color: rgba(234, 179, 8, 0.3);
-  color: #facc15;
+  color: var(--color-warning);
 }
 
 .auth-footer-text {
@@ -715,7 +742,7 @@ fieldset:disabled .btn {
   z-index: 10000;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-card-bg);
   border-radius: var(--border-radius);
   font-weight: 500;
   width: auto;
@@ -2037,13 +2064,13 @@ fieldset:disabled .btn {
 
 /* Payment overdue styling */
 .payment-overdue {
-  color: #dc2626;
+  color: var(--color-error);
   font-weight: 600;
 }
 
 .overdue-badge {
   display: inline-block;
-  background-color: #dc2626;
+  background-color: var(--color-error);
   color: white;
   font-size: 0.65rem;
   font-weight: 700;
@@ -2055,7 +2082,7 @@ fieldset:disabled .btn {
 
 .status-overdue {
   background: rgba(220, 38, 38, 0.12) !important;
-  color: #dc2626 !important;
+  color: var(--color-error) !important;
   border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
@@ -2339,7 +2366,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 50%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
   padding: 1rem;
 }
 
@@ -2438,9 +2465,9 @@ html, body {
 }
 
 .portal-error-message {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
   padding: 0.75rem;
   border-radius: 8px;
   font-size: 0.875rem;
@@ -2577,7 +2604,7 @@ html, body {
 .portal-logout-btn:hover {
   border-color: var(--color-error);
   color: var(--color-error);
-  background: #fef2f2;
+  background: var(--color-error-light);
 }
 
 /* Portal Main Content */
@@ -2628,9 +2655,9 @@ html, body {
 }
 
 .portal-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -2985,15 +3012,15 @@ html, body {
 }
 
 .portal-message.success {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #059669;
+  background: var(--color-success-light);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
 }
 
 .portal-message.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
 }
 
 /* Portal Empty Sections */
@@ -3079,23 +3106,23 @@ html, body {
 }
 
 .portal-booking-status.status-booked {
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .portal-booking-status.status-planned {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
 }
 
 .portal-booking-status.status-quoted {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .portal-booking-status.status-canceled {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--color-error-light);
+  color: var(--color-error);
 }
 
 .portal-booking-supplier {
@@ -3134,7 +3161,7 @@ html, body {
 
 /* Portal Payment Summary */
 .portal-payment-summary {
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1.25rem;
@@ -3224,13 +3251,13 @@ html, body {
 }
 
 .portal-payment-badge.paid {
-  background-color: #d1fae5;
-  color: #047857;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .portal-payment-badge.due {
-  background-color: #fef3c7;
-  color: #b45309;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .portal-payment-due-date .portal-due-date-highlight {
@@ -3240,19 +3267,19 @@ html, body {
 
 /* Overdue payment styling */
 .portal-payment-due-date.overdue {
-  background-color: #fef2f2;
-  border-left: 3px solid #dc2626;
+  background-color: var(--color-error-light);
+  border-left: 3px solid var(--color-error);
   padding-left: 0.5rem;
 }
 
 .portal-overdue-date {
-  color: #dc2626;
+  color: var(--color-error);
   font-weight: 700;
 }
 
 .portal-overdue-badge {
   display: inline-block;
-  background-color: #dc2626;
+  background-color: var(--color-error);
   color: white;
   font-size: 0.65rem;
   font-weight: 700;
@@ -3276,18 +3303,18 @@ html, body {
 }
 
 .portal-payment-status-badge.deposit_paid {
-  background-color: #fef3c7;
-  color: #b45309;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .portal-payment-status-badge.final_due {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: var(--color-error-light);
+  color: var(--color-error);
 }
 
 .portal-payment-status-badge.paid_in_full {
-  background-color: #d1fae5;
-  color: #047857;
+  background-color: var(--color-success-light);
+  color: var(--color-success);
 }
 
 /* Portal Documents List */
@@ -3831,7 +3858,7 @@ html, body {
 
 .stage-traveling {
   background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
+  color: var(--color-muted);
 }
 
 /* Deadline Items */
@@ -4663,7 +4690,7 @@ html, body {
 
 .global-search-result-badge.stage-traveling {
   background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
+  color: var(--color-muted);
 }
 
 .global-search-result-badge.stage-completed {
@@ -5460,7 +5487,7 @@ html, body {
 }
 
 .btn-danger:hover {
-  background-color: #dc2626;
+  background-color: var(--color-error);
 }
 
 /* Settings Tab Styles Enhancement */
@@ -5622,27 +5649,27 @@ html, body {
 
 .action-badge.action-approve {
   background-color: rgba(16, 185, 129, 0.1);
-  color: #059669;
+  color: var(--color-success);
 }
 
 .action-badge.action-deny {
   background-color: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .action-badge.action-create {
   background-color: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  color: var(--color-primary);
 }
 
 .action-badge.action-update {
   background-color: rgba(245, 158, 11, 0.1);
-  color: #d97706;
+  color: var(--color-warning);
 }
 
 .action-badge.action-delete {
   background-color: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 /* Pagination */
@@ -5693,7 +5720,7 @@ html, body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), #6366f1);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: white;
   display: flex;
   align-items: center;
@@ -5765,7 +5792,7 @@ html, body {
 }
 
 .status-active-icon {
-  color: #059669;
+  color: var(--color-success);
 }
 
 /* Topbar user info link */
@@ -5919,7 +5946,7 @@ html, body {
 .portal-feedback-notice {
   text-align: center;
   padding: 2rem;
-  background: #f9fafb;
+  background: var(--color-bg);
   border: 1px dashed var(--color-border);
   border-radius: 10px;
   color: var(--color-text-secondary);
@@ -5968,7 +5995,7 @@ html, body {
   background: none;
   border: none;
   font-size: 1.75rem;
-  color: #d1d5db;
+  color: var(--color-muted);
   cursor: pointer;
   padding: 0;
   transition: transform 0.1s ease;
@@ -5979,7 +6006,7 @@ html, body {
 }
 
 .portal-star.filled {
-  color: #fbbf24;
+  color: var(--color-warning);
 }
 
 .portal-checkbox-label {
@@ -5998,8 +6025,8 @@ html, body {
 }
 
 .portal-feedback-submitted {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-card-bg) 100%);
+  border: 1px solid var(--color-success);
   border-radius: 12px;
   padding: 1.5rem;
 }
@@ -6017,7 +6044,7 @@ html, body {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #059669;
+  background: var(--color-success);
   color: white;
   border-radius: 50%;
   font-size: 1.25rem;
@@ -6025,7 +6052,7 @@ html, body {
 
 .portal-feedback-header h3 {
   margin: 0;
-  color: #059669;
+  color: var(--color-success);
   font-size: 1.125rem;
 }
 
@@ -6047,7 +6074,7 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-bg-secondary);
 }
 
 .portal-feedback-rating-display:last-of-type {
@@ -6055,7 +6082,7 @@ html, body {
 }
 
 .portal-rating-stars {
-  color: #fbbf24;
+  color: var(--color-warning);
   font-size: 1.25rem;
   letter-spacing: 2px;
 }
@@ -6063,16 +6090,16 @@ html, body {
 .portal-feedback-recommend {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #fef3c7;
+  background: var(--color-warning-light);
   border-radius: 6px;
   font-size: 0.9375rem;
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 .portal-feedback-text {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-bg-secondary);
 }
 
 .portal-feedback-text strong {
@@ -6128,13 +6155,13 @@ html, body {
 }
 
 .portal-ack-card.pending {
-  border-left: 4px solid #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  border-left: 4px solid var(--color-warning);
+  background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-card-bg) 100%);
 }
 
 .portal-ack-card.confirmed {
-  border-left: 4px solid #10b981;
-  background: #f9fafb;
+  border-left: 4px solid var(--color-success);
+  background: var(--color-bg);
   opacity: 0.85;
 }
 
@@ -6155,33 +6182,33 @@ html, body {
 }
 
 .portal-ack-type.type-info {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--color-info-light);
+  color: var(--color-primary-dark);
 }
 
 .portal-ack-type.type-document {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: var(--color-bg-secondary);
+  color: var(--color-muted);
 }
 
 .portal-ack-type.type-itinerary {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .portal-ack-type.type-booking {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .portal-ack-type.type-payment {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-error-light);
+  color: var(--color-error);
 }
 
 .portal-ack-type.type-terms {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
 }
 
 .portal-ack-date {
@@ -6208,7 +6235,7 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -6364,7 +6391,7 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--color-border);
   transition: 0.3s;
   border-radius: 26px;
 }
@@ -6400,15 +6427,15 @@ html, body {
   left: 0;
   right: 0;
   z-index: 10000;
-  background-color: #fef2f2;
-  border-bottom: 1px solid #fecaca;
+  background-color: var(--color-error-light);
+  border-bottom: 1px solid var(--color-error);
   padding: var(--spacing-md);
   animation: slideDown 0.3s ease-out;
 }
 
 [data-theme="dark"] .network-error-banner {
-  background-color: #450a0a;
-  border-bottom-color: #7f1d1d;
+  background-color: var(--color-error);
+  border-bottom-color: var(--color-error);
 }
 
 @keyframes slideDown {
@@ -6444,22 +6471,22 @@ html, body {
 
 .network-error-title {
   font-weight: 600;
-  color: #991b1b;
+  color: var(--color-error);
   font-size: var(--font-size-base);
 }
 
 [data-theme="dark"] .network-error-title {
-  color: #fca5a5;
+  color: var(--color-error);
 }
 
 .network-error-message {
-  color: #7f1d1d;
+  color: var(--color-error);
   font-size: var(--font-size-sm);
   margin-top: 2px;
 }
 
 [data-theme="dark"] .network-error-message {
-  color: #fecaca;
+  color: var(--color-error);
 }
 
 .network-error-actions {
@@ -6486,7 +6513,7 @@ html, body {
 .network-error-dismiss {
   background: transparent;
   border: none;
-  color: #991b1b;
+  color: var(--color-error);
   cursor: pointer;
   padding: var(--spacing-xs);
   border-radius: var(--border-radius);
@@ -6497,7 +6524,7 @@ html, body {
 }
 
 [data-theme="dark"] .network-error-dismiss {
-  color: #fca5a5;
+  color: var(--color-error);
 }
 
 .network-error-dismiss:hover {
@@ -6528,12 +6555,12 @@ html, body {
   margin-bottom: var(--spacing-lg);
   display: inline-flex;
   padding: var(--spacing-lg);
-  background-color: #fef2f2;
+  background-color: var(--color-error-light);
   border-radius: 50%;
 }
 
 [data-theme="dark"] .network-error-fallback-icon {
-  background-color: #450a0a;
+  background-color: var(--color-error);
 }
 
 .network-error-fallback-title {
@@ -6641,11 +6668,11 @@ html, body {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-info-bg, #dbeafe);
-  border: 1px solid var(--color-info-border, #93c5fd);
+  background-color: var(--color-info-bg, var(--color-info-light));
+  border: 1px solid var(--color-info-border, var(--color-primary-light));
   border-radius: var(--border-radius);
   margin-bottom: var(--spacing-md);
-  color: var(--color-info-text, #1e40af);
+  color: var(--color-info-text, var(--color-primary));
   font-size: var(--font-size-sm);
 }
 
@@ -6664,7 +6691,7 @@ html, body {
   cursor: pointer;
   padding: var(--spacing-xs);
   font-size: var(--font-size-lg);
-  color: var(--color-info-text, #1e40af);
+  color: var(--color-info-text, var(--color-primary));
   opacity: 0.7;
   transition: opacity var(--transition-fast);
   line-height: 1;

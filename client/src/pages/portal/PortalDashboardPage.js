@@ -46,16 +46,16 @@ export default function PortalDashboardPage() {
     return labels[stage] || stage;
   };
 
-  const getStageColor = (stage) => {
-    const colors = {
-      inquiry: '#6b7280',
-      quoted: '#d97706',
-      booked: '#059669',
-      final_payment_pending: '#dc2626',
-      traveling: '#2563eb',
-      completed: '#6b7280'
+  const getStageStyle = (stage) => {
+    const styles = {
+      inquiry: { backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' },
+      quoted: { backgroundColor: 'var(--color-warning-light)', color: 'var(--color-warning)', borderColor: 'var(--color-warning)' },
+      booked: { backgroundColor: 'var(--color-success-light)', color: 'var(--color-success)', borderColor: 'var(--color-success)' },
+      final_payment_pending: { backgroundColor: 'var(--color-error-light)', color: 'var(--color-error)', borderColor: 'var(--color-error)' },
+      traveling: { backgroundColor: 'var(--color-info-light)', color: 'var(--color-primary)', borderColor: 'var(--color-primary)' },
+      completed: { backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }
     };
-    return colors[stage] || '#6b7280';
+    return styles[stage] || styles.inquiry;
   };
 
   if (loading) {
@@ -96,7 +96,7 @@ export default function PortalDashboardPage() {
                 <h3>{trip.name}</h3>
                 <span
                   className="portal-stage-badge"
-                  style={{ backgroundColor: getStageColor(trip.stage), color: 'white' }}
+                  style={getStageStyle(trip.stage)}
                 >
                   {getStageLabel(trip.stage)}
                 </span>

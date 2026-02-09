@@ -399,7 +399,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                   <span id="travelStartDate-error" className="form-error-message">{dateErrors.travelStartDate}</span>
                 )}
                 {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
-                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                     ⚠️ {dateWarnings.travelStartDate}
                   </span>
                 )}
@@ -421,7 +421,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                   <span id="travelEndDate-error" className="form-error-message">{dateErrors.travelEndDate}</span>
                 )}
                 {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
-                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                     ⚠️ {dateWarnings.travelEndDate}
                   </span>
                 )}
@@ -433,15 +433,15 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
               <div style={{
                 marginTop: '1rem',
                 padding: '1rem',
-                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                background: 'linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-light) 100%)',
                 borderRadius: '8px',
-                border: '1px solid var(--color-warning, #f59e0b)'
+                border: '1px solid var(--color-warning, var(--color-warning))'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '1.25rem' }}>🔒</span>
-                  <span style={{ fontWeight: 600, color: '#92400e' }}>This trip is locked</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-warning)' }}>This trip is locked</span>
                 </div>
-                <p style={{ fontSize: '0.875rem', color: '#a16207', marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-warning)', marginBottom: '0.75rem' }}>
                   Changes to locked trip fields require admin approval. Please provide a reason for your changes.
                 </p>
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -455,7 +455,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                     placeholder="Explain why these changes are needed..."
                     rows={2}
                     required
-                    style={{ background: '#fff' }}
+                    style={{ background: 'var(--color-card-bg)' }}
                   />
                 </div>
               </div>
@@ -940,7 +940,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                   <span className="form-error-message">{dateErrors.travelStartDate}</span>
                 )}
                 {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
-                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                     ⚠️ {dateWarnings.travelStartDate}
                   </span>
                 )}
@@ -960,7 +960,7 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                   <span className="form-error-message">{dateErrors.travelEndDate}</span>
                 )}
                 {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
-                  <span className="form-warning-message" style={{ color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                     ⚠️ {dateWarnings.travelEndDate}
                   </span>
                 )}
@@ -1302,7 +1302,7 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
             <div style={{
               marginBottom: '1.25rem',
               padding: '1rem',
-              background: 'var(--bg-secondary, #f8f9fa)',
+              background: 'var(--bg-secondary, var(--color-bg-secondary))',
               borderRadius: '8px',
               border: '1px solid var(--border-color)'
             }}>
@@ -1315,7 +1315,7 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Expected Amount</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>
+                <span style={{ fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>
                   {formatCurrency(booking.commissionAmountExpected)}
                 </span>
               </div>
@@ -1340,12 +1340,12 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
                       gap: '0.75rem',
                       padding: '0.75rem',
                       border: form.commissionStatus === option.value
-                        ? '2px solid var(--color-primary, #1a56db)'
+                        ? '2px solid var(--color-primary, var(--color-primary))'
                         : '1px solid var(--border-color)',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       background: form.commissionStatus === option.value
-                        ? 'var(--color-primary-light, #eff6ff)'
+                        ? 'var(--color-primary-light, #e7eef4)'
                         : 'transparent'
                     }}
                   >
@@ -1396,7 +1396,7 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
                       <p style={{
                         fontSize: '0.8125rem',
                         marginTop: '0.25rem',
-                        color: variance > 0 ? 'var(--color-success, #059669)' : 'var(--color-error, #dc2626)'
+                        color: variance > 0 ? 'var(--color-success, var(--color-success))' : 'var(--color-error, var(--color-error))'
                       }}>
                         {variance > 0 ? '+' : ''}{formatCurrency(variance)} {variance > 0 ? 'over' : 'under'} expected
                       </p>
@@ -1449,8 +1449,8 @@ function CommissionStatusModal({ isOpen, onClose, onSaved, booking, tripId, toke
               <div style={{
                 marginTop: '1rem',
                 padding: '0.75rem',
-                background: 'var(--color-warning-light, #fef3c7)',
-                border: '1px solid var(--color-warning, #f59e0b)',
+                background: 'var(--color-warning-light, var(--color-warning-light))',
+                border: '1px solid var(--color-warning, var(--color-warning))',
                 borderRadius: '8px',
                 fontSize: '0.875rem'
               }}>
@@ -1598,7 +1598,7 @@ function BookingsTab({ tripId, token }) {
             <button className="btn btn-primary btn-sm" onClick={() => { setEditBooking(b); setShowBookingModal(true); }}>
               Edit
             </button>
-            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: 'var(--color-card-bg)', border: 'none' }}
               onClick={() => handleDeleteBookingClick(b)}>
               Delete
             </button>
@@ -1704,7 +1704,7 @@ function BookingsTab({ tripId, token }) {
               {b.commissionAmountReceived != null && b.commissionAmountReceived > 0 && (
                 <div className="detail-field">
                   <span className="detail-field-label">Amount Received</span>
-                  <span className="detail-field-value" style={{ fontWeight: 600, color: 'var(--color-success, #059669)' }}>
+                  <span className="detail-field-value" style={{ fontWeight: 600, color: 'var(--color-success, var(--color-success))' }}>
                     {formatCurrency(b.commissionAmountReceived)}
                   </span>
                 </div>
@@ -1813,23 +1813,23 @@ function BookingsTab({ tripId, token }) {
           title="Delete Booking"
         >
           <Modal.Header onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
-            <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+            <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, var(--color-error))' }}>
               Delete Booking
             </h2>
           </Modal.Header>
           <Modal.Body>
             <div style={{
-              background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-              border: '1px solid var(--color-error, #dc2626)',
+              background: 'linear-gradient(135deg, var(--color-error-light) 0%, var(--color-error) 100%)',
+              border: '1px solid var(--color-error, var(--color-error))',
               borderRadius: '8px',
               padding: '1rem 1.25rem',
               marginBottom: '1rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
-                <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
               </div>
-              <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
                 You are about to delete the booking for <strong>"{bookingToDelete?.supplierName || 'Unknown Supplier'}"</strong>.
               </p>
             </div>
@@ -1848,8 +1848,8 @@ function BookingsTab({ tripId, token }) {
             <button
               className="btn"
               style={{
-                background: 'var(--color-error, #dc2626)',
-                color: '#fff',
+                background: 'var(--color-error, var(--color-error))',
+                color: 'var(--color-card-bg)',
                 border: 'none'
               }}
               onClick={handleDeleteBookingConfirm}
@@ -1873,7 +1873,7 @@ function BookingsTab({ tripId, token }) {
           gap: '0.75rem',
           marginBottom: '1rem',
           padding: '1rem',
-          background: 'var(--bg-secondary, #f8f9fa)',
+          background: 'var(--bg-secondary, var(--color-bg-secondary))',
           borderRadius: '8px',
           border: '1px solid var(--border-color)'
         }}>
@@ -1891,7 +1891,7 @@ function BookingsTab({ tripId, token }) {
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Commission Expected</div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>{formatCurrency(totals.totalCommissionExpected)}</div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>{formatCurrency(totals.totalCommissionExpected)}</div>
           </div>
         </div>
       )}
@@ -1989,23 +1989,23 @@ function BookingsTab({ tripId, token }) {
         title="Delete Booking"
       >
         <Modal.Header onClose={() => { setShowDeleteConfirm(false); setBookingToDelete(null); }}>
-          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, var(--color-error))' }}>
             Delete Booking
           </h2>
         </Modal.Header>
         <Modal.Body>
           <div style={{
-            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-            border: '1px solid var(--color-error, #dc2626)',
+            background: 'linear-gradient(135deg, var(--color-error-light) 0%, var(--color-error) 100%)',
+            border: '1px solid var(--color-error, var(--color-error))',
             borderRadius: '8px',
             padding: '1rem 1.25rem',
             marginBottom: '1rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
-              <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
+              <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
               You are about to delete the booking for <strong>"{bookingToDelete?.supplierName || 'Unknown Supplier'}"</strong>.
             </p>
           </div>
@@ -2024,8 +2024,8 @@ function BookingsTab({ tripId, token }) {
           <button
             className="btn"
             style={{
-              background: 'var(--color-error, #dc2626)',
-              color: '#fff',
+              background: 'var(--color-error, var(--color-error))',
+              color: 'var(--color-card-bg)',
               border: 'none'
             }}
             onClick={handleDeleteBookingConfirm}
@@ -2091,17 +2091,17 @@ function CommissionsTab({ tripId, token }) {
         gap: '0.75rem',
         marginBottom: '1rem'
       }}>
-        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, var(--color-bg-secondary))', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Expected</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, #1a56db)' }}>{formatCurrency(totalExpected)}</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-info, var(--color-primary))' }}>{formatCurrency(totalExpected)}</div>
         </div>
-        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, var(--color-bg-secondary))', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Received</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, #059669)' }}>{formatCurrency(totalReceived)}</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success, var(--color-success))' }}>{formatCurrency(totalReceived)}</div>
         </div>
-        <div style={{ padding: '1rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '1rem', background: 'var(--bg-secondary, var(--color-bg-secondary))', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Pending</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: pendingCount > 0 ? 'var(--color-warning, #f59e0b)' : 'var(--color-success, #059669)' }}>{pendingCount}</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: pendingCount > 0 ? 'var(--color-warning, var(--color-warning))' : 'var(--color-success, var(--color-success))' }}>{pendingCount}</div>
         </div>
       </div>
 
@@ -2143,7 +2143,7 @@ function CommissionsTab({ tripId, token }) {
                   <td>{b.supplierName || '—'}</td>
                   <td>{b.commissionRate ? `${b.commissionRate}%` : '—'}</td>
                   <td style={{ fontWeight: 600 }}>{formatCurrency(b.commissionAmountExpected)}</td>
-                  <td style={{ color: b.commissionAmountReceived > 0 ? 'var(--color-success, #059669)' : 'inherit' }}>
+                  <td style={{ color: b.commissionAmountReceived > 0 ? 'var(--color-success, var(--color-success))' : 'inherit' }}>
                     {b.commissionAmountReceived != null && b.commissionAmountReceived > 0 ? formatCurrency(b.commissionAmountReceived) : '—'}
                   </td>
                   <td>
@@ -2498,7 +2498,7 @@ function TravelersTab({ tripId, token }) {
             <button className="btn btn-primary btn-sm" onClick={() => { setEditTraveler(t); setShowTravelerModal(true); }}>
               Edit
             </button>
-            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+            <button className="btn btn-sm" style={{ background: 'var(--color-error)', color: 'var(--color-card-bg)', border: 'none' }}
               onClick={() => handleDeleteTraveler(t.id)}>
               Remove
             </button>
@@ -2810,7 +2810,7 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
                   padding: '1.5rem',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  background: selectedFile ? 'var(--bg-secondary, #f8f9fa)' : 'transparent'
+                  background: selectedFile ? 'var(--bg-secondary, var(--color-bg-secondary))' : 'transparent'
                 }}
               >
                 {selectedFile ? (
@@ -2827,7 +2827,7 @@ function DocumentUploadModal({ isOpen, onClose, onUploaded, tripId, token, booki
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                       </svg>
                     </div>
-                    <span style={{ color: 'var(--color-primary, #1a56db)', fontWeight: 500 }}>Click to select a file</span>
+                    <span style={{ color: 'var(--color-primary, var(--color-primary))', fontWeight: 500 }}>Click to select a file</span>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                       PDF, Word, Excel, images, or text (max 10MB)
                     </div>
@@ -3283,7 +3283,7 @@ function DocumentsTab({ tripId, token }) {
                         <button
                           className="btn btn-sm"
                           onClick={() => handleDelete(doc)}
-                          style={{ background: 'var(--color-error)', color: '#fff', border: 'none' }}
+                          style={{ background: 'var(--color-error)', color: 'var(--color-card-bg)', border: 'none' }}
                           title="Delete"
                         >
                           ✕
@@ -3834,8 +3834,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
               className="btn btn-sm"
               disabled
               style={{
-                background: 'var(--color-warning, #f59e0b)',
-                color: '#fff',
+                background: 'var(--color-warning, var(--color-warning))',
+                color: 'var(--color-card-bg)',
                 border: 'none',
                 opacity: 0.8,
                 cursor: 'not-allowed'
@@ -3860,8 +3860,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
           <button
             className="btn btn-sm"
             style={{
-              background: 'var(--color-error, #dc2626)',
-              color: '#fff',
+              background: 'var(--color-error, var(--color-error))',
+              color: 'var(--color-card-bg)',
               border: 'none'
             }}
             onClick={handleDeleteClick}
@@ -3929,8 +3929,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
       {/* Locked Trip Banner */}
       {trip.isLocked && (
         <div style={{
-          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-          border: '1px solid var(--color-warning, #f59e0b)',
+          background: 'linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-light) 100%)',
+          border: '1px solid var(--color-warning, var(--color-warning))',
           borderRadius: '8px',
           padding: '1rem 1.25rem',
           marginBottom: '1rem',
@@ -3940,10 +3940,10 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
         }}>
           <span style={{ fontSize: '1.5rem' }}>🔒</span>
           <div>
-            <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '0.25rem' }}>
+            <div style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.25rem' }}>
               Trip is Locked
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#a16207' }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-warning)' }}>
               {trip.lockReason || 'Core fields (dates, destination, pricing) cannot be edited because this trip is booked with complete payments. Contact an admin to unlock if changes are required.'}
             </div>
           </div>
@@ -3993,8 +3993,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
                 cursor: 'pointer',
                 fontSize: '0.875rem',
                 fontWeight: activeTab === tab.id ? 600 : 400,
-                color: activeTab === tab.id ? 'var(--color-primary, #1a56db)' : 'var(--text-secondary)',
-                borderBottom: activeTab === tab.id ? '2px solid var(--color-primary, #1a56db)' : '2px solid transparent',
+                color: activeTab === tab.id ? 'var(--color-primary, var(--color-primary))' : 'var(--text-secondary)',
+                borderBottom: activeTab === tab.id ? '2px solid var(--color-primary, var(--color-primary))' : '2px solid transparent',
                 marginBottom: '-2px',
                 transition: 'all 0.15s ease'
               }}
@@ -4118,23 +4118,23 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
         title="Delete Trip"
       >
         <Modal.Header onClose={() => setShowDeleteModal(false)}>
-          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, #dc2626)' }}>
+          <h2 className="modal-title" id="modal-title" style={{ color: 'var(--color-error, var(--color-error))' }}>
             Delete Trip
           </h2>
         </Modal.Header>
         <Modal.Body>
           <div style={{
-            background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-            border: '1px solid var(--color-error, #dc2626)',
+            background: 'linear-gradient(135deg, var(--color-error-light) 0%, var(--color-error) 100%)',
+            border: '1px solid var(--color-error, var(--color-error))',
             borderRadius: '8px',
             padding: '1rem 1.25rem',
             marginBottom: '1rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
-              <span style={{ fontWeight: 600, color: '#991b1b' }}>Warning: This action cannot be undone</span>
+              <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#b91c1c', marginBottom: 0 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
               You are about to permanently delete <strong>"{deletePreview?.tripName}"</strong> and all its related data.
             </p>
           </div>
@@ -4176,8 +4176,8 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
           <button
             className="btn"
             style={{
-              background: 'var(--color-error, #dc2626)',
-              color: '#fff',
+              background: 'var(--color-error, var(--color-error))',
+              color: 'var(--color-card-bg)',
               border: 'none'
             }}
             onClick={handleConfirmDelete}
@@ -4863,8 +4863,8 @@ export default function TripsPage() {
             </>
           ) : (
             <div className="import-results">
-              <div style={{ marginBottom: '16px', padding: '16px', background: importResult.imported > 0 ? '#ecfdf5' : '#fef2f2', borderRadius: '8px' }}>
-                <p style={{ fontWeight: 600, color: importResult.imported > 0 ? '#047857' : '#b91c1c' }}>
+              <div style={{ marginBottom: '16px', padding: '16px', background: importResult.imported > 0 ? 'var(--color-success-light)' : 'var(--color-error-light)', borderRadius: '8px' }}>
+                <p style={{ fontWeight: 600, color: importResult.imported > 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
                   {importResult.imported > 0
                     ? `✓ Successfully imported ${importResult.imported} trips`
                     : '✗ No trips were imported'}

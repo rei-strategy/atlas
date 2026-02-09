@@ -815,8 +815,8 @@ function ClientFormModal({ isOpen, onClose, onSaved, client, token, users = [], 
                 <button className="modal-close-btn" onClick={() => setShowConflictModal(false)} aria-label="Close dialog">×</button>
               </div>
               <div className="modal-body">
-                <div style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-lg)' }}>
-                  <p style={{ margin: 0, color: 'var(--color-warning-text, #92400e)' }}>
+                <div style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, var(--color-warning-light))', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-lg)' }}>
+                  <p style={{ margin: 0, color: 'var(--color-warning-text, var(--color-warning))' }}>
                     {conflictData?.message || 'This record has been modified by another user since you opened it.'}
                   </p>
                 </div>
@@ -1089,7 +1089,7 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
                   padding: 'var(--spacing-xl)',
                   textAlign: 'center',
                   cursor: 'pointer',
-                  backgroundColor: dragActive ? 'var(--color-primary-light, #f0f7ff)' : 'var(--color-bg-secondary)',
+                  backgroundColor: dragActive ? 'var(--color-primary-light, #e7eef4)' : 'var(--color-bg-secondary)',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -1391,8 +1391,8 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
                   Are you sure you want to delete <strong>{client.firstName} {client.lastName}</strong>?
                 </p>
                 {trips.length > 0 && (
-                  <div className="warning-box" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, #fef3c7)', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-md)' }}>
-                    <p style={{ color: 'var(--color-warning-text, #92400e)', margin: 0 }}>
+                  <div className="warning-box" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-warning-bg, var(--color-warning-light))', borderRadius: 'var(--border-radius)', marginBottom: 'var(--spacing-md)' }}>
+                    <p style={{ color: 'var(--color-warning-text, var(--color-warning))', margin: 0 }}>
                       ⚠️ This client has <strong>{trips.length} associated trip{trips.length !== 1 ? 's' : ''}</strong>.
                       Deleting this client may affect related trip records.
                     </p>
