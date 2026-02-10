@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePortalAuth } from '../../context/PortalAuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import Icon from '../../components/Icon';
 
 export default function PortalLayout({ children }) {
   const { customer, agency, logout } = usePortalAuth();
@@ -13,7 +14,7 @@ export default function PortalLayout({ children }) {
   };
 
   const navItems = [
-    { path: '/portal/dashboard', label: 'My Trips', icon: '✈️' },
+    { path: '/portal/dashboard', label: 'My Trips', icon: 'plane' },
   ];
 
   return (
@@ -39,7 +40,9 @@ export default function PortalLayout({ children }) {
               className={`portal-nav-link ${location.pathname === item.path ? 'active' : ''}`}
               aria-current={location.pathname === item.path ? 'page' : undefined}
             >
-              <span className="portal-nav-icon" aria-hidden="true">{item.icon}</span>
+              <span className="portal-nav-icon" aria-hidden="true">
+                <Icon name={item.icon} size={14} />
+              </span>
               {item.label}
             </Link>
           ))}

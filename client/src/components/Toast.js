@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import Icon from './Icon';
 
 const ToastContext = createContext(null);
 
@@ -37,11 +38,13 @@ function Toast({ toast, onClose }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const icon = toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : 'ℹ';
+  const iconName = toast.type === 'success' ? 'check' : toast.type === 'error' ? 'x' : 'info';
 
   return (
     <div className={`toast toast-${toast.type} ${exiting ? 'toast-exit' : ''}`}>
-      <span className="toast-icon">{icon}</span>
+      <span className="toast-icon" aria-hidden="true">
+        <Icon name={iconName} size={14} />
+      </span>
       <span className="toast-message">{toast.message}</span>
       <button className="toast-close" onClick={onClose} aria-label="Close notification">×</button>
     </div>

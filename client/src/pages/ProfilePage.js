@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast';
 import { useTimezone } from '../hooks/useTimezone';
 import LoadingButton from '../components/LoadingButton';
 import API_BASE from '../utils/apiBase';
+import Icon from '../components/Icon';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -512,11 +513,15 @@ export default function ProfilePage() {
           <div className="dashboard-card-body">
             <div className="status-info">
               <div className="status-item">
-                <span className="status-icon status-active-icon">✓</span>
+          <span className="status-icon status-active-icon" aria-hidden="true">
+            <Icon name="check" size={14} />
+          </span>
                 <span>Account Active</span>
               </div>
               <div className="status-item">
-                <span className="status-icon">🔐</span>
+          <span className="status-icon" aria-hidden="true">
+            <Icon name="lock" size={14} />
+          </span>
                 <span>Password Set</span>
               </div>
             </div>

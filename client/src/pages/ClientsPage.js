@@ -12,6 +12,7 @@ import API_BASE from '../utils/apiBase';
 import Breadcrumb from '../components/Breadcrumb';
 import UnsavedChangesDialog from '../components/UnsavedChangesDialog';
 import LoadingButton from '../components/LoadingButton';
+import Icon from '../components/Icon';
 
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
@@ -1030,8 +1031,8 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
         <div className="modal-body">
           {importResult ? (
             <div className="import-success">
-              <div className="success-icon" style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>
-                {importResult.validationErrors ? '⚠️' : '✓'}
+              <div className="success-icon" style={{ marginBottom: 'var(--spacing-md)' }} aria-hidden="true">
+                {importResult.validationErrors ? <Icon name="warning" size={32} /> : <Icon name="check" size={32} />}
               </div>
               <h3 style={{ color: importResult.validationErrors ? 'var(--color-warning)' : 'var(--color-success)', marginBottom: 'var(--spacing-sm)' }}>
                 {importResult.validationErrors ? 'Partial Import Complete' : 'Import Complete!'}
@@ -1074,7 +1075,8 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
                   onClick={handleDownloadTemplate}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}
                 >
-                  ⬇ Download Template
+                  <Icon name="download" size={14} />
+                  Download Template
                 </button>
               </div>
 
@@ -1104,7 +1106,9 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
                 />
                 {file ? (
                   <div>
-                    <div style={{ fontSize: '24px', marginBottom: 'var(--spacing-sm)' }}>📄</div>
+                    <div style={{ marginBottom: 'var(--spacing-sm)' }} aria-hidden="true">
+                      <Icon name="doc" size={22} />
+                    </div>
                     <p style={{ fontWeight: '500' }}>{file.name}</p>
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
                       {(file.size / 1024).toFixed(1)} KB
@@ -1119,7 +1123,9 @@ function CsvImportModal({ isOpen, onClose, onImported, token }) {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: '24px', marginBottom: 'var(--spacing-sm)' }}>📤</div>
+                    <div style={{ marginBottom: 'var(--spacing-sm)' }} aria-hidden="true">
+                      <Icon name="upload" size={22} />
+                    </div>
                     <p>Drag and drop your CSV file here</p>
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
                       or click to browse
@@ -1646,7 +1652,9 @@ function ClientDetail({ client, onBack, onEdit, onDelete, token, onNavigateToTri
               <div className="detail-section">
                 <h3 className="detail-section-title">Customer Portal Access</h3>
                 <div style={{ padding: 'var(--spacing-lg)', backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--border-radius)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: 'var(--spacing-md)' }}>🔒</div>
+                  <div style={{ marginBottom: 'var(--spacing-md)' }} aria-hidden="true">
+                    <Icon name="lock" size={36} />
+                  </div>
                   <p style={{ marginBottom: 'var(--spacing-md)', color: 'var(--color-text-secondary)' }}>
                     This client does not have portal access enabled.
                   </p>

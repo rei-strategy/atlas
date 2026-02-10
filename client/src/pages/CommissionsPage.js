@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
 import API_BASE from '../utils/apiBase';
+import Icon from '../components/Icon';
 
 const formatCurrency = (amount) => {
   if (amount == null) return '—';
@@ -238,7 +239,7 @@ export default function CommissionsPage() {
           <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-expected">
             <div className="dashboard-card-body" style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>📋</span>
+                <Icon name="clipboard" size={18} />
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Expected
                 </div>
@@ -265,7 +266,7 @@ export default function CommissionsPage() {
           <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-submitted">
             <div className="dashboard-card-body" style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>📤</span>
+                <Icon name="upload" size={18} />
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Submitted
                 </div>
@@ -288,7 +289,7 @@ export default function CommissionsPage() {
           <div className="dashboard-card commission-pipeline-card" data-testid="pipeline-paid">
             <div className="dashboard-card-body" style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }}>✅</span>
+                <Icon name="check" size={18} />
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Paid
                 </div>
@@ -542,7 +543,17 @@ export default function CommissionsPage() {
                           className={`status-badge ${c.varianceType === 'underpaid' ? 'status-error' : 'status-success'}`}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                         >
-                          {c.varianceType === 'underpaid' ? '⚠️ Underpaid' : '✓ Overpaid'}
+                          {c.varianceType === 'underpaid' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <Icon name="warning" size={14} />
+                              Underpaid
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <Icon name="check" size={14} />
+                              Overpaid
+                            </span>
+                          )}
                           <span style={{ fontWeight: 600 }}>
                             ({c.varianceAmount > 0 ? '+' : ''}{formatCurrency(c.varianceAmount)})
                           </span>
@@ -1027,7 +1038,10 @@ export default function CommissionsPage() {
           )}
 
           <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            💡 Click on a supplier row to view all their commissions in the "All Commissions" tab.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Icon name="info" size={14} />
+              Click on a supplier row to view all their commissions in the "All Commissions" tab.
+            </span>
           </div>
         </div>
       )}
@@ -1219,7 +1233,10 @@ export default function CommissionsPage() {
           )}
 
           <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            💡 Click on a planner row to view all their commissions in the "All Commissions" tab.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Icon name="info" size={14} />
+              Click on a planner row to view all their commissions in the "All Commissions" tab.
+            </span>
           </div>
         </div>
       )}

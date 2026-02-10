@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoadingButton from '../components/LoadingButton';
+import Icon from '../components/Icon';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -283,17 +284,21 @@ export default function RegisterPage() {
             }}>
               <div style={{ marginBottom: '0.25rem', fontWeight: 500 }}>Password requirements:</div>
               <ul style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'none' }}>
-                <li style={{ color: formData.password.length >= 8 ? 'var(--color-success)' : 'var(--text-secondary)' }}>
-                  {formData.password.length >= 8 ? '✓' : '○'} At least 8 characters
+                <li style={{ color: formData.password.length >= 8 ? 'var(--color-success)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name={formData.password.length >= 8 ? 'check' : 'dot'} size={12} />
+                  At least 8 characters
                 </li>
-                <li style={{ color: /[A-Z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
-                  {/[A-Z]/.test(formData.password) ? '✓' : '○'} One uppercase letter
+                <li style={{ color: /[A-Z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name={/[A-Z]/.test(formData.password) ? 'check' : 'dot'} size={12} />
+                  One uppercase letter
                 </li>
-                <li style={{ color: /[a-z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
-                  {/[a-z]/.test(formData.password) ? '✓' : '○'} One lowercase letter
+                <li style={{ color: /[a-z]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name={/[a-z]/.test(formData.password) ? 'check' : 'dot'} size={12} />
+                  One lowercase letter
                 </li>
-                <li style={{ color: /[0-9]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)' }}>
-                  {/[0-9]/.test(formData.password) ? '✓' : '○'} One number
+                <li style={{ color: /[0-9]/.test(formData.password) ? 'var(--color-success)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name={/[0-9]/.test(formData.password) ? 'check' : 'dot'} size={12} />
+                  One number
                 </li>
               </ul>
             </div>

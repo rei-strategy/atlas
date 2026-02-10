@@ -3,6 +3,7 @@ import { usePortalAuth } from '../../context/PortalAuthContext';
 import { usePortalTimezone } from '../../hooks/usePortalTimezone';
 import { useParams, Link } from 'react-router-dom';
 import LoadingButton from '../../components/LoadingButton';
+import Icon from '../../components/Icon';
 
 export default function PortalTripDetailPage() {
   const { id } = useParams();
@@ -363,8 +364,8 @@ export default function PortalTripDetailPage() {
     { id: 'travelers', label: `Travelers (${travelers.length})` },
     { id: 'bookings', label: `Bookings (${bookings.length})` },
     { id: 'documents', label: `Documents (${documents.length})` },
-    { id: 'acknowledgments', label: pendingAcks > 0 ? `⚠️ To Review (${pendingAcks})` : 'To Review' },
-    { id: 'feedback', label: feedback ? '✓ Feedback' : 'Feedback' }
+    { id: 'acknowledgments', label: pendingAcks > 0 ? `To Review (${pendingAcks})` : 'To Review', icon: pendingAcks > 0 ? 'warning' : null },
+    { id: 'feedback', label: 'Feedback', icon: feedback ? 'check' : null }
   ];
 
   return (
@@ -374,7 +375,14 @@ export default function PortalTripDetailPage() {
       <div className="portal-trip-header">
         <div>
           <h1>{trip.name}</h1>
-          {trip.destination && <p className="portal-trip-destination-large">📍 {trip.destination}</p>}
+          {trip.destination && (
+            <p className="portal-trip-destination-large">
+              <span aria-hidden="true" style={{ marginRight: '0.35rem' }}>
+                <Icon name="location" size={12} />
+              </span>
+              {trip.destination}
+            </p>
+          )}
         </div>
         <span className="portal-stage-badge-large">{getStageLabel(trip.stage)}</span>
       </div>
@@ -400,6 +408,11 @@ export default function PortalTripDetailPage() {
             className={`portal-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
+            {tab.icon && (
+              <span aria-hidden="true" style={{ marginRight: '0.35rem' }}>
+                <Icon name={tab.icon} size={12} />
+              </span>
+            )}
             {tab.label}
           </button>
         ))}
@@ -543,7 +556,20 @@ export default function PortalTripDetailPage() {
                   <div className="portal-traveler-details">
                     {t.dateOfBirth && <span>DOB: {formatDate(t.dateOfBirth)}</span>}
                     {t.passportStatus && t.passportStatus !== 'unknown' && (
-                      <span>Passport: {t.passportStatus === 'yes' ? '✅ Valid' : '❌ None'}</span>
+                      <span>
+                        Passport:{' '}
+                        {t.passportStatus === 'yes' ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="check" size={12} />
+                            Valid
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="x" size={12} />
+                            None
+                          </span>
+                        )}
+                      </span>
                     )}
                     {t.passportExpiration && <span>Expires: {formatDate(t.passportExpiration)}</span>}
                     {t.relationshipToClient && <span>Relationship: {t.relationshipToClient}</span>}
@@ -622,7 +648,12 @@ export default function PortalTripDetailPage() {
                         <span className="portal-payment-item-value">
                           {formatCurrency(b.depositAmount)}
                           <span className={`portal-payment-badge ${b.depositPaid ? 'paid' : 'due'}`}>
-                            {b.depositPaid ? '✓ Paid' : 'Due'}
+                            {b.depositPaid ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <Icon name="check" size={12} />
+                                Paid
+                              </span>
+                            ) : 'Due'}
                           </span>
                         </span>
                       </div>
@@ -633,7 +664,12 @@ export default function PortalTripDetailPage() {
                         <span className="portal-payment-item-value">
                           {formatCurrency(b.finalPaymentAmount)}
                           <span className={`portal-payment-badge ${b.paymentStatus === 'paid_in_full' ? 'paid' : 'due'}`}>
-                            {b.paymentStatus === 'paid_in_full' ? '✓ Paid' : 'Due'}
+                            {b.paymentStatus === 'paid_in_full' ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <Icon name="check" size={12} />
+                                Paid
+                              </span>
+                            ) : 'Due'}
                           </span>
                         </span>
                       </div>
@@ -739,7 +775,9 @@ export default function PortalTripDetailPage() {
             <div className="portal-documents-list">
               {documents.map(d => (
                 <div key={d.id} className="portal-document-card">
-                  <div className="portal-doc-icon" aria-hidden="true">📄</div>
+                  <div className="portal-doc-icon" aria-hidden="true">
+                    <Icon name="doc" size={16} />
+                  </div>
                   <div className="portal-doc-info">
                     <span className="portal-doc-name">{d.fileName}</span>
                     <span className="portal-doc-type">{d.documentType}</span>
@@ -788,7 +826,12 @@ export default function PortalTripDetailPage() {
                         onClick={() => handleAcknowledge(ack.id)}
                         disabled={ackSubmitting === ack.id}
                       >
-                        {ackSubmitting === ack.id ? 'Confirming...' : '✓ I Acknowledge Receipt'}
+                        {ackSubmitting === ack.id ? 'Confirming...' : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="check" size={12} />
+                            I Acknowledge Receipt
+                          </span>
+                        )}
                       </button>
                     </div>
                   ))}
@@ -797,7 +840,10 @@ export default function PortalTripDetailPage() {
 
               {acknowledgments.filter(a => a.isAcknowledged).length > 0 && (
                 <div className="portal-ack-section">
-                  <h3 className="portal-ack-section-title">✅ Confirmed</h3>
+                  <h3 className="portal-ack-section-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Icon name="check" size={14} />
+                    Confirmed
+                  </h3>
                   {acknowledgments.filter(a => a.isAcknowledged).map(ack => (
                     <div key={ack.id} className="portal-ack-card confirmed">
                       <div className="portal-ack-header">
@@ -836,7 +882,9 @@ export default function PortalTripDetailPage() {
           {feedback ? (
             <div className="portal-feedback-submitted">
               <div className="portal-feedback-header">
-                <span className="portal-feedback-checkmark">✓</span>
+                <span className="portal-feedback-checkmark" aria-hidden="true">
+                  <Icon name="check" size={12} />
+                </span>
                 <h3>Thank you for your feedback!</h3>
               </div>
               <p className="portal-feedback-date">Submitted on {formatDate(feedback.createdAt)}</p>
@@ -873,7 +921,10 @@ export default function PortalTripDetailPage() {
                   </div>
                 )}
                 {feedback.wouldRecommend && (
-                  <p className="portal-feedback-recommend">👍 You would recommend us to friends!</p>
+                  <p className="portal-feedback-recommend" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Icon name="thumbsUp" size={14} />
+                    You would recommend us to friends!
+                  </p>
                 )}
                 {feedback.highlights && (
                   <div className="portal-feedback-text">

@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
 import API_BASE from '../utils/apiBase';
+import Icon from '../components/Icon';
 
 const formatCurrency = (amount) => {
   if (amount == null) return '$0.00';
@@ -1285,7 +1286,10 @@ export default function ReportsPage() {
               {reportData.topClientsByRevenue && reportData.topClientsByRevenue.length > 0 && (
                 <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
                   <div className="dashboard-card-header">
-                    <h3 className="dashboard-card-title">💰 Top Clients by Revenue</h3>
+                    <h3 className="dashboard-card-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Icon name="money" size={16} />
+                      Top Clients by Revenue
+                    </h3>
                   </div>
                   <div className="dashboard-card-body">
                     <div className="data-table-container">

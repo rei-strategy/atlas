@@ -6,6 +6,7 @@ import { useTimezone } from '../hooks/useTimezone';
 import { useNetworkError, isNetworkError } from '../context/NetworkErrorContext';
 import { NetworkErrorFallback } from '../components/NetworkError';
 import API_BASE from '../utils/apiBase';
+import Icon from '../components/Icon';
 
 const CATEGORY_LABELS = {
   follow_up: 'Follow Up',
@@ -554,7 +555,7 @@ export default function DashboardPage() {
                           onClick={() => navigate(`/clients/${client.id}`)}
                         >
                           <div className="quick-access-icon quick-access-icon-client">
-                            <span>👤</span>
+                            <Icon name="user" size={16} />
                           </div>
                           <div className="quick-access-info">
                             <div className="quick-access-name">{client.name}</div>
@@ -578,7 +579,7 @@ export default function DashboardPage() {
                           onClick={() => navigate(`/trips/${trip.id}`)}
                         >
                           <div className="quick-access-icon quick-access-icon-trip">
-                            <span>✈</span>
+                            <Icon name="plane" size={16} />
                           </div>
                           <div className="quick-access-info">
                             <div className="quick-access-name">{trip.name}</div>
@@ -664,7 +665,7 @@ export default function DashboardPage() {
                     onClick={() => navigateToTrip(deadline.tripId)}
                   >
                     <div className={`deadline-icon ${deadline.type === 'payment' ? 'deadline-payment' : 'deadline-travel'}`}>
-                      {deadline.type === 'payment' ? '$' : '✈'}
+                      {deadline.type === 'payment' ? <Icon name="money" size={14} /> : <Icon name="plane" size={14} />}
                     </div>
                     <div className="deadline-info">
                       <div className="deadline-label">{deadline.label}</div>

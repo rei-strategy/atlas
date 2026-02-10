@@ -3,6 +3,7 @@ import { usePortalAuth } from '../../context/PortalAuthContext';
 import { usePortalTimezone } from '../../hooks/usePortalTimezone';
 import { Link } from 'react-router-dom';
 import API_BASE from '../../utils/apiBase';
+import Icon from '../../components/Icon';
 
 export default function PortalDashboardPage() {
   const { customer, token } = usePortalAuth();
@@ -81,7 +82,9 @@ export default function PortalDashboardPage() {
 
       {trips.length === 0 ? (
         <div className="portal-empty-state">
-          <div className="portal-empty-icon">✈️</div>
+          <div className="portal-empty-icon" aria-hidden="true">
+            <Icon name="plane" size={28} />
+          </div>
           <h2>No trips yet</h2>
           <p>Your travel planner hasn't added any trips to your account yet. Check back soon!</p>
         </div>
@@ -104,7 +107,10 @@ export default function PortalDashboardPage() {
               </div>
               {trip.destination && (
                 <p className="portal-trip-destination">
-                  <span aria-hidden="true">📍</span> {trip.destination}
+                  <span aria-hidden="true" style={{ marginRight: '0.35rem' }}>
+                    <Icon name="location" size={12} />
+                  </span>
+                  {trip.destination}
                 </p>
               )}
               <div className="portal-trip-dates">

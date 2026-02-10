@@ -5,6 +5,7 @@ import { useTimezone } from '../hooks/useTimezone';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import API_BASE from '../utils/apiBase';
 import LoadingButton from '../components/LoadingButton';
+import Icon from '../components/Icon';
 
 // Audit Log Action Filter Options
 const APPROVAL_ACTIONS = [
@@ -572,7 +573,9 @@ function AgencySettingsForm({ token, isAdmin, refreshAgency }) {
                     }
                   }}
                 >
-                  <div className="upload-icon">📷</div>
+                  <div className="upload-icon" aria-hidden="true">
+                    <Icon name="camera" size={24} />
+                  </div>
                   <span>{isAdmin ? 'Click to upload logo' : 'No logo uploaded'}</span>
                   <span className="upload-hint">PNG, JPG, GIF up to 2MB</span>
                 </div>
@@ -893,7 +896,9 @@ function InviteUserModal({ isOpen, onClose, onSuccess, token }) {
         {result ? (
           <div className="modal-body">
             <div className="invite-success">
-              <div className="invite-success-icon">✓</div>
+              <div className="invite-success-icon" aria-hidden="true">
+                <Icon name="check" size={18} />
+              </div>
               <p><strong>{result.user.firstName} {result.user.lastName}</strong> has been invited as a <strong>{result.user.role}</strong>.</p>
               <div className="invite-credentials">
                 <p className="invite-credentials-label">Login Credentials:</p>
@@ -1427,7 +1432,7 @@ function RoleSelector({ userId, currentRole, currentUserId, token, onRoleChanged
           title="Change role"
           aria-label="Change role"
         >
-          ✏️
+          <Icon name="edit" size={16} />
         </button>
       </div>
     );
@@ -1457,7 +1462,7 @@ function RoleSelector({ userId, currentRole, currentUserId, token, onRoleChanged
         onClick={handleCancel}
         disabled={saving}
       >
-        ✕
+        <Icon name="x" size={14} />
       </button>
       {error && <span className="role-error">{error}</span>}
     </div>

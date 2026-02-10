@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 import Breadcrumb from '../components/Breadcrumb';
 import LoadingButton from '../components/LoadingButton';
 import API_BASE from '../utils/apiBase';
+import Icon from '../components/Icon';
 
 const STAGE_LABELS = {
   inquiry: 'Inquiry',
@@ -399,7 +400,10 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                 )}
                 {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
                   <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                    ⚠️ {dateWarnings.travelStartDate}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Icon name="warning" size={12} />
+                      {dateWarnings.travelStartDate}
+                    </span>
                   </span>
                 )}
               </div>
@@ -421,7 +425,10 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                 )}
                 {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
                   <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                    ⚠️ {dateWarnings.travelEndDate}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Icon name="warning" size={12} />
+                      {dateWarnings.travelEndDate}
+                    </span>
                   </span>
                 )}
               </div>
@@ -437,7 +444,7 @@ function TripFormModal({ isOpen, onClose, onSaved, trip, token }) {
                 border: '1px solid var(--color-warning, var(--color-warning))'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <span aria-hidden="true"><Icon name="lock" size={16} /></span>
                   <span style={{ fontWeight: 600, color: 'var(--color-warning)' }}>This trip is locked</span>
                 </div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--color-warning)', marginBottom: '0.75rem' }}>
@@ -940,7 +947,10 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                 )}
                 {!dateErrors.travelStartDate && dateWarnings.travelStartDate && (
                   <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                    ⚠️ {dateWarnings.travelStartDate}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Icon name="warning" size={12} />
+                      {dateWarnings.travelStartDate}
+                    </span>
                   </span>
                 )}
               </div>
@@ -960,7 +970,10 @@ function BookingFormModal({ isOpen, onClose, onSaved, booking, tripId, token, de
                 )}
                 {!dateErrors.travelEndDate && dateWarnings.travelEndDate && (
                   <span className="form-warning-message" style={{ color: 'var(--color-warning)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                    ⚠️ {dateWarnings.travelEndDate}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Icon name="warning" size={12} />
+                      {dateWarnings.travelEndDate}
+                    </span>
                   </span>
                 )}
               </div>
@@ -1726,7 +1739,17 @@ function BookingsTab({ tripId, token }) {
                           gap: '0.25rem'
                         }}
                       >
-                        {isUnderpaid ? '⚠️ Underpaid' : '✓ Overpaid'}
+                        {isUnderpaid ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="warning" size={12} />
+                            Underpaid
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="check" size={12} />
+                            Overpaid
+                          </span>
+                        )}
                         <span style={{ fontWeight: 600 }}>
                           ({isOverpaid ? '+' : ''}{formatCurrency(variance)})
                         </span>
@@ -1825,7 +1848,7 @@ function BookingsTab({ tripId, token }) {
               marginBottom: '1rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+                <span aria-hidden="true"><Icon name="warning" size={16} /></span>
                 <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
@@ -2001,7 +2024,7 @@ function BookingsTab({ tripId, token }) {
             marginBottom: '1rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+              <span aria-hidden="true"><Icon name="warning" size={16} /></span>
               <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
@@ -2151,7 +2174,17 @@ function CommissionsTab({ tripId, token }) {
                         className={`status-badge ${isUnderpaid ? 'status-error' : 'status-success'}`}
                         title={b.commissionVarianceNote || ''}
                       >
-                        {isUnderpaid ? '⚠️ Underpaid' : '✓ Overpaid'}
+                        {isUnderpaid ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="warning" size={12} />
+                            Underpaid
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Icon name="check" size={12} />
+                            Overpaid
+                          </span>
+                        )}
                         <span style={{ marginLeft: '0.25rem', fontWeight: 600 }}>
                           ({isOverpaid ? '+' : ''}{formatCurrency(variance)})
                         </span>
@@ -2610,7 +2643,7 @@ function TravelersTab({ tripId, token }) {
                       </span>
                     </td>
                     <td>{t.relationshipToClient || '—'}</td>
-                    <td>{t.specialNeeds ? '✓' : '—'}</td>
+                    <td>{t.specialNeeds ? <Icon name="check" size={12} /> : '—'}</td>
                   </tr>
                 );
               })}
@@ -3169,7 +3202,12 @@ function DocumentsTab({ tripId, token }) {
             disabled={generatingItinerary}
             title="Generate an itinerary from trip data"
           >
-            {generatingItinerary ? 'Generating...' : '🗺️ Generate Itinerary'}
+            {generatingItinerary ? 'Generating...' : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Icon name="map" size={14} />
+                Generate Itinerary
+              </span>
+            )}
           </button>
           <button
             className="btn btn-outline btn-sm"
@@ -3177,7 +3215,12 @@ function DocumentsTab({ tripId, token }) {
             disabled={generatingInvoice}
             title="Generate an invoice from trip financial data"
           >
-            {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
+            {generatingInvoice ? 'Generating...' : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Icon name="doc" size={14} />
+                Generate Invoice
+              </span>
+            )}
           </button>
           <button
             className="btn btn-outline btn-sm"
@@ -3185,7 +3228,12 @@ function DocumentsTab({ tripId, token }) {
             disabled={generatingAuthForm}
             title="Generate a credit card authorization form"
           >
-            {generatingAuthForm ? 'Generating...' : '🔒 Auth Form'}
+            {generatingAuthForm ? 'Generating...' : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Icon name="lock" size={14} />
+                Auth Form
+              </span>
+            )}
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>
             + Upload Document
@@ -3207,10 +3255,20 @@ function DocumentsTab({ tripId, token }) {
           <p className="empty-state-description">Upload contracts, invoices, itineraries, and other trip documents.</p>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={handleGenerateItinerary} disabled={generatingItinerary}>
-              {generatingItinerary ? 'Generating...' : '🗺️ Generate Itinerary'}
+              {generatingItinerary ? 'Generating...' : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name="map" size={14} />
+                  Generate Itinerary
+                </span>
+              )}
             </button>
             <button className="btn btn-outline" onClick={handleGenerateInvoice} disabled={generatingInvoice}>
-              {generatingInvoice ? 'Generating...' : '📄 Generate Invoice'}
+              {generatingInvoice ? 'Generating...' : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Icon name="doc" size={14} />
+                  Generate Invoice
+                </span>
+              )}
             </button>
             <button className="btn btn-primary" onClick={() => setShowUploadModal(true)}>
               + Upload Document
@@ -3277,7 +3335,7 @@ function DocumentsTab({ tripId, token }) {
                           onClick={() => handleDownload(doc)}
                           title="Download"
                         >
-                          ⬇
+                          <Icon name="download" size={14} />
                         </button>
                         <button
                           className="btn btn-sm"
@@ -3285,7 +3343,7 @@ function DocumentsTab({ tripId, token }) {
                           style={{ background: 'var(--color-error)', color: 'var(--color-card-bg)', border: 'none' }}
                           title="Delete"
                         >
-                          ✕
+                          <Icon name="x" size={14} />
                         </button>
                       </div>
                     </td>
@@ -3593,14 +3651,14 @@ function TimelineTab({ tripId, token }) {
   };
 
   const getActionIcon = (action) => {
-    if (action.includes('create') || action.includes('add')) return '➕';
-    if (action.includes('update') || action.includes('change')) return '✏️';
-    if (action.includes('delete') || action.includes('cancel')) return '🗑️';
-    if (action.includes('complete')) return '✅';
-    if (action.includes('lock')) return '🔒';
-    if (action.includes('unlock')) return '🔓';
-    if (action.includes('upload')) return '📤';
-    return '📋';
+    if (action.includes('create') || action.includes('add')) return 'plus';
+    if (action.includes('update') || action.includes('change')) return 'edit';
+    if (action.includes('delete') || action.includes('cancel')) return 'trash';
+    if (action.includes('complete')) return 'check';
+    if (action.includes('lock')) return 'lock';
+    if (action.includes('unlock')) return 'unlock';
+    if (action.includes('upload')) return 'upload';
+    return 'clipboard';
   };
 
   if (loading) {
@@ -3655,7 +3713,7 @@ function TimelineTab({ tripId, token }) {
                 fontSize: '0.875rem'
               }}
             >
-              {getActionIcon(activity.action)}
+              <Icon name={getActionIcon(activity.action)} size={14} />
             </div>
             <div className="timeline-content" style={{ flex: 1 }}>
               <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>
@@ -3841,7 +3899,10 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
               }}
               title={trip.lockReason || 'Trip is locked'}
             >
-              🔒 Trip Locked
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Icon name="lock" size={14} />
+                Trip Locked
+              </span>
             </button>
           ) : (
             <button className="btn btn-primary btn-sm" onClick={() => onEdit(trip)}>
@@ -3937,7 +3998,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
           alignItems: 'flex-start',
           gap: '0.75rem'
         }}>
-          <span style={{ fontSize: '1.5rem' }}>🔒</span>
+          <span aria-hidden="true"><Icon name="lock" size={20} /></span>
           <div>
             <div style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: '0.25rem' }}>
               Trip is Locked
@@ -3953,7 +4014,11 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
         <div className="detail-card-header">
           <div>
             <h2 className="detail-name">
-              {trip.isLocked && <span style={{ marginRight: '0.5rem' }}>🔒</span>}
+              {trip.isLocked && (
+                <span style={{ marginRight: '0.5rem' }} aria-hidden="true">
+                  <Icon name="lock" size={12} />
+                </span>
+              )}
               {trip.name}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
@@ -4130,7 +4195,7 @@ function TripDetail({ trip, onBack, onEdit, onStageChange, onDelete, onDuplicate
             marginBottom: '1rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '1.25rem' }} aria-hidden="true">⚠️</span>
+              <span aria-hidden="true"><Icon name="warning" size={16} /></span>
               <span style={{ fontWeight: 600, color: 'var(--color-error)' }}>Warning: This action cannot be undone</span>
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-error)', marginBottom: 0 }}>
@@ -4581,7 +4646,10 @@ export default function TripsPage() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
           <button className="btn btn-secondary" onClick={() => setShowImportModal(true)}>
-            📥 Import CSV
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Icon name="download" size={14} />
+              Import CSV
+            </span>
           </button>
           <button className="btn btn-primary" onClick={handleCreateTrip}>
             + Create Trip
@@ -4865,8 +4933,8 @@ export default function TripsPage() {
               <div style={{ marginBottom: '16px', padding: '16px', background: importResult.imported > 0 ? 'var(--color-success-light)' : 'var(--color-error-light)', borderRadius: '8px' }}>
                 <p style={{ fontWeight: 600, color: importResult.imported > 0 ? 'var(--color-success)' : 'var(--color-error)' }}>
                   {importResult.imported > 0
-                    ? `✓ Successfully imported ${importResult.imported} trips`
-                    : '✗ No trips were imported'}
+                    ? `Successfully imported ${importResult.imported} trips`
+                    : 'No trips were imported'}
                 </p>
               </div>
 
