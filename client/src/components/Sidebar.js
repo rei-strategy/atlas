@@ -117,12 +117,7 @@ function Sidebar({ isOpen, onClose }) {
       >
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <rect width="40" height="40" rx="8" fill="var(--color-primary)" />
-              <path d="M12 28L20 12L28 28H12Z" fill="white" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
-              <circle cx="20" cy="22" r="2" fill="var(--color-primary)" />
-            </svg>
-            <span className="sidebar-brand-text">Atlas</span>
+            <img src="/brand/atlas-icon.png" alt="Atlas" width="28" height="28" />
           </div>
           <button className="sidebar-close-btn" onClick={onClose} aria-label="Close navigation">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

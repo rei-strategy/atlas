@@ -22,10 +22,7 @@ export default function PortalLayout({ children }) {
       <header className="portal-header" role="banner">
         <div className="portal-header-left">
           <Link to="/portal/dashboard" className="portal-brand">
-            <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-              <rect width="40" height="40" rx="8" fill="var(--color-primary)" />
-              <path d="M12 28L20 12L28 28H12Z" fill="white" strokeWidth="0" />
-            </svg>
+            <img src="/brand/atlas-icon.png" alt="Atlas" width="32" height="32" />
             <span className="portal-brand-name">
               {agency?.name || 'Atlas'} <span className="portal-badge">Portal</span>
             </span>

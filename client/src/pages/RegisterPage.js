@@ -159,13 +159,8 @@ export default function RegisterPage() {
       <div className="auth-container">
         <div className="auth-header">
           <div className="auth-logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="40" height="40" rx="8" fill="var(--color-primary)" />
-              <path d="M12 28L20 12L28 28H12Z" fill="white" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
-              <circle cx="20" cy="22" r="2" fill="var(--color-primary)" />
-            </svg>
+            <img src="/brand/atlas-icon.png" alt="Atlas" width="40" height="40" />
           </div>
-          <h1 className="auth-title">Atlas</h1>
           <p className="auth-subtitle">Travel Agency Platform</p>
         </div>
 
