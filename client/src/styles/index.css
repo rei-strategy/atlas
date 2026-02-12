@@ -144,6 +144,15 @@
   border-color: var(--color-border);
 }
 
+[data-theme="dark"] .dashboard-card-header {
+  background-color: var(--color-primary-light);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .dashboard-card-header h3 {
+  color: #1f252c;
+}
+
 [data-theme="dark"] .modal-content {
   background-color: var(--color-bg);
   border-color: var(--color-border);
