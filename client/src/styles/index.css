@@ -1259,6 +1259,7 @@ fieldset:disabled .btn {
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
+  background-color: var(--color-primary);
 }
 
 .dashboard-card-title-row {
@@ -1271,7 +1272,7 @@ fieldset:disabled .btn {
   font-size: var(--font-size-base);
   font-weight: 600;
   margin: 0;
-  color: var(--color-text);
+  color: var(--color-card-bg);
 }
 
 .dashboard-card-body {
